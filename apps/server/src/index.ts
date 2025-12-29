@@ -6,7 +6,7 @@ import { createContext } from "@WhatLead/api/context";
 import { appRouter, type AppRouter } from "@WhatLead/api/routers/index";
 import { auth } from "@WhatLead/auth";
 import { env } from "@WhatLead/env/server";
-import { streamText, type UIMessage, convertToModelMessages, wrapLanguageModel } from "ai";
+import { convertToModelMessages, streamText, wrapLanguageModel, type UIMessage } from "ai";
 import Fastify from "fastify";
 
 const baseCorsConfig = {
@@ -86,10 +86,10 @@ fastify.get("/", async () => {
   return "OK";
 });
 
-fastify.listen({ port: 3000 }, (err) => {
+fastify.listen({ port: Number(env.PORT) }, (err) => {
   if (err) {
     fastify.log.error(err);
     process.exit(1);
   }
-  console.log("Server running on port 3000");
+  console.log(`Server running on port ${Number(env.PORT)}`);
 });

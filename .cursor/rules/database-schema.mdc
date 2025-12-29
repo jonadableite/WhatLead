@@ -1,0 +1,300 @@
+---
+alwaysApply: true
+---
+
+# WhatLead Database Schema (Microserviços)
+
+## Purpose & Scope
+
+This rule provides an overview of the WhatLead application's database schemas within PostgreSQL. **IMPORTANTE**: WhatLead utiliza arquitetura de microserviços com **Database per Service**. Cada microserviço possui seu próprio banco de dados PostgreSQL isolado. This rule outlines the main tables, their relationships, and crucial interaction patterns for each service database.
+
+## Arquitetura de Database (Database per Service)
+
+**REGRA CRÍTICA**: Cada microserviço possui banco de dados PostgreSQL próprio e isolado. **NUNCA** acessar banco de dados de outro microserviço diretamente.
+
+### Bancos de Dados por Microserviço
+
+1. **auth_db** - `auth-service`
+2. **campaign_db** - `campaign-service`
+3. **message_db** - `message-service`
+4. **whatsapp_db** - `whatsapp-service`
+5. **antiban_db** - `anti-ban-service`
+6. **ai_db** - `ai-service`
+7. **analytics_db** - `analytics-service`
+
+### Comunicação entre Dados
+
+- ✅ **Message Broker**: Sincronização eventual via eventos
+- ✅ **API do Serviço**: Queries cross-service via HTTP/gRPC
+- ❌ **JOINs entre bancos**: PROIBIDO
+- ❌ **Acesso direto**: PROIBIDO
+
+## Schema Overview
+
+The database schemas are managed via Prisma and located in `packages/db/prisma/schemas/` (um schema por microserviço). Key entity groups by service:
+
+### auth_db (auth-service)
+
+**Schema**: `packages/db/prisma/schemas/auth/`
+
+- **User**: Usuários da plataforma (Better Auth). Fields: `id`, `name`, `email`, `emailVerified`, `image`, `role` (ADMIN/MARKETER/BUSINESS_OWNER/AGENCY/SUPPORT), timestamps.
+- **Session**: Sessões de autenticação (Better Auth). Fields: `id`, `userId`, `token`, `expiresAt`, `ipAddress`, `userAgent`, timestamps.
+- **Account**: Contas vinculadas (Better Auth). Fields: `id`, `userId`, `accountId`, `providerId`, `accessToken`, `refreshToken`, timestamps.
+- **Verification**: Tokens de verificação. Fields: `id`, `identifier`, `value`, `expiresAt`, timestamps.
+
+### campaign_db (campaign-service)
+
+**Schema**: `packages/db/prisma/schemas/campaign/`
+
+- **Campaign**: Campanhas de marketing criadas por usuários. Fields: `id`, `userId`, `name`, `description`, `status` (DRAFT/ACTIVE/PAUSED/COMPLETED), `messageTemplate`, `createdAt`, `updatedAt`.
+- **CampaignTemplate**: Templates de mensagens reutilizáveis. Fields: `id`, `userId`, `name`, `content`, `variables`, timestamps.
+- **CampaignSchedule**: Agendamentos de campanhas. Fields: `id`, `campaignId`, `scheduledAt`, `status`, `recurrence`, timestamps.
+- **Contact**: Contatos/leads gerenciados. Fields: `id`, `userId`, `phoneNumber`, `name`, `email`, `tags`, `metadata JSON`, timestamps.
+
+### message_db (message-service)
+
+**Schema**: `packages/db/prisma/schemas/message/`
+
+- **Message**: Mensagens enviadas via WhatsApp. Fields: `id`, `campaignId`, `accountId`, `phoneNumber`, `message`, `status` (QUEUED/SENT/DELIVERED/READ/FAILED), `sentAt`, `deliveredAt`, `readAt`, `errorMessage`, `retryCount`, timestamps.
+- **MessageQueue**: Fila de processamento de mensagens. Fields: `id`, `messageId`, `priority`, `status`, `scheduledAt`, `processedAt`, timestamps.
+- **MessageEvent**: Eventos de mensagens (auditoria). Fields: `id`, `messageId`, `eventType`, `eventData JSON`, `timestamp`, timestamps.
+
+### whatsapp_db (whatsapp-service)
+
+**Schema**: `packages/db/prisma/schemas/whatsapp/`
+
+- **WhatsAppAccount**: Contas WhatsApp conectadas. Fields: `id`, `userId`, `phoneNumber`, `status` (CONNECTED/DISCONNECTED/BANNED), `sessionId`, `warmupStatus` (IDLE/ACTIVE/COMPLETED), `warmupProgress` (0-100), `dailyLimit`, `lastActivity`, `metadata JSON`, timestamps.
+- **WhatsAppSession**: Sessões de conexão WhatsApp. Fields: `id`, `accountId`, `sessionId`, `status`, `connectedAt`, `disconnectedAt`, `metadata JSON`, timestamps.
+
+### antiban_db (anti-ban-service)
+
+**Schema**: `packages/db/prisma/schemas/antiban/`
+
+- **WarmupSession**: Sessões de aquecimento de contas. Fields: `id`, `accountId`, `strategy`, `startDate`, `endDate`, `currentDay`, `totalDays`, `messagesSent`, `status`, `config JSON`, timestamps.
+- **RateLimit**: Limites de rate por conta. Fields: `id`, `accountId`, `limitType`, `maxMessages`, `timeWindow`, `currentCount`, `resetAt`, timestamps.
+- **AccountHealth**: Saúde e status de contas. Fields: `id`, `accountId`, `healthScore`, `riskLevel`, `lastCheck`, `issues JSON`, timestamps.
+- **BanEvent**: Eventos de banimento. Fields: `id`, `accountId`, `eventType`, `reason`, `timestamp`, timestamps.
+
+### ai_db (ai-service)
+
+**Schema**: `packages/db/prisma/schemas/ai/`
+
+- **AIAgent**: Agentes de IA configurados. Fields: `id`, `userId`, `name`, `model` (GPT-4, Claude, etc.), `prompt`, `temperature`, `maxTokens`, `active`, `config JSON`, timestamps.
+- **AIConversation**: Conversas gerenciadas por IA. Fields: `id`, `agentId`, `phoneNumber`, `messages JSON`, `context JSON`, `status`, `lastActivity`, timestamps.
+- **AIModelUsage**: Uso de modelos de IA (billing). Fields: `id`, `agentId`, `model`, `tokensUsed`, `cost`, `timestamp`, timestamps.
+
+### analytics_db (analytics-service)
+
+**Schema**: `packages/db/prisma/schemas/analytics/`
+
+- **CampaignStats**: Estatísticas agregadas de campanhas. Fields: `campaignId`, `date`, `sent`, `delivered`, `read`, `replied`, `deliveryRate`, `readRate`, `replyRate`, `updatedAt`.
+- **AccountStats**: Estatísticas por conta WhatsApp. Fields: `accountId`, `date`, `messagesSent`, `messagesDelivered`, `messagesRead`, `healthScore`, `updatedAt`.
+- **UserStats**: Estatísticas por usuário. Fields: `userId`, `date`, `campaignsCreated`, `messagesSent`, `accountsConnected`, `updatedAt`.
+- **EventLog**: Log de eventos para analytics. Fields: `id`, `eventType`, `entityType`, `entityId`, `eventData JSON`, `timestamp`, timestamps.
+
+## Key Relationships (via IDs Compartilhados)
+
+**IMPORTANTE**: Como cada microserviço possui seu próprio banco, relações são mantidas através de IDs compartilhados (UUIDs), **não** através de foreign keys diretas entre bancos.
+
+### Relações por Referência (IDs Compartilhados)
+
+- **User** (auth_db) → **Campaign** (campaign_db): Relação via `userId` (UUID)
+- **Campaign** (campaign_db) → **Message** (message_db): Relação via `campaignId` (UUID)
+- **User** (auth_db) → **WhatsAppAccount** (whatsapp_db): Relação via `userId` (UUID)
+- **WhatsAppAccount** (whatsapp_db) → **Message** (message_db): Relação via `accountId` (UUID)
+- **User** (auth_db) → **AIAgent** (ai_db): Relação via `userId` (UUID)
+- **AIAgent** (ai_db) → **AIConversation** (ai_db): Relação via `agentId` (UUID) - **dentro do mesmo banco**
+
+### Sincronização de Dados
+
+**Padrão**: Sincronização eventual via Message Broker quando necessário:
+
+- **User Created**: `auth-service` publica `user.created` → outros serviços criam referências locais se necessário
+- **Account Status**: `whatsapp-service` publica `account.status.changed` → `anti-ban-service` e `message-service` atualizam estado local
+- **Campaign Activated**: `campaign-service` publica `campaign.activated` → `message-service` e `analytics-service` reagem
+
+**Regras**:
+
+- ✅ **SEMPRE** usar UUIDs para identificação entre serviços
+- ✅ **SEMPRE** validar existência de entidades via API do serviço quando necessário
+- ❌ **NUNCA** usar foreign keys entre bancos de serviços diferentes
+- ❌ **NUNCA** assumir que dados estão sincronizados imediatamente (eventual consistency)
+
+## Critical Flows (Microserviços + Message Broker)
+
+### Envio de Mensagem com Proteção Anti-Ban
+
+**Fluxo Assíncrono via Message Broker**:
+
+1. API Gateway recebe `message.send` → roteia para `message-service`
+2. `message-service` valida dados e cria `Message` no `message_db`
+3. `message-service` publica evento `message.created` via Message Broker
+4. `anti-ban-service` subscreve `message.created` → verifica rate limits no `antiban_db`
+5. `anti-ban-service` publica evento `rate-limit.checked` (aprovado/rejeitado)
+6. `message-service` subscreve `rate-limit.checked` → atualiza status da mensagem
+7. Se aprovado, `message-service` enfileira para envio (Work Queue)
+8. Worker processa mensagem → envia via WhatsApp
+9. Worker publica eventos: `message.sent`, `message.delivered`, `message.read`
+10. `analytics-service` subscreve eventos → atualiza estatísticas no `analytics_db`
+
+**Base de Dados Envolvidos**: `message_db`, `antiban_db`, `analytics_db`
+
+### Aquecimento de Conta
+
+**Fluxo Assíncrono via Message Broker**:
+
+1. API Gateway recebe `whatsapp.account.startWarmup` → roteia para `whatsapp-service`
+2. `whatsapp-service` atualiza `warmupStatus` no `whatsapp_db`
+3. `whatsapp-service` publica evento `warmup.started` via Message Broker
+4. `anti-ban-service` subscreve `warmup.started` → cria `WarmupSession` no `antiban_db`
+5. `anti-ban-service` processa estratégia de aquecimento progressivamente
+6. `anti-ban-service` publica evento `warmup.message.scheduled` para cada mensagem
+7. `message-service` subscreve `warmup.message.scheduled` → processa mensagens de aquecimento
+8. Quando completo, `anti-ban-service` publica `warmup.completed`
+9. `whatsapp-service` subscreve `warmup.completed` → atualiza status no `whatsapp_db`
+
+**Base de Dados Envolvidos**: `whatsapp_db`, `antiban_db`, `message_db`
+
+### Processamento de IA
+
+**Fluxo Assíncrono via Message Broker**:
+
+1. `message-service` recebe mensagem → publica evento `message.received` via Message Broker
+2. `ai-service` subscreve `message.received` → verifica se há `AIAgent` ativo para o número
+3. `ai-service` busca contexto da `AIConversation` no `ai_db`
+4. `ai-service` gera resposta usando modelo de IA configurado
+5. `ai-service` atualiza `AIConversation` no `ai_db` com novo contexto
+6. `ai-service` publica evento `ai.response.generated` com resposta
+7. `message-service` subscreve `ai.response.generated` → envia resposta via WhatsApp
+8. `analytics-service` subscreve eventos → registra uso de IA no `analytics_db`
+
+**Base de Dados Envolvidos**: `message_db`, `ai_db`, `analytics_db`
+
+### Criação de Campanha
+
+**Fluxo Assíncrono via Message Broker**:
+
+1. API Gateway recebe `campaign.create` → roteia para `campaign-service`
+2. `campaign-service` cria `Campaign` no `campaign_db`
+3. `campaign-service` publica evento `campaign.created` via Message Broker
+4. `analytics-service` subscreve `campaign.created` → inicializa estatísticas no `analytics_db`
+5. Se campanha ativada, `campaign-service` publica `campaign.activated`
+6. `message-service` subscreve `campaign.activated` → prepara fila de mensagens
+
+**Base de Dados Envolvidos**: `campaign_db`, `analytics_db`, `message_db`
+
+## Indexes
+
+### Performance Critical Indexes
+
+- `Message(campaignId, status, createdAt)` - Para listagem de mensagens por campanha.
+- `Message(accountId, status, sentAt)` - Para tracking de envios por conta.
+- `WhatsAppAccount(userId, status)` - Para listagem de contas do usuário.
+- `Campaign(userId, status)` - Para listagem de campanhas do usuário.
+- `Contact(userId, phoneNumber)` - Para busca rápida de contatos.
+
+## Constraints
+
+### Constraints por Banco (Isolados)
+
+**auth_db**:
+
+- `User(email)` - Email único por usuário
+- `Session(token)` - Token único por sessão
+
+**campaign_db**:
+
+- `Campaign(userId, name)` - Nome único por campanha por usuário
+- `Contact(userId, phoneNumber)` - Um contato por número por usuário
+
+**message_db**:
+
+- `Message(id)` - ID único (UUID)
+- `MessageQueue(messageId)` - Uma entrada por mensagem na fila
+
+**whatsapp_db**:
+
+- `WhatsAppAccount(phoneNumber)` - Uma conta por número (único global)
+- `WhatsAppSession(sessionId)` - Sessão única
+
+**antiban_db**:
+
+- `RateLimit(accountId, limitType)` - Um limite por tipo por conta
+- `WarmupSession(accountId)` - Uma sessão de aquecimento ativa por conta
+
+**ai_db**:
+
+- `AIAgent(userId, name)` - Nome único por agente por usuário
+- `AIConversation(agentId, phoneNumber)` - Uma conversa por agente por número
+
+**analytics_db**:
+
+- `CampaignStats(campaignId, date)` - Estatísticas únicas por campanha por data
+- `AccountStats(accountId, date)` - Estatísticas únicas por conta por data
+
+### Foreign Keys
+
+**IMPORTANTE**: Foreign keys existem apenas **dentro do mesmo banco de dados**:
+
+- ✅ `CampaignSchedule(campaignId)` → `Campaign(id)` - **mesmo banco** (campaign_db)
+- ✅ `AIConversation(agentId)` → `AIAgent(id)` - **mesmo banco** (ai_db)
+- ✅ `MessageQueue(messageId)` → `Message(id)` - **mesmo banco** (message_db)
+- ❌ **NUNCA** foreign keys entre bancos diferentes (usar IDs compartilhados + Message Broker)
+
+## Functions
+
+### Key Functions (RPC):
+
+Not yet developed. Future functions may include:
+
+- `calculate_delivery_rate(campaign_id)`
+- `get_account_health(account_id)`
+- `update_campaign_stats(campaign_id)`
+
+## Restrictions e Boas Práticas
+
+### Restrições Obrigatórias
+
+- ❌ **NUNCA** acessar banco de dados de outro microserviço diretamente
+- ❌ **NUNCA** usar JOINs entre tabelas de bancos diferentes
+- ❌ **NUNCA** usar foreign keys entre bancos de serviços diferentes
+- ✅ **SEMPRE** usar Prisma Client para operações de banco (nunca raw SQL, exceto quando absolutamente necessário)
+- ✅ **SEMPRE** validar inputs antes de operações de banco
+- ✅ **SEMPRE** usar Message Broker para comunicação entre serviços
+- ✅ **SEMPRE** usar UUIDs para identificação entre serviços
+- ✅ **SEMPRE** implementar idempotência em handlers de eventos
+
+### Acesso Cross-Service
+
+**Quando precisar de dados de outro serviço**:
+
+1. **Via API do Serviço** (síncrono, quando necessário):
+
+   ```typescript
+   // ✅ CORRETO - Buscar dados via API
+   const campaign = await campaignService.getById(campaignId);
+   ```
+
+2. **Via Eventos do Message Broker** (assíncrono, preferido):
+
+   ```typescript
+   // ✅ CORRETO - Subscrever eventos
+   messageBroker.subscribe("campaign.created", async (event) => {
+     await createLocalReference(event.campaignId);
+   });
+   ```
+
+3. **Cache Local** (para dados frequentemente acessados):
+   ```typescript
+   // ✅ CORRETO - Cache local de referências
+   const cachedCampaign = await cache.get(`campaign:${campaignId}`);
+   if (!cachedCampaign) {
+     const campaign = await campaignService.getById(campaignId);
+     await cache.set(`campaign:${campaignId}`, campaign, { ttl: 3600 });
+   }
+   ```
+
+## Related Rules
+
+- @project-rules-enhanced.mdc: Overall project structure, tech stack, and development standards.
+- @apis.mdc: API endpoint documentation.

@@ -1,0 +1,183 @@
+---
+description: Regra para sincronização automática com Notion após atualizações no código
+alwaysApply: true
+---
+
+# 🔄 Sincronização com Notion
+
+## Regra: Atualizar Notion Após Mudanças no Código
+
+**OBRIGATÓRIO**: Sempre que houver atualizações significativas no código, o planejamento no Notion **DEVE** ser atualizado.
+
+### Quando Atualizar o Notion
+
+Atualize o Notion quando:
+
+1. ✅ **Nova feature implementada**
+   - Adicionar na seção "O QUE JÁ FOI IMPLEMENTADO"
+   - Atualizar status de progresso
+   - Documentar decisões arquiteturais
+
+2. ✅ **Microserviço criado ou modificado**
+   - Atualizar status do microserviço
+   - Documentar endpoints criados
+   - Atualizar diagramas de arquitetura
+
+3. ✅ **Database schema alterado**
+   - Documentar mudanças no schema
+   - Atualizar relacionamentos
+   - Documentar migrations
+
+4. ✅ **API endpoints criados/modificados**
+   - Atualizar documentação de APIs
+   - Adicionar exemplos de uso
+   - Documentar autenticação necessária
+
+5. ✅ **Frontend pages/components criados**
+   - Atualizar lista de páginas
+   - Documentar componentes principais
+   - Atualizar status de UI
+
+6. ✅ **Testes implementados**
+   - Atualizar cobertura de testes
+   - Documentar estratégia de testes
+   - Atualizar status de qualidade
+
+7. ✅ **DevOps/Infraestrutura configurada**
+   - Documentar configurações
+   - Atualizar status de deploy
+   - Documentar variáveis de ambiente
+
+### O Que Atualizar no Notion
+
+#### 1. Seção "O QUE JÁ FOI IMPLEMENTADO"
+- Adicionar novos itens completos
+- Marcar itens como concluídos
+- Adicionar notas de implementação
+
+#### 2. Seção "O QUE FALTA IMPLEMENTAR"
+- Remover itens que foram completados
+- Adicionar novos itens identificados
+- Atualizar prioridades
+
+#### 3. Tabela de Progresso
+- Atualizar percentual de progresso por área
+- Atualizar status (✅ Completo, 🟢 Quase completo, 🟡 Parcial, 🔴 Não iniciado)
+
+#### 4. Roadmap
+- Atualizar fases concluídas
+- Ajustar próximas etapas
+- Atualizar estimativas
+
+#### 5. Notas de Implementação
+- Documentar decisões arquiteturais
+- Adicionar lições aprendidas
+- Documentar problemas encontrados e soluções
+
+### Como Atualizar o Notion
+
+#### Opção 1: Atualização Manual (Recomendado)
+1. Abrir o documento `docs/NOTION_PLANNING.md`
+2. Atualizar as seções relevantes
+3. Copiar conteúdo atualizado para o Notion
+4. Manter formato e estrutura
+
+#### Opção 2: Usar MCP do Notion (Se disponível)
+1. Verificar se MCP do Notion está configurado
+2. Usar ferramentas MCP para atualizar diretamente
+3. Manter sincronização automática
+
+### Template de Atualização
+
+Ao atualizar o Notion, use este formato:
+
+```markdown
+## ✅ [DATA] - [FEATURE/MUDANÇA]
+
+### O que foi feito:
+- [ ] Item 1
+- [ ] Item 2
+- [ ] Item 3
+
+### Arquivos alterados:
+- `caminho/arquivo.ts` - Descrição
+- `caminho/outro-arquivo.ts` - Descrição
+
+### Decisões arquiteturais:
+- Decisão 1: Razão
+- Decisão 2: Razão
+
+### Próximos passos:
+- [ ] Próximo item 1
+- [ ] Próximo item 2
+```
+
+### Checklist de Sincronização
+
+Antes de finalizar uma tarefa:
+
+- [ ] Código implementado e testado
+- [ ] Documentação atualizada (`docs/NOTION_PLANNING.md`)
+- [ ] Notion atualizado com as mesmas informações
+- [ ] Status de progresso atualizado
+- [ ] Roadmap atualizado (se necessário)
+- [ ] Notas de implementação adicionadas (se relevante)
+
+### Exceções
+
+**NÃO é necessário atualizar o Notion para**:
+- Correções de bugs menores
+- Refatorações internas sem impacto arquitetural
+- Ajustes de estilo/UI menores
+- Correções de typos
+
+**SEMPRE atualizar o Notion para**:
+- Novas features
+- Mudanças arquiteturais
+- Novos microserviços
+- Mudanças em APIs públicas
+- Mudanças em database schema
+- Novas integrações
+
+### Localização do Documento
+
+- **Documento local**: `docs/NOTION_PLANNING.md`
+- **Notion**: [Link do Notion - a ser configurado]
+
+### Frequência de Atualização
+
+- **Imediato**: Após implementação de features críticas
+- **Diário**: Ao final do dia de desenvolvimento
+- **Semanal**: Revisão completa do progresso
+
+---
+
+## 📋 Checklist de Sincronização
+
+### Após Implementar Feature
+
+- [ ] Atualizar `docs/NOTION_PLANNING.md`
+- [ ] Adicionar na seção "O QUE JÁ FOI IMPLEMENTADO"
+- [ ] Remover da seção "O QUE FALTA IMPLEMENTAR" (se estava lá)
+- [ ] Atualizar tabela de progresso
+- [ ] Atualizar Notion com as mesmas informações
+- [ ] Adicionar notas de implementação (se relevante)
+
+### Após Mudança Arquitetural
+
+- [ ] Documentar decisão em `docs/NOTION_PLANNING.md`
+- [ ] Atualizar diagramas no Notion
+- [ ] Atualizar seção "Decisões Arquiteturais"
+- [ ] Notificar equipe (se aplicável)
+
+### Após Criar Microserviço
+
+- [ ] Adicionar na lista de microserviços
+- [ ] Documentar responsabilidades
+- [ ] Atualizar diagrama de arquitetura
+- [ ] Documentar database schema
+- [ ] Atualizar Notion
+
+---
+
+**IMPORTANTE**: A sincronização com Notion é obrigatória para manter visibilidade do progresso e facilitar colaboração.

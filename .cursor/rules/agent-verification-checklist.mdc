@@ -1,0 +1,201 @@
+---
+description: Checklist de verificação obrigatório para agentes antes de entregar qualquer solução
+alwaysApply: true
+---
+
+# ✅ Checklist de Verificação para Agentes
+
+Este checklist **DEVE** ser executado antes de considerar qualquer tarefa como concluída.
+
+## 🔍 Fase 1: Compreensão e Planejamento
+
+### Antes de Começar
+- [ ] Li e compreendi a solicitação do usuário
+- [ ] Consultei documentação relevante (`docs/`, `project-rules-enhanced.mdc`, `agent-verification-checklist.mdc`)
+- [ ] Busquei código existente similar (`codebase_search`)
+- [ ] Identifiquei qual especialista é necessário (DDD, System Design, Engenharia, Arquitetura)
+- [ ] Criei TODO list com etapas claras (`todo_write`)
+
+### Contexto do Projeto
+- [ ] Entendi que WhatLead é SaaS de WhatsApp Marketing com automação, anti-ban, IA e aquecimento
+- [ ] Identifiquei o domínio de negócio afetado (Automação, Proteção, IA, Disparos, Analytics, Contas)
+- [ ] Identifiquei o público-alvo (MARKETER, BUSINESS_OWNER, AGENCY, ADMIN, SUPPORT)
+
+---
+
+## 💻 Fase 2: Implementação
+
+### Arquitetura em Camadas
+- [ ] Respeitei a separação de camadas (Frontend → Backend → Business Logic → Database)
+- [ ] Frontend não acessa Database diretamente
+- [ ] Business Logic não depende de Frontend
+- [ ] Não criei dependências circulares
+
+### TypeScript e Type Safety
+- [ ] Nenhum uso de `any` ou `var`
+- [ ] Todos os tipos explicitamente definidos
+- [ ] Interfaces usadas ao invés de types (exceto quando necessário)
+- [ ] Arrow functions usadas
+- [ ] async/await para Promises
+- [ ] Parâmetros de objeto quando > 2 parâmetros
+
+### Validação e Segurança
+- [ ] Inputs validados com Zod na camada tRPC
+- [ ] Regras de negócio validadas na camada de Business Logic
+- [ ] Permissões validadas antes de operações
+- [ ] Secrets não expostos no código
+- [ ] Rate limiting implementado (se aplicável a WhatsApp)
+
+### Clean Code
+- [ ] Funções pequenas (< 50 linhas, preferencialmente < 30)
+- [ ] Early returns (evitado aninhamento de if/else)
+- [ ] Magic numbers movidos para constantes
+- [ ] Nomes descritivos (verbos para funções)
+- [ ] DRY aplicado (sem duplicação de código)
+- [ ] Variáveis declaradas próximas ao uso
+
+### Convenções de Nomenclatura
+- [ ] Classes/Interfaces: PascalCase
+- [ ] Funções/Variáveis: camelCase
+- [ ] Arquivos/Diretórios: kebab-case
+- [ ] Constantes: UPPER_SNAKE_CASE
+- [ ] Funções são verbos (não substantivos)
+
+### Logs e Observabilidade
+- [ ] Logs estruturados com `traceId`
+- [ ] Logs incluem `userId`, `campaignId`, `action`
+- [ ] Níveis apropriados (info, warn, error)
+
+### Proteção Anti-Ban (se aplicável)
+- [ ] Rate limiting respeitado
+- [ ] Comportamento humano simulado
+- [ ] Status de contas monitorado
+- [ ] Backoff exponencial implementado
+- [ ] Sistema de aquecimento considerado
+
+---
+
+## 🧪 Fase 3: Testes
+
+### Cobertura
+- [ ] Testes criados para novos routers/procedures
+- [ ] Testes de integração criados (se aplicável)
+- [ ] Cobertura mínima de 80% atingida
+- [ ] Regras de negócio críticas com 100% de cobertura
+
+### Qualidade dos Testes
+- [ ] Padrão Arrange, Act, Assert seguido
+- [ ] Testes isolados e independentes
+- [ ] Conexões (DB) encerradas após testes
+- [ ] Mocks apropriados usados
+
+### Execução
+- [ ] Todos os testes unitários passando (`pnpm test:unit`)
+- [ ] Todos os testes de integração passando (`pnpm test:integration`)
+- [ ] Nenhum teste ignorado ou comentado
+
+---
+
+## 🔧 Fase 4: Qualidade e Validação
+
+### Type-Check e Lint
+- [ ] Type-check passando (`pnpm check-types`)
+- [ ] Lint passando (`pnpm check`)
+- [ ] Nenhum erro ou warning crítico
+
+### Build
+- [ ] Build bem-sucedido (`pnpm build`)
+- [ ] Nenhum erro de compilação
+- [ ] Migrations aplicadas (se aplicável)
+
+### Código Completo
+- [ ] Código é completo e profissional (não básico)
+- [ ] Tratamento de erros implementado
+- [ ] Edge cases considerados
+- [ ] Performance otimizada (queries, paginação, etc.)
+
+---
+
+## 📚 Fase 5: Documentação
+
+### Atualização de Documentos
+- [ ] README/docs atualizados (se comportamento mudou)
+- [ ] tRPC routers documentados (se novos procedures)
+- [ ] Comentários no código quando necessário
+- [ ] Decisões arquiteturais documentadas (ADRs se complexas)
+- [ ] Notion atualizado (se feature significativa implementada) - Ver `@notion-sync.mdc`
+- [ ] `docs/NOTION_PLANNING.md` atualizado com progresso
+
+### Documentação de Código
+- [ ] Interfaces e tipos bem documentados
+- [ ] Funções complexas com comentários explicativos
+- [ ] Exemplos de uso quando relevante
+
+---
+
+## 🚀 Fase 6: Entrega
+
+### Resposta ao Usuário
+- [ ] Resposta em Português
+- [ ] Resumo claro das mudanças
+- [ ] Lista de arquivos alterados
+- [ ] Status dos testes executados
+- [ ] Próximos passos (se aplicável)
+- [ ] Citações de arquivos/trechos relevantes
+
+### Checklist Final
+- [ ] TODOS os itens acima marcados como concluídos
+- [ ] Nenhum item crítico pendente
+- [ ] Código pronto para revisão/deploy
+
+---
+
+## ⚠️ Itens Críticos (Bloqueadores)
+
+Se algum destes itens não estiver completo, a entrega **NÃO** deve ser considerada:
+
+1. ❌ Uso de `any` ou `var`
+2. ❌ Violação da Arquitetura em Camadas
+3. ❌ Testes não criados/atualizados
+4. ❌ Cobertura < 80% em código crítico
+5. ❌ Type-check ou lint falhando
+6. ❌ Secrets expostos
+7. ❌ Validação de inputs ausente
+8. ❌ Logs sem traceId (quando aplicável)
+9. ❌ Rate limiting ignorado (se aplicável a WhatsApp)
+10. ❌ Sistema anti-ban não considerado (se aplicável)
+
+---
+
+## 📝 Template de Resposta Final
+
+```markdown
+### ✅ Resumo
+[Breve descrição das mudanças implementadas]
+
+### 📁 Arquivos Alterados
+- `caminho/arquivo.ts` – [motivo da alteração]
+- `caminho/outro-arquivo.ts` – [motivo da alteração]
+
+### 🧪 Testes
+- ✅ Testes unitários: [status]
+- ✅ Testes de integração: [status]
+- ✅ Cobertura: [X]% (mínimo 80%)
+
+### ✅ Validações
+- ✅ Type-check: Passando
+- ✅ Lint: Passando
+- ✅ Build: Bem-sucedido
+
+### 📚 Documentação
+- [ ] README/docs atualizados
+- [ ] tRPC routers atualizados
+- [ ] Decisões arquiteturais documentadas
+
+### 🚀 Próximos Passos
+[Se aplicável, próximos passos ou melhorias sugeridas]
+```
+
+---
+
+**IMPORTANTE**: Este checklist é obrigatório. Não entregue código sem completar todos os itens relevantes.

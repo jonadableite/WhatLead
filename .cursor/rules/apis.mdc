@@ -1,0 +1,310 @@
+---
+alwaysApply: true
+---
+# WhatLead API Documentation - Version: 1.0.0
+
+## Purpose & Scope
+
+This document serves as the central repository for documentation on all API endpoints within the WhatLead application. It provides details on endpoint paths, HTTP methods, purpose, request/response formats, and authentication requirements.
+
+**MUST** be consulted and updated whenever API endpoints are created, modified, or deleted, as mandated by `@memory.mdc`.
+
+## API Endpoint Example
+
+---
+
+### `[HTTP_METHOD] /path/to/endpoint`
+
+*   **Purpose:** [Briefly describe what the endpoint does.]
+*   **Authentication:** [Specify required authentication (e.g., Better Auth session, Public, None, Admin Role).] 
+*   **Request Parameters (URL/Query):**
+    *   `paramName` (type): [Description, e.g., required, optional, validation rules].
+*   **Request Body (JSON):**
+    ```json
+    {
+      "key": "value_type" // Description
+    }
+    ```
+*   **Success Response (200 OK):**
+    ```json
+    {
+      "key": "value_type" // Description
+    }
+    ```
+*   **Error Responses:**
+    *   `400 Bad Request`: [Reason, e.g., Invalid input data.]
+    *   `401 Unauthorized`: [Reason, e.g., Missing or invalid authentication token.]
+    *   `403 Forbidden`: [Reason, e.g., Insufficient permissions.]
+    *   `404 Not Found`: [Reason, e.g., Resource not found.]
+    *   `500 Internal Server Error`: [Reason, e.g., Unexpected server error.]
+*   **Notes:** [Any additional information, implementation details, or usage notes.]
+
+---
+
+## API Endpoints
+
+### Campanhas (Campaigns)
+
+#### `campaign.list` (tRPC Query)
+
+* **Purpose:** Lista todas as campanhas do usuário autenticado.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):** Nenhum.
+* **Success Response (200 OK):**
+  ```json
+  [
+    {
+      "id": "campaign-uuid",
+      "userId": "user-uuid",
+      "name": "Nome da Campanha",
+      "description": "Descrição da campanha",
+      "status": "DRAFT",
+      "messageTemplate": "Template da mensagem",
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z"
+    }
+  ]
+  ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `campaign.getById` (tRPC Query)
+
+* **Purpose:** Retorna detalhes completos de uma campanha incluindo estatísticas.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `id` (string, UUID): ID da campanha.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "id": "campaign-uuid",
+    "userId": "user-uuid",
+    "name": "Nome da Campanha",
+    "description": "Descrição",
+    "status": "ACTIVE",
+    "messageTemplate": "Template da mensagem",
+    "stats": {
+      "totalSent": 1000,
+      "totalDelivered": 950,
+      "totalRead": 800,
+      "totalReplied": 50
+    },
+    "createdAt": "2025-01-15T10:00:00.000Z",
+    "updatedAt": "2025-01-15T10:00:00.000Z"
+  }
+  ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `403 FORBIDDEN`: Campanha não pertence ao usuário.
+  * `404 NOT_FOUND`: Campanha não encontrada.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `campaign.create` (tRPC Mutation)
+
+* **Purpose:** Cria uma nova campanha em status DRAFT.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "name": "Nome da Campanha",
+    "description": "Descrição da campanha",
+    "messageTemplate": "Template da mensagem com {{variável}}"
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "id": "campaign-uuid",
+    "userId": "user-uuid",
+    "name": "Nome da Campanha",
+    "description": "Descrição da campanha",
+    "status": "DRAFT",
+    "messageTemplate": "Template da mensagem",
+    "createdAt": "2025-01-15T10:00:00.000Z",
+    "updatedAt": "2025-01-15T10:00:00.000Z"
+  }
+  ```
+* **Error Responses:**
+  * `400 VALIDATION_ERROR`: Dados inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+---
+
+### Mensagens (Messages)
+
+#### `message.send` (tRPC Mutation)
+
+* **Purpose:** Envia uma mensagem WhatsApp individual com proteção anti-ban.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "phoneNumber": "5511999999999",
+    "message": "Mensagem personalizada",
+    "campaignId": "campaign-uuid"
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "messageId": "message-uuid",
+    "status": "QUEUED",
+    "estimatedDelivery": "2025-01-15T10:05:00.000Z"
+  }
+  ```
+* **Error Responses:**
+  * `400 VALIDATION_ERROR`: Número de telefone inválido ou mensagem muito longa.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `429 TOO_MANY_REQUESTS`: Rate limit excedido (proteção anti-ban).
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `message.sendBulk` (tRPC Mutation)
+
+* **Purpose:** Envia mensagens em massa para múltiplos contatos com proteção anti-ban.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "campaignId": "campaign-uuid",
+    "contacts": [
+      {
+        "phoneNumber": "5511999999999",
+        "variables": {
+          "nome": "João",
+          "produto": "Curso X"
+        }
+      }
+    ]
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "jobId": "job-uuid",
+    "totalContacts": 100,
+    "estimatedCompletion": "2025-01-15T11:00:00.000Z"
+  }
+  ```
+* **Error Responses:**
+  * `400 VALIDATION_ERROR`: Dados inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `429 TOO_MANY_REQUESTS`: Rate limit excedido.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+---
+
+### Contas WhatsApp (WhatsApp Accounts)
+
+#### `whatsapp.account.list` (tRPC Query)
+
+* **Purpose:** Lista todas as contas WhatsApp do usuário.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Success Response (200 OK):**
+  ```json
+  [
+    {
+      "id": "account-uuid",
+      "userId": "user-uuid",
+      "phoneNumber": "5511999999999",
+      "status": "CONNECTED",
+      "warmupStatus": "ACTIVE",
+      "warmupProgress": 75,
+      "lastActivity": "2025-01-15T10:00:00.000Z"
+    }
+  ]
+  ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `whatsapp.account.startWarmup` (tRPC Mutation)
+
+* **Purpose:** Inicia processo de aquecimento de uma conta WhatsApp.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "accountId": "account-uuid",
+    "strategy": "STANDARD",
+    "dailyLimit": 50
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "warmupId": "warmup-uuid",
+    "estimatedDays": 7,
+    "currentProgress": 0
+  }
+  ```
+* **Error Responses:**
+  * `400 VALIDATION_ERROR`: Dados inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `403 FORBIDDEN`: Conta não pertence ao usuário.
+  * `404 NOT_FOUND`: Conta não encontrada.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+---
+
+### Analytics (Analytics)
+
+#### `analytics.getCampaignStats` (tRPC Query)
+
+* **Purpose:** Retorna estatísticas detalhadas de uma campanha.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `campaignId` (string, UUID): ID da campanha.
+  * `startDate` (string, ISO date, optional): Data inicial.
+  * `endDate` (string, ISO date, optional): Data final.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "campaignId": "campaign-uuid",
+    "period": {
+      "start": "2025-01-01T00:00:00.000Z",
+      "end": "2025-01-15T23:59:59.000Z"
+    },
+    "stats": {
+      "totalSent": 10000,
+      "totalDelivered": 9500,
+      "totalRead": 8000,
+      "totalReplied": 500,
+      "deliveryRate": 95.0,
+      "readRate": 84.2,
+      "replyRate": 5.3
+    },
+    "dailyBreakdown": [
+      {
+        "date": "2025-01-15",
+        "sent": 500,
+        "delivered": 475,
+        "read": 400,
+        "replied": 25
+      }
+    ]
+  }
+  ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `403 FORBIDDEN`: Campanha não pertence ao usuário.
+  * `404 NOT_FOUND`: Campanha não encontrada.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+---
+
+## Related Rules
+
+- `@memory.mdc`: Mandates consultation and updates to this file.
+- `@project-rules-enhanced.mdc`: Defines standards for creating API endpoints.
+
+## Suggested Metadata
+---
+description: Central documentation for all WhatLead API endpoints (tRPC).
+globs: ["packages/api/src/routers/**/*.ts", "apps/server/src/routers/**/*.ts"]
+alwaysApply: false
+---

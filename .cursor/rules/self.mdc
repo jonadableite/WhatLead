@@ -1,0 +1,115 @@
+---
+alwaysApply: true
+---
+# Self-Correction Memory
+
+This file logs mistakes made by the AI and their corrections to prevent repetition and improve performance over time.
+
+---
+
+### Mistake: Tentar usar credenciais do usuário ou hardcode de secrets em testes/scripts
+**Wrong**:
+```text
+Usar email/senha/client secret fornecidos pelo usuário diretamente no código ou em tool runs.
+```
+
+**Correct**:
+```text
+Nunca commitar nem executar com credenciais fornecidas em chat.
+Criar scripts/testes que leem secrets via variáveis de ambiente e não logam secrets.
+Orientar rotação imediata se o usuário compartilhou secrets.
+```
+
+### Mistake: Criar testes que dependem de DB real sem isolar/mocar
+**Wrong**:
+```text
+Adicionar testes que executam Prisma real (DB) em ambientes sem DATABASE_URL/infra de teste,
+causando falhas e ruído no CI/dev.
+```
+
+**Correct**:
+```text
+Para validação ponta-a-ponta, preferir scripts executáveis contra API local em execução,
+com inputs via env vars. Para unit/integration em CI, mockar Prisma/HTTP e evitar dependência de infra externa.
+```
+
+### Mistake: Não consultar os arquivos de memória no início de cada request
+**Wrong**:
+```text
+Começar a implementar ou alterar código antes de ler @self.mdc e @project-rules-enhanced.mdc.
+```
+
+**Correct**:
+```text
+Sempre ler @self.mdc e @project-rules-enhanced.mdc como primeira ação do request, antes de qualquer implementação.
+```
+
+### Mistake: Ignorar rate limits e proteção anti-ban em operações WhatsApp
+**Wrong**:
+```text
+Implementar envio de mensagens sem considerar rate limits, delays ou sistema de aquecimento.
+```
+
+**Correct**:
+```text
+Sempre implementar rate limiting, delays entre mensagens, verificação de status de contas,
+e considerar sistema de aquecimento antes de enviar mensagens em massa.
+```
+
+### Mistake: Usar comandos de busca (rg/grep) via terminal ao invés das ferramentas nativas
+**Wrong**:
+```text
+Rodar `rg`/`grep` via terminal (pode não estar disponível e foge das regras).
+```
+
+**Correct**:
+```text
+Usar a ferramenta de busca do editor (Grep) para strings/regex e Glob para nomes de arquivos.
+```
+
+### Mistake: Usar valores CSS hardcoded ao invés de variáveis do tema
+**Wrong**:
+```css
+/* Valores hardcoded */
+.card {
+  background-color: #252529;
+  color: #f9fafb;
+  border: 1px solid #3a3a40;
+}
+```
+
+**Correct**:
+```css
+/* Usar variáveis CSS do tema */
+.card {
+  background-color: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+/* Em Tailwind: bg-card text-foreground border-border */
+```
+
+### Mistake: Prisma 7 - Usar url no datasource do schema
+**Wrong**:
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+**Correct**:
+```prisma
+// Prisma 7 não suporta mais url no schema
+// A conexão é feita via adapter no PrismaClient
+datasource db {
+  provider = "postgresql"
+}
+
+// packages/db/src/index.ts
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL || "",
+});
+const prisma = new PrismaClient({ adapter });
+```

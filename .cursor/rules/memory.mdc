@@ -1,0 +1,122 @@
+---
+alwaysApply: true
+---
+# Must consult existing memory
+
+## MUST DO WITH EACH REQUEST
+- First action for each chat request should be to read @self.mdc and @project-rules-enhanced.mdc
+- Last action for each chat should be to update @self.mdc, @project-rules-enhanced.mdc, @apis.mdc or @database-schema.mdc if needed.
+
+## Objective
+Ensure Cursor avoids repeating known mistakes by persistently logging corrections and learning. All requests must reference stored knowledge in:
+- `.cursor/rules/self.mdc` — for known mistakes and their fixes
+- `.cursor/rules/project-rules-enhanced.mdc` — for project rules and custom rules
+- `.cursor/rules/database-schema.mdc` — for database schema and functions
+- `.cursor/rules/apis.mdc`: API endpoint documentation
+
+---
+
+## Rule: Learn from Mistakes
+
+### On Every Mistake or deprecated warning:
+1. **Detect** incorrect or suboptimal outputs.
+2. **Correct** the mistake.
+3. **Save** both mistake and correction in @self.mdc using the format:
+
+   ```markdown
+   ### Mistake: [Short Description]
+   **Wrong**:
+   ```
+   [Insert incorrect code or logic]
+   ```
+
+   **Correct**:
+   ```
+   [Insert corrected code or logic]
+   ```
+   ```
+
+---
+
+## Rule: Respect and Reference Project Preferences
+### On Every Request:
+1. **Read** @project-rules-enhanced.mdc for:
+   - User's preferred tools, stack, coding style, formatting, naming, etc.
+   - Preferences like TypeScript over JS, pnpm over npm, etc.
+2. **Apply** these preferences without exception.
+3. **Save** any new user preferences in @project-rules-enhanced.mdc.
+
+---
+
+## Rule: Consult and Maintain Database Schema
+### On Every Request Involving Database Interaction:
+1. **Read** `@database-schema.mdc` to understand:
+   - Current database tables, columns, types, and relationships.
+   - Constraints, indexes, and policies if documented.
+2. **Apply** this schema knowledge when generating Prisma queries, database migrations, or backend code interacting with the database.
+3. **Update** `@database-schema.mdc` if database schema modifications are made during the development process, ensuring it reflects the latest state.
+
+---
+
+## Rule: Consult and Maintain API Documentation
+### On Every Request Involving API Interaction or Definition:
+1. **Read** `@apis.mdc` to understand:
+   - Existing tRPC endpoints, their purpose, request/response formats, and authentication requirements.
+2. **Apply** this knowledge when generating code that consumes or defines APIs.
+3. **Update** `@apis.mdc` if API endpoints are created, modified, or deleted during the development process, ensuring it reflects the latest state. Document the endpoint path, procedure type (query/mutation), purpose, expected input, and response structure.
+
+---
+
+## Rule: Synchronize with Notion Planning
+### On Every Significant Code Update:
+1. **Read** `@notion-sync.mdc` to understand synchronization requirements.
+2. **Update** `docs/NOTION_PLANNING.md` with:
+   - New features implemented (add to "O QUE JÁ FOI IMPLEMENTADO")
+   - Completed items (remove from "O QUE FALTA IMPLEMENTAR")
+   - Progress percentages updated
+   - Architectural decisions documented
+3. **Update** Notion with the same information (manual copy or via MCP if available).
+4. **Apply** this rule when:
+   - New features are implemented
+   - Microservices are created/modified
+   - Database schemas are changed
+   - API endpoints are created/modified
+   - Frontend pages/components are created
+   - Tests are implemented
+   - DevOps/infrastructure is configured
+
+---
+
+## Rule: Prevent Repetition
+### On Every Request:
+- Always **read @self.mdc** before applying logic.
+- If a related mistake is found:
+  - **Use** the corrected approach instead.
+  - **Log** that a prior fix was applied (optional debug).
+
+---
+
+## Rule: Keep Memory Clean and Updated
+
+- If a better fix is found for an existing issue:
+  - **Update** that section in @self.mdc.
+- Structure the memory files with clear `###` headers.
+- Group by topic if needed.
+- MUST DO: Only keep general information in memory, do not be specific to the file or request.
+- MUST DO: Information saved in memory should be useful and reusable.
+
+---
+
+## Storage Paths
+- `.cursor/rules/self.mdc`: Persistent log of mistakes and their fixes
+- `.cursor/rules/project-rules-enhanced.mdc`: Project rules and custom rules
+- `.cursor/rules/database-schema.mdc`: Database schema and functions
+- `.cursor/rules/apis.mdc`: API endpoint documentation
+- `.cursor/rules/notion-sync.mdc`: Rules for Notion synchronization
+- `docs/NOTION_PLANNING.md`: Planning document to sync with Notion
+
+---
+
+## Enforcement
+- Failing to read or update memory files after a mistake is a **critical error**.
+- All requests must use and comply with stored knowledge and preferences.

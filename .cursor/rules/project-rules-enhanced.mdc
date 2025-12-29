@@ -1,0 +1,1173 @@
+---
+description: Regras consolidadas e aprimoradas do projeto WhatLead - SaaS de WhatsApp Marketing
+alwaysApply: true
+---
+
+# 🚀 WhatLead - Regras do Projeto (Versão Aprimorada)
+
+## 📋 Contexto do Projeto
+
+### O que é o WhatLead?
+
+**WhatLead** é uma plataforma SaaS completa de WhatsApp Marketing que oferece:
+
+1. **Automação de Vendas**: Sistema completo para automatizar campanhas de WhatsApp
+2. **Proteção Anti-Ban**: Tecnologia avançada para proteger contas e evitar bloqueios
+3. **Disparos em Massa**: Envio de milhares de mensagens personalizadas com alto índice de entrega
+4. **IA Avançada**: Múltiplos modelos de IA para configurar automações inteligentes
+5. **Sistema de Aquecimento**: Aquecimento completo e personalizado de contas WhatsApp
+6. **Análise de Resultados**: Dashboards detalhados com métricas e resultados em tempo real
+
+### Públicos-Alvo
+
+- **MARKETER**: Profissionais de marketing que gerenciam campanhas
+- **BUSINESS_OWNER**: Donos de negócios que querem automatizar vendas
+- **AGENCY**: Agências que gerenciam múltiplos clientes
+- **ADMIN**: Administradores da plataforma
+- **SUPPORT**: Equipe de suporte (somente leitura)
+
+### Domínios de Negócio
+
+1. **Automação**: Campanhas, mensagens, templates, agendamentos
+2. **Proteção**: Sistema anti-ban, aquecimento de contas, limites de segurança
+3. **IA e Agentes**: Modelos de IA, agentes conversacionais, personalização
+4. **Disparos**: Envio em massa, filas, rate limiting, delivery tracking
+5. **Analytics**: Métricas, dashboards, relatórios, conversões
+6. **Contas WhatsApp**: Gestão de contas, conexões, sessões, status
+
+---
+
+## 🏗️ Arquitetura e Padrões Fundamentais
+
+### Arquitetura de Microserviços (Escalável e Distribuída)
+
+**REGRA CRÍTICA**: O WhatLead utiliza arquitetura de microserviços para máxima escalabilidade. Cada domínio de negócio é um microserviço independente com seu próprio banco de dados.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    apps/web (Frontend)                        │
+│              Next.js, React, UI Components                    │
+│                  tRPC Client (type-safe)                       │
+└───────────────────────┬───────────────────────────────────────┘
+                        │ HTTP/gRPC
+┌───────────────────────▼───────────────────────────────────────┐
+│              API Gateway (apps/server)                         │
+│         Fastify, tRPC Routers, Request Routing                 │
+└───────┬───────────┬───────────┬───────────┬───────────────────┘
+        │           │           │           │
+        │           │           │           │
+┌───────▼──────┐ ┌──▼──────┐ ┌──▼──────┐ ┌──▼──────────────┐
+│  Campaign    │ │ Message │ │ WhatsApp│ │  Analytics      │
+│  Service     │ │ Service │ │ Service │ │  Service        │
+│              │ │         │ │         │ │                 │
+│  PostgreSQL  │ │PostgreSQL│ │PostgreSQL│ │  PostgreSQL    │
+└───────┬──────┘ └──┬──────┘ └──┬──────┘ └──┬──────────────┘
+        │           │           │           │
+        └───────────┴───────────┴───────────┘
+                        │
+        ┌───────────────▼───────────────────┐
+        │      Message Broker                │
+        │  (RabbitMQ / Kafka / Redis)        │
+        │  - Event-driven communication      │
+        │  - Async processing                │
+        │  - Service decoupling              │
+        └────────────────────────────────────┘
+                        │
+        ┌───────────────▼───────────────────┐
+        │  Anti-Ban Service │ AI Service    │
+        │  PostgreSQL       │ PostgreSQL    │
+        └───────────────────────────────────┘
+```
+
+### Microserviços e Domínios
+
+**Cada microserviço possui**:
+
+- ✅ Banco de dados PostgreSQL próprio e isolado
+- ✅ API REST/gRPC independente
+- ✅ Processamento assíncrono via Message Broker
+- ✅ Escalabilidade horizontal independente
+- ✅ Deploy e versionamento independentes
+
+**Microserviços Identificados**:
+
+1. **campaign-service** (Automação)
+
+   - Domínio: Campanhas, Templates, Agendamentos
+   - Database: `campaign_db`
+   - Responsabilidades: CRUD de campanhas, templates, agendamentos
+
+2. **message-service** (Disparos)
+
+   - Domínio: Envio de mensagens, Fila de processamento
+   - Database: `message_db`
+   - Responsabilidades: Envio, tracking, status de mensagens
+
+3. **whatsapp-service** (Contas WhatsApp)
+
+   - Domínio: Gestão de contas, conexões, sessões
+   - Database: `whatsapp_db`
+   - Responsabilidades: CRUD de contas, status de conexão
+
+4. **anti-ban-service** (Proteção)
+
+   - Domínio: Rate limiting, aquecimento, proteção
+   - Database: `antiban_db`
+   - Responsabilidades: Rate limits, warmup sessions, health monitoring
+
+5. **ai-service** (IA e Agentes)
+
+   - Domínio: Agentes de IA, conversas, modelos
+   - Database: `ai_db`
+   - Responsabilidades: Processamento de IA, geração de respostas
+
+6. **analytics-service** (Analytics)
+
+   - Domínio: Métricas, dashboards, relatórios
+   - Database: `analytics_db`
+   - Responsabilidades: Agregação de dados, relatórios
+
+7. **auth-service** (Autenticação)
+   - Domínio: Usuários, sessões, permissões
+   - Database: `auth_db`
+   - Responsabilidades: Autenticação, autorização (Better Auth)
+
+### Message Broker (Comunicação Assíncrona)
+
+**REGRA CRÍTICA**: Comunicação entre microserviços deve ser assíncrona via Message Broker.
+
+**Tecnologias Suportadas**:
+
+- **RabbitMQ** (Recomendado para filas e routing)
+- **Apache Kafka** (Para alta throughput e event streaming)
+- **Redis Streams** (Para casos simples e baixa latência)
+
+**Padrões de Comunicação**:
+
+1. **Event-Driven (Pub/Sub)**
+
+   ```typescript
+   // ✅ CORRETO - Publicar evento
+   await messageBroker.publish("message.sent", {
+     messageId: "xxx",
+     campaignId: "xxx",
+     timestamp: new Date(),
+   });
+
+   // ✅ CORRETO - Subscrever evento
+   await messageBroker.subscribe("message.sent", async (event) => {
+     await analyticsService.recordMessageSent(event);
+   });
+   ```
+
+2. **Request/Reply (RPC via Message Broker)**
+
+   ```typescript
+   // ✅ CORRETO - Requisição assíncrona
+   const result = await messageBroker.request("rate-limit.check", {
+     accountId: "xxx",
+     messageCount: 10,
+   });
+   ```
+
+3. **Work Queue (Processamento em Background)**
+   ```typescript
+   // ✅ CORRETO - Enfileirar trabalho
+   await messageBroker.enqueue("message.send", {
+     messageId: "xxx",
+     phoneNumber: "xxx",
+     message: "xxx",
+   });
+   ```
+
+**Diretrizes de Message Broker**:
+
+- ✅ **SEMPRE** usar Message Broker para comunicação entre serviços
+- ✅ **SEMPRE** garantir idempotência em handlers de eventos
+- ✅ **SEMPRE** implementar retry com backoff exponencial
+- ✅ **SEMPRE** usar correlation IDs para rastreamento
+- ✅ **SEMPRE** validar eventos recebidos com Zod
+- ❌ **NUNCA** comunicação síncrona direta entre serviços (exceto API Gateway)
+- ❌ **NUNCA** acoplar serviços via banco de dados compartilhado
+
+### Database per Service (Database Isolation)
+
+**REGRA CRÍTICA**: Cada microserviço possui seu próprio banco de dados PostgreSQL isolado.
+
+**Diretrizes de Database**:
+
+- ✅ **SEMPRE** um banco de dados por microserviço
+- ✅ **SEMPRE** usar Prisma com schema isolado por serviço
+- ✅ **SEMPRE** migrações independentes por serviço
+- ✅ **SEMPRE** connection pooling otimizado por serviço
+- ❌ **NUNCA** acessar banco de dados de outro serviço diretamente
+- ❌ **NUNCA** compartilhar tabelas entre serviços
+- ❌ **NUNCA** usar JOINs entre bancos de diferentes serviços
+
+**Comunicação entre Dados**:
+
+- ✅ Usar Message Broker para sincronização eventual
+- ✅ Usar API do serviço para queries cross-service
+- ✅ Implementar CQRS quando necessário (separar read/write models)
+
+### Diretrizes de Dependência (Microserviços)
+
+**Comunicação Permitida**:
+
+- ✅ Frontend → API Gateway (tRPC Client)
+- ✅ API Gateway → Microserviços (HTTP/gRPC)
+- ✅ Microserviços → Message Broker (Eventos)
+- ✅ Microserviços → Próprio Database (Isolado)
+
+**Comunicação Proibida**:
+
+- ❌ Frontend → Microserviços diretamente (PROIBIDO)
+- ❌ Microserviço → Database de outro microserviço (PROIBIDO)
+- ❌ Microserviços → Microserviços síncronamente (PROIBIDO - usar Message Broker)
+- ❌ Business Logic → Frontend (PROIBIDO)
+
+### Princípios SOLID
+
+1. **Single Responsibility**: Uma classe/função = uma responsabilidade
+2. **Open/Closed**: Aberto para extensão, fechado para modificação
+3. **Liskov Substitution**: Subtipos substituíveis por tipos base
+4. **Interface Segregation**: Interfaces específicas, não genéricas
+5. **Dependency Inversion**: Depender de abstrações, não implementações
+
+### Clean Code
+
+- **Nomes descritivos**: `sendWhatsAppMessage` ✅ | `sendMsg` ❌
+- **Funções pequenas**: Máximo 50 linhas, preferencialmente < 30
+- **Early returns**: Evitar aninhamento de if/else
+- **DRY**: Extrair lógica repetida para funções/classes
+- **Magic numbers**: Sempre usar constantes nomeadas
+- **Comentários**: Apenas quando necessário (código auto-explicativo)
+
+---
+
+## 🔒 Type Safety e Validação
+
+### TypeScript Strict Mode
+
+**REGRAS OBRIGATÓRIAS**:
+
+- ❌ **NUNCA** usar `any` - Use `unknown` quando necessário
+- ❌ **NUNCA** usar `var` - Use `const` ou `let`
+- ✅ **SEMPRE** usar interfaces ao invés de types (exceto quando types forem estritamente necessários)
+- ✅ **SEMPRE** tipar explicitamente retornos de funções
+- ✅ **SEMPRE** usar arrow functions ao invés de funções convencionais
+- ✅ **SEMPRE** usar async/await para Promises
+
+### Validação de Dados
+
+**Camadas de Validação**:
+
+1. **tRPC Input**: Zod schemas em procedures
+2. **Business Logic**: Validação de regras de negócio
+3. **Database**: Constraints e validações no Prisma
+
+**Exemplo**:
+
+```typescript
+// ✅ CORRETO
+import { z } from "zod";
+
+const sendMessageSchema = z.object({
+  phoneNumber: z.string().regex(/^\d{10,15}$/),
+  message: z.string().min(1).max(4096),
+  campaignId: z.string().uuid().optional(),
+});
+
+export const messageRouter = router({
+  send: publicProcedure.input(sendMessageSchema).mutation(async ({ input }) => {
+    // Business logic
+  }),
+});
+
+// ❌ ERRADO
+export const messageRouter = router({
+  send: publicProcedure.mutation(async ({ input }: any) => {
+    return input.phone * 1.1;
+  }),
+});
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+### Monorepo com Microserviços (pnpm workspaces + Turborepo)
+
+```
+WhatLead-fullstack/
+├── apps/
+│   ├── web/                          # Frontend (Next.js App Router)
+│   │   └── src/
+│   │       ├── app/                  # Routes e layouts
+│   │       ├── components/           # Componentes React
+│   │       ├── lib/                  # Utilitários e clientes
+│   │       └── utils/                # Helpers
+│   ├── server/                        # API Gateway (Fastify + tRPC)
+│   │   └── src/
+│   │       ├── index.ts              # Entry point
+│   │       ├── routers/              # tRPC routers (orquestração)
+│   │       └── gateway/              # Gateway logic
+│   ├── campaign-service/              # Microserviço: Campanhas
+│   │   └── src/
+│   │       ├── index.ts              # Entry point
+│   │       ├── api/                  # REST/gRPC endpoints
+│   │       ├── handlers/             # Request handlers
+│   │       ├── services/             # Business logic
+│   │       ├── repositories/         # Data access
+│   │       └── events/               # Event handlers (Message Broker)
+│   ├── message-service/              # Microserviço: Mensagens
+│   │   └── src/
+│   │       ├── index.ts
+│   │       ├── api/
+│   │       ├── handlers/
+│   │       ├── services/
+│   │       ├── repositories/
+│   │       ├── workers/              # Background workers
+│   │       └── events/
+│   ├── whatsapp-service/             # Microserviço: Contas WhatsApp
+│   │   └── src/
+│   │       ├── index.ts
+│   │       ├── api/
+│   │       ├── handlers/
+│   │       ├── services/
+│   │       ├── repositories/
+│   │       └── events/
+│   ├── anti-ban-service/             # Microserviço: Proteção Anti-Ban
+│   │   └── src/
+│   │       ├── index.ts
+│   │       ├── api/
+│   │       ├── handlers/
+│   │       ├── services/
+│   │       ├── repositories/
+│   │       └── events/
+│   ├── ai-service/                   # Microserviço: IA e Agentes
+│   │   └── src/
+│   │       ├── index.ts
+│   │       ├── api/
+│   │       ├── handlers/
+│   │       ├── services/
+│   │       ├── repositories/
+│   │       └── events/
+│   ├── analytics-service/            # Microserviço: Analytics
+│   │   └── src/
+│   │       ├── index.ts
+│   │       ├── api/
+│   │       ├── handlers/
+│   │       ├── services/
+│   │       ├── repositories/
+│   │       └── events/
+│   └── auth-service/                 # Microserviço: Autenticação
+│       └── src/
+│           ├── index.ts
+│           ├── api/
+│           ├── handlers/
+│           ├── services/
+│           └── repositories/
+├── packages/
+│   ├── api/                           # Shared API types (tRPC)
+│   │   └── src/
+│   │       ├── routers/              # tRPC routers (orquestração)
+│   │       └── context.ts            # Context do tRPC
+│   ├── message-broker/                # Message Broker Client
+│   │   └── src/
+│   │       ├── index.ts              # Broker client
+│   │       ├── publishers/           # Event publishers
+│   │       ├── subscribers/          # Event subscribers
+│   │       └── types/                # Event types
+│   ├── db/                            # Shared Database utilities
+│   │   ├── prisma/
+│   │   │   └── schemas/              # Schemas por serviço
+│   │   │       ├── campaign/
+│   │   │       ├── message/
+│   │   │       ├── whatsapp/
+│   │   │       ├── antiban/
+│   │   │       ├── ai/
+│   │   │       ├── analytics/
+│   │   │       └── auth/
+│   │   └── src/
+│   │       └── index.ts              # Prisma clients export
+│   ├── auth/                          # Shared Auth utilities
+│   │   └── src/
+│   │       └── index.ts              # Better Auth config
+│   ├── config/                        # Configurações compartilhadas
+│   └── events/                       # Event schemas e types
+│       └── src/
+│           ├── schemas/              # Zod schemas para eventos
+│           └── types/                 # TypeScript types
+└── docs/                              # Documentação
+    ├── architecture/                  # Arquitetura
+    ├── microservices/                # Documentação de microserviços
+    └── events/                       # Event catalog
+```
+
+### Estrutura de um Microserviço
+
+Cada microserviço segue esta estrutura padrão:
+
+```
+service-name/
+├── src/
+│   ├── index.ts                      # Entry point (Fastify server)
+│   ├── api/                          # API endpoints
+│   │   ├── routes.ts                 # Route definitions
+│   │   └── handlers.ts               # Request handlers
+│   ├── services/                     # Business logic
+│   │   └── *.service.ts
+│   ├── repositories/                 # Data access layer
+│   │   └── *.repository.ts
+│   ├── events/                       # Message Broker handlers
+│   │   ├── publishers.ts            # Event publishers
+│   │   └── subscribers.ts            # Event subscribers
+│   ├── config/                       # Service configuration
+│   │   └── database.ts              # Prisma client
+│   └── types/                        # TypeScript types
+├── prisma/
+│   └── schema.prisma                 # Database schema (isolado)
+├── package.json
+└── Dockerfile                         # Container definition
+```
+
+### Convenções de Nomenclatura
+
+- **Classes/Interfaces**: PascalCase (`WhatsAppService`, `CampaignRepository`)
+- **Funções/Métodos/Variáveis**: camelCase (`sendMessage`, `createCampaign`)
+- **Arquivos/Diretórios**: kebab-case (`whatsapp-service.ts`, `campaign-router.ts`)
+- **Constantes**: UPPER_SNAKE_CASE (`MAX_MESSAGE_LENGTH`, `DEFAULT_RATE_LIMIT`)
+- **Enums**: PascalCase (`MessageStatus`, `CampaignType`)
+
+**REGRA**: Nomes de funções/métodos devem ser **verbos**, nunca substantivos:
+
+- ✅ `sendMessage`, `createCampaign`, `validatePhoneNumber`
+- ❌ `messageSender`, `campaignCreator`, `phoneValidator`
+
+---
+
+## 🛠️ Stack Tecnológica
+
+### Backend
+
+- **Runtime**: Node.js 20+ com TypeScript 5.9+
+- **Framework**: Fastify 5+
+- **API**: tRPC (type-safe)
+- **ORM**: Prisma 7+ (PostgreSQL 16+)
+- **Validação**: Zod
+- **Auth**: Better Auth
+- **AI**: Vercel AI SDK com múltiplos providers
+
+### Frontend
+
+- **Framework**: Next.js 16+ (App Router)
+- **UI Library**: React 19+
+- **Styling**: TailwindCSS v4 com variáveis CSS customizadas
+- **Components**: Shadcn/ui, Magic UI, Aceternity UI
+- **Animações**: Motion (framer-motion)
+- **Formulários**: react-hook-form + zod
+- **Data Fetching**: tRPC Client (type-safe)
+
+### Regras de Estilo CSS
+
+**OBRIGATÓRIO**: SEMPRE usar variáveis CSS do tema para facilitar manutenção:
+
+```css
+/* ✅ CORRETO - Usando variáveis CSS */
+.card {
+  background-color: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+/* ❌ ERRADO - Valores hardcoded */
+.card {
+  background-color: #252529;
+  color: #f9fafb;
+  border: 1px solid #3a3a40;
+}
+```
+
+**Variáveis CSS Disponíveis** (definidas em `apps/web/src/index.css`):
+
+| Variável                 | Uso                                 |
+| ------------------------ | ----------------------------------- |
+| `--background`           | Fundo principal da aplicação        |
+| `--foreground`           | Cor do texto principal              |
+| `--card`                 | Fundo de cards e painéis            |
+| `--card-foreground`      | Texto em cards                      |
+| `--primary`              | Cor primária (botões, links) - Azul |
+| `--primary-foreground`   | Texto sobre cor primária            |
+| `--secondary`            | Cor secundária (acentos) - Roxo     |
+| `--secondary-foreground` | Texto sobre cor secundária          |
+| `--muted`                | Fundos suaves (tabelas, seções)     |
+| `--muted-foreground`     | Texto secundário/desabilitado       |
+| `--accent`               | Highlights e hover                  |
+| `--accent-foreground`    | Texto em accent                     |
+| `--destructive`          | Cor de erro/destructive             |
+| `--border`               | Bordas padrão                       |
+| `--input`                | Bordas de inputs                    |
+| `--ring`                 | Cor de foco (outline, rings)        |
+
+**Uso em Tailwind CSS**:
+
+```tsx
+// ✅ CORRETO - Classes que usam variáveis
+<div className="bg-card text-foreground border-border">
+  <button className="bg-primary text-primary-foreground hover:bg-primary/90">
+    Botão
+  </button>
+</div>
+
+// ✅ CORRETO - Usando cn() para classes condicionais
+<div className={cn(
+  "rounded-lg border border-border bg-card p-4",
+  isActive && "border-primary"
+)}>
+
+// ❌ ERRADO - Valores hardcoded
+<div className="bg-[#252529] text-[#f9fafb] border-[#3a3a40]">
+```
+
+**Benefícios**:
+
+1. Mudança de tema (light/dark) automática
+2. Fácil customização futura (só alterar variáveis)
+3. Consistência visual garantida
+4. Menor tamanho de bundle CSS
+
+### Infraestrutura
+
+- **Database**: PostgreSQL (um banco por microserviço)
+- **Message Broker**: RabbitMQ (padrão) / Apache Kafka / Redis Streams
+- **API Gateway**: Fastify + tRPC
+- **Container Orchestration**: Docker + Kubernetes (produção)
+- **Service Discovery**: Consul / Kubernetes Services
+- **Monitoring**: Prometheus + Grafana
+- **Logging**: ELK Stack / Loki
+- **Monorepo**: Turborepo
+- **Package Manager**: pnpm
+- **Linting/Formatting**: Biome
+
+---
+
+## 💼 Funcionalidades Principais
+
+### Automação de Campanhas
+
+- Criação e gestão de campanhas
+- Templates de mensagens
+- Agendamento de envios
+- Personalização com variáveis
+- Segmentação de contatos
+
+### Sistema Anti-Ban
+
+- Proteção de contas WhatsApp
+- Detecção de padrões suspeitos
+- Rate limiting inteligente
+- Simulação de comportamento humano
+- Monitoramento de status de contas
+
+### Disparos em Massa
+
+- Envio de milhares de mensagens
+- Fila de processamento
+- Retry automático
+- Tracking de entrega
+- Relatórios de status
+
+### IA e Agentes
+
+- Múltiplos modelos de IA disponíveis
+- Agentes conversacionais
+- Respostas automáticas inteligentes
+- Personalização de mensagens
+- Análise de sentimentos
+
+### Sistema de Aquecimento
+
+- Aquecimento progressivo de contas
+- Personalização de estratégias
+- Monitoramento de métricas
+- Ajuste automático de limites
+- Proteção durante aquecimento
+
+### Analytics e Relatórios
+
+- Dashboards em tempo real
+- Métricas de conversão
+- Análise de campanhas
+- Relatórios detalhados
+- Export de dados
+
+---
+
+## 🧪 Testes e Qualidade
+
+### Critérios de Cobertura
+
+**OBRIGATÓRIO**: Mínimo 80% de cobertura em:
+
+- Routers tRPC (Business Logic)
+- Serviços críticos (WhatsApp, Anti-Ban, Aquecimento)
+- Validações e regras de negócio
+
+**RECOMENDADO**: 100% de cobertura em:
+
+- Validações de entrada
+- Cálculos de rate limiting
+- Regras de proteção anti-ban
+
+### Tipos de Testes
+
+1. **Unit Tests**: Lógica de negócio isolada
+2. **Integration Tests**: Routers tRPC com Prisma
+3. **E2E Tests**: Fluxos críticos end-to-end
+4. **Component Tests**: Componentes React
+
+### Estrutura de Testes
+
+```typescript
+// ✅ CORRETO - Arrange, Act, Assert
+describe("sendMessage", () => {
+  it("should send message with valid phone number", async () => {
+    // Arrange
+    const caller = createCaller({ userId: "test-user" });
+    const input = {
+      phoneNumber: "5511999999999",
+      message: "Test message",
+    };
+
+    // Act
+    const result = await caller.message.send(input);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBeDefined();
+  });
+});
+```
+
+### Gates de Qualidade
+
+**ANTES DE COMMIT**:
+
+- ✅ Type-check (`pnpm check-types`)
+- ✅ Lint (`pnpm check`)
+- ✅ Testes unitários (`pnpm test:unit`)
+- ✅ Testes de integração (`pnpm test:integration`)
+
+**ANTES DE DEPLOY**:
+
+- ✅ Todos os testes passando
+- ✅ Cobertura mínima atingida
+- ✅ Build sem erros
+- ✅ Migrations aplicadas
+
+---
+
+## 🔐 Segurança e Compliance
+
+### Proteção Anti-Ban
+
+- ❌ **NUNCA** enviar mensagens muito rápido
+- ✅ **SEMPRE** respeitar rate limits
+- ✅ **SEMPRE** simular comportamento humano
+- ✅ **SEMPRE** monitorar status de contas
+- ✅ **SEMPRE** implementar backoff exponencial
+
+### Segurança de Dados
+
+- ❌ **NUNCA** commitar secrets/credenciais
+- ✅ **SEMPRE** usar variáveis de ambiente (validadas com Zod)
+- ✅ **SEMPRE** usar HTTPS em produção
+- ✅ **SEMPRE** sanitizar inputs do usuário
+- ✅ **SEMPRE** validar permissões antes de operações
+
+### Idempotência
+
+**OBRIGATÓRIO** em operações críticas:
+
+- Envio de mensagens (evitar duplicatas)
+- Criação de campanhas
+- Processamento de filas
+- Handlers de eventos do Message Broker (sempre idempotentes)
+- APIs REST (usar idempotency keys)
+
+**Padrão de Idempotência em Eventos**:
+
+```typescript
+// ✅ CORRETO - Handler idempotente
+const handleMessageSent = async (event: MessageSentEvent) => {
+  // Verificar se já processado
+  const processed = await db.processedEvent.findUnique({
+    where: { eventId: event.id },
+  });
+
+  if (processed) {
+    return; // Já processado, ignorar
+  }
+
+  // Processar evento
+  await processMessage(event);
+
+  // Marcar como processado
+  await db.processedEvent.create({
+    data: { eventId: event.id, processedAt: new Date() },
+  });
+};
+```
+
+---
+
+## 📊 Observabilidade
+
+### Logs Estruturados
+
+**OBRIGATÓRIO** incluir em todos os logs:
+
+- `traceId`: Correlação de requisições
+- `userId`: Usuário que executou a ação
+- `campaignId`: Campanha relacionada (se aplicável)
+- `action`: Ação executada
+- `level`: info, warn, error
+
+```typescript
+logger.info({
+  traceId: "xxx",
+  userId: "xxx",
+  campaignId: "xxx",
+  action: "message.sent",
+  metadata: { phoneNumber: "xxx", messageId: "xxx" },
+});
+```
+
+### Métricas
+
+- Taxa de entrega de mensagens
+- Taxa de bloqueio de contas
+- Tempo médio de processamento
+- Taxa de erro por endpoint
+- Uso de recursos por usuário
+
+---
+
+## 🚀 Workflow de Desenvolvimento
+
+### Fluxo Operacional para Agentes
+
+1. **Health Check**
+
+   - Verificar lints (`read_lints`)
+   - Verificar saúde da API (se rodando)
+
+2. **Descoberta**
+
+   - `codebase_search` para localizar código relacionado
+   - `read_file` para inspecionar arquivos relevantes
+   - Consultar documentação em `docs/`
+
+3. **Planejamento**
+
+   - Criar TODO list (`todo_write`)
+   - Identificar arquivos a alterar
+   - Identificar testes necessários
+
+4. **Execução**
+
+   - Respeitar separação de camadas
+   - Validar inputs com Zod
+   - Manter type-safety (sem `any`)
+   - Usar early returns
+   - Extrair constantes para magic numbers
+
+5. **Validação**
+
+   - Executar testes (`pnpm test`)
+   - Verificar lints (`read_lints`)
+   - Verificar type-check (`pnpm check-types`)
+   - Atualizar documentação se necessário
+
+6. **Documentação**
+   - Atualizar README/docs se comportamento mudou
+   - Atualizar tRPC routers se endpoints mudaram
+   - Documentar decisões arquiteturais (ADRs)
+
+### Checklist Antes de Finalizar
+
+- [ ] Nenhum uso de `any` ou `var`
+- [ ] Inputs validados (Zod)
+- [ ] Erros tratados explicitamente
+- [ ] Separação de camadas preservada
+- [ ] Testes criados/atualizados
+- [ ] Cobertura mínima atingida (80%)
+- [ ] Documentação atualizada
+- [ ] Logs estruturados com traceId
+- [ ] Lints passando
+- [ ] Type-check passando
+
+---
+
+## 📝 Convenções de Código
+
+### TypeScript
+
+- ✅ `const` ao invés de `let` sempre que possível
+- ✅ Interfaces ao invés de types
+- ✅ Arrow functions
+- ✅ async/await para Promises
+- ✅ Parâmetros de objeto quando > 2 parâmetros
+
+```typescript
+// ✅ CORRETO
+interface SendMessageParams {
+  phoneNumber: string;
+  message: string;
+  campaignId?: string;
+}
+
+const sendMessage = async (
+  params: SendMessageParams
+): Promise<MessageResult> => {
+  // ...
+};
+
+// ❌ ERRADO
+const sendMessage = async (
+  phoneNumber: string,
+  message: string,
+  campaignId?: string
+) => {
+  // ...
+};
+```
+
+### Node.js / Fastify
+
+- ✅ Named exports (nunca default exports)
+- ✅ Bibliotecas nativas quando possível
+- ✅ Encerrar conexões após testes
+
+### React/Next.js
+
+- ✅ Server Components por padrão
+- ✅ Client Components apenas quando necessário (interatividade)
+- ✅ Props tipadas com interfaces
+- ✅ Componentes < 300 linhas (extrair lógica para hooks)
+- ✅ Acessibilidade (WCAG 2.1 AA)
+- ✅ Mobile-first design
+
+---
+
+## 🎯 Diretrizes para Agentes
+
+### Compreensão de Requisitos
+
+1. **SEMPRE** ler documentação relevante antes de implementar
+2. **SEMPRE** buscar código existente similar (`codebase_search`)
+3. **SEMPRE** confirmar entendimento com evidências (citar arquivos)
+4. **NUNCA** assumir comportamento sem verificar código
+
+### Implementação de Código
+
+1. **SEMPRE** seguir separação de camadas
+2. **SEMPRE** criar código completo e profissional (não básico)
+3. **SEMPRE** validar inputs com Zod
+4. **SEMPRE** tratar erros explicitamente
+5. **SEMPRE** manter type-safety (sem `any`)
+6. **SEMPRE** usar early returns
+7. **SEMPRE** extrair constantes para magic numbers
+
+### Testes
+
+1. **SEMPRE** criar testes para novos routers/procedures
+2. **SEMPRE** manter cobertura mínima de 80%
+3. **SEMPRE** seguir padrão Arrange, Act, Assert
+4. **SEMPRE** encerrar conexões após testes
+
+### Documentação
+
+1. **SEMPRE** atualizar documentação quando comportamento mudar
+2. **SEMPRE** atualizar tRPC routers quando procedures mudarem
+3. **SEMPRE** documentar decisões arquiteturais complexas
+
+### Resposta ao Usuário
+
+1. **SEMPRE** responder em Português
+2. **SEMPRE** citar arquivos/trechos relevantes
+3. **SEMPRE** fornecer resumo das mudanças
+4. **SEMPRE** listar arquivos alterados
+5. **SEMPRE** indicar testes executados/status
+
+---
+
+## ⚠️ Proibições Absolutas
+
+### Código
+
+- ❌ **NUNCA** usar `any`
+- ❌ **NUNCA** usar `var`
+- ❌ **NUNCA** usar default exports
+- ❌ **NUNCA** criar código básico (sempre completo e profissional)
+- ❌ **NUNCA** deixar lógica de negócio no frontend
+- ❌ **NUNCA** acoplar camadas incorretamente
+- ❌ **NUNCA** usar inline scripts ou eval
+- ❌ **NUNCA** expor secrets no código
+
+### Arquitetura
+
+- ❌ **NUNCA** pular camadas (Frontend → Database direto)
+- ❌ **NUNCA** criar dependências circulares
+- ❌ **NUNCA** validar apenas no frontend
+- ❌ **NUNCA** acessar banco de dados de outro microserviço diretamente
+- ❌ **NUNCA** comunicação síncrona entre microserviços (usar Message Broker)
+- ❌ **NUNCA** compartilhar banco de dados entre microserviços
+- ❌ **NUNCA** criar acoplamento forte entre serviços
+
+### Testes
+
+- ❌ **NUNCA** commitar código sem testes
+- ❌ **NUNCA** ignorar testes falhando
+- ❌ **NUNCA** deixar conexões abertas após testes
+
+### WhatsApp / Anti-Ban
+
+- ❌ **NUNCA** ignorar rate limits
+- ❌ **NUNCA** enviar mensagens muito rápido
+- ❌ **NUNCA** ignorar status de contas
+- ❌ **NUNCA** pular sistema de aquecimento
+
+---
+
+## ✅ Sistema de Verificação
+
+### Checklist Obrigatório Antes de Entregar
+
+#### Código
+
+- [ ] Type-check passando (`pnpm check-types`)
+- [ ] Lint passando (`pnpm check`)
+- [ ] Nenhum uso de `any` ou `var`
+- [ ] Separação de camadas respeitada
+- [ ] Inputs validados com Zod
+- [ ] Erros tratados explicitamente
+- [ ] Logs estruturados com traceId
+
+#### Testes
+
+- [ ] Testes unitários criados/atualizados
+- [ ] Testes de integração criados/atualizados (se aplicável)
+- [ ] Cobertura mínima de 80% atingida
+- [ ] Todos os testes passando
+
+#### Documentação
+
+- [ ] README/docs atualizados (se comportamento mudou)
+- [ ] tRPC routers atualizados (se procedures mudaram)
+- [ ] Decisões arquiteturais documentadas (se complexas)
+
+#### Segurança
+
+- [ ] Secrets não expostos
+- [ ] Permissões validadas
+- [ ] Inputs sanitizados
+- [ ] Rate limiting implementado (se aplicável)
+
+---
+
+## 📚 Referências e Documentação
+
+### Documentos Essenciais
+
+- `.cursor/rules/agent-verification-checklist.mdc`: Checklist obrigatório
+- `.cursor/rules/apis.mdc`: Documentação de APIs
+- `.cursor/rules/database-schema.mdc`: Esquema do banco
+- `README.md`: Guia geral do projeto
+
+### Fontes de Consulta
+
+- **Arquitetura**: `.cursor/rules/expert-*.mdc` (DDD, System Design, etc.)
+- **Código**: `codebase_search` para encontrar implementações
+- **Documentação**: `docs/` para entender fluxos e regras
+
+---
+
+---
+
+## 🔄 Padrões de Comunicação entre Microserviços
+
+### Event-Driven Architecture
+
+**Padrão Principal**: Comunicação assíncrona via eventos.
+
+**Eventos Principais**:
+
+- `campaign.created` - Campanha criada
+- `campaign.activated` - Campanha ativada
+- `message.sent` - Mensagem enviada
+- `message.delivered` - Mensagem entregue
+- `message.read` - Mensagem lida
+- `whatsapp.account.connected` - Conta conectada
+- `whatsapp.account.banned` - Conta banida
+- `warmup.started` - Aquecimento iniciado
+- `warmup.completed` - Aquecimento concluído
+- `rate-limit.exceeded` - Rate limit excedido
+
+**Exemplo de Publicação de Evento**:
+
+```typescript
+// ✅ CORRETO - Publicar evento após ação
+import { messageBroker } from "@whatlead/message-broker";
+
+const createCampaign = async (data: CreateCampaignInput) => {
+  const campaign = await campaignRepository.create(data);
+
+  // Publicar evento
+  await messageBroker.publish("campaign.created", {
+    campaignId: campaign.id,
+    userId: campaign.userId,
+    name: campaign.name,
+    timestamp: new Date(),
+  });
+
+  return campaign;
+};
+```
+
+**Exemplo de Subscrição de Evento**:
+
+```typescript
+// ✅ CORRETO - Subscrever evento em outro serviço
+import { messageBroker } from "@whatlead/message-broker";
+
+messageBroker.subscribe("campaign.created", async (event) => {
+  // Validar evento
+  const validatedEvent = campaignCreatedSchema.parse(event);
+
+  // Processar (idempotente)
+  await analyticsService.recordCampaignCreated(validatedEvent);
+});
+```
+
+### API Gateway Pattern
+
+**Responsabilidades do API Gateway**:
+
+- Roteamento de requisições para microserviços corretos
+- Autenticação e autorização centralizada
+- Rate limiting global
+- Load balancing
+- Request/response transformation
+- Aggregation de dados de múltiplos serviços
+
+**Exemplo de Roteamento**:
+
+```typescript
+// ✅ CORRETO - API Gateway roteando para microserviço
+export const campaignRouter = router({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    // Chamar microserviço de campanhas
+    const response = await fetch(`${CAMPAIGN_SERVICE_URL}/campaigns`, {
+      headers: {
+        Authorization: `Bearer ${ctx.session.token}`,
+        "X-User-Id": ctx.user.id,
+      },
+    });
+
+    return response.json();
+  }),
+});
+```
+
+### Circuit Breaker Pattern
+
+**OBRIGATÓRIO** para chamadas entre serviços:
+
+```typescript
+// ✅ CORRETO - Circuit breaker para resiliência
+import { CircuitBreaker } from "@whatlead/circuit-breaker";
+
+const campaignServiceBreaker = new CircuitBreaker({
+  failureThreshold: 5,
+  resetTimeout: 60000,
+  timeout: 5000,
+});
+
+const getCampaign = async (id: string) => {
+  return campaignServiceBreaker.execute(async () => {
+    const response = await fetch(`${CAMPAIGN_SERVICE_URL}/campaigns/${id}`);
+    if (!response.ok) throw new Error("Service unavailable");
+    return response.json();
+  });
+};
+```
+
+---
+
+## 📊 Observabilidade em Microserviços
+
+### Distributed Tracing
+
+**OBRIGATÓRIO** incluir traceId em todos os logs e eventos:
+
+```typescript
+// ✅ CORRETO - Propagação de traceId
+const traceId = ctx.traceId || generateTraceId();
+
+logger.info({
+  traceId,
+  service: "campaign-service",
+  action: "campaign.created",
+  userId: ctx.user.id,
+  campaignId: campaign.id,
+});
+
+// Propagar em eventos
+await messageBroker.publish("campaign.created", {
+  traceId, // Sempre incluir
+  campaignId: campaign.id,
+  // ...
+});
+```
+
+### Health Checks
+
+**OBRIGATÓRIO** cada microserviço expor endpoint de health:
+
+```typescript
+// ✅ CORRETO - Health check endpoint
+app.get("/health", async (request, reply) => {
+  const health = {
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    checks: {
+      database: await checkDatabase(),
+      messageBroker: await checkMessageBroker(),
+    },
+  };
+
+  const isHealthy = Object.values(health.checks).every(
+    (check) => check === "ok"
+  );
+
+  return reply.code(isHealthy ? 200 : 503).send(health);
+});
+```
+
+### Métricas por Serviço
+
+Cada microserviço deve expor métricas:
+
+- Request rate (req/s)
+- Error rate (%)
+- Latency (p50, p95, p99)
+- Database connection pool usage
+- Message Broker queue depth
+- Processing time
+
+---
+
+**Última atualização**: 2025-01-15
+**Versão**: 2.0.0 (Microserviços Escaláveis)
