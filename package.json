@@ -1,0 +1,35 @@
+{
+  "name": "WhatLead",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "check": "biome check --write .",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:native": "turbo -F native dev",
+    "dev:web": "turbo -F web dev",
+    "dev:server": "turbo -F server dev",
+    "db:push": "turbo -F @WhatLead/db db:push",
+    "db:studio": "turbo -F @WhatLead/db db:studio",
+    "db:generate": "turbo -F @WhatLead/db db:generate",
+    "db:migrate": "turbo -F @WhatLead/db db:migrate"
+  },
+  "dependencies": {
+    "dotenv": "catalog:",
+    "zod": "catalog:",
+    "@WhatLead/env": "workspace:*"
+  },
+  "devDependencies": {
+    "turbo": "^2.6.3",
+    "@biomejs/biome": "^2.2.0",
+    "typescript": "catalog:",
+    "@types/node": "^22.13.11",
+    "@WhatLead/config": "workspace:*"
+  },
+  "packageManager": "pnpm@10.18.2"
+}
