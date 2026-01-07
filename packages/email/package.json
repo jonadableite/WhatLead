@@ -1,0 +1,25 @@
+{
+	"name": "@WhatLead/email",
+	"version": "1.0.0",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./templates": {
+			"default": "./src/templates/index.ts"
+		}
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"nodemailer": "^6.9.16",
+		"@WhatLead/env": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/nodemailer": "^6.4.17",
+		"typescript": "catalog:",
+		"@WhatLead/config": "workspace:*"
+	}
+}

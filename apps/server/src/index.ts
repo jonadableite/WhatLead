@@ -1,95 +1,248 @@
 import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { google } from "@ai-sdk/google";
 import fastifyCors from "@fastify/cors";
-import { fastifyTRPCPlugin, type FastifyTRPCPluginOptions } from "@trpc/server/adapters/fastify";
+import rateLimit from "@fastify/rate-limit";
+import {
+	fastifyTRPCPlugin,
+	type FastifyTRPCPluginOptions,
+} from "@trpc/server/adapters/fastify";
 import { createContext } from "@WhatLead/api/context";
 import { appRouter, type AppRouter } from "@WhatLead/api/routers/index";
 import { auth } from "@WhatLead/auth";
 import { env } from "@WhatLead/env/server";
-import { convertToModelMessages, streamText, wrapLanguageModel, type UIMessage } from "ai";
+import {
+	convertToModelMessages,
+	streamText,
+	wrapLanguageModel,
+	type UIMessage,
+} from "ai";
 import Fastify from "fastify";
 
-const baseCorsConfig = {
-  origin: env.CORS_ORIGIN,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  maxAge: 86400,
-};
+// =============================================================================
+// FASTIFY SERVER CONFIGURATION
+// =============================================================================
 
 const fastify = Fastify({
-  logger: true,
+	logger: {
+		level: env.NODE_ENV === "production" ? "info" : "debug",
+		transport:
+			env.NODE_ENV === "development"
+				? {
+						target: "pino-pretty",
+						options: {
+							colorize: true,
+						},
+					}
+				: undefined,
+	},
+	// Security: limite de tamanho do body
+	bodyLimit: 1048576, // 1MB
+	// Trusty proxy para obter IP real atrás de load balancers
+	trustProxy: true,
 });
 
-fastify.register(fastifyCors, baseCorsConfig);
+// =============================================================================
+// CORS CONFIGURATION
+// =============================================================================
+
+const baseCorsConfig = {
+	origin: env.CORS_ORIGIN,
+	methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+	allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+	credentials: true,
+	maxAge: 86400,
+};
+
+await fastify.register(fastifyCors, baseCorsConfig);
+
+// =============================================================================
+// RATE LIMITING - GLOBAL
+// Proteção contra DDoS e abuso de API
+// =============================================================================
+
+await fastify.register(rateLimit, {
+	global: true,
+	max: 100, // 100 requests
+	timeWindow: "1 minute",
+	keyGenerator: (request) => {
+		// Rate limit por IP (usa IP real mesmo atrás de proxy)
+		return request.ip;
+	},
+	errorResponseBuilder: (_request, context) => ({
+		success: false,
+		error: "Muitas requisicoes",
+		message: `Limite excedido. Tente novamente em ${context.after}`,
+		code: "RATE_LIMIT_EXCEEDED",
+		statusCode: 429,
+	}),
+	// Skip rate limit para health checks
+	allowList: (request) => {
+		return request.url === "/" || request.url === "/health";
+	},
+});
+
+// =============================================================================
+// HEALTH CHECK ENDPOINT
+// =============================================================================
+
+fastify.get("/", async () => {
+	return {
+		status: "ok",
+		service: "WhatLead API",
+		timestamp: new Date().toISOString(),
+	};
+});
+
+fastify.get("/health", async () => {
+	return { status: "healthy", uptime: process.uptime() };
+});
+
+// =============================================================================
+// AUTHENTICATION ROUTES
+// Rate limit mais restrito para auth endpoints
+// =============================================================================
 
 fastify.route({
-  method: ["GET", "POST"],
-  url: "/api/auth/*",
-  async handler(request, reply) {
-    try {
-      const url = new URL(request.url, `http://${request.headers.host}`);
-      const headers = new Headers();
-      Object.entries(request.headers).forEach(([key, value]) => {
-        if (value) headers.append(key, value.toString());
-      });
-      const req = new Request(url.toString(), {
-        method: request.method,
-        headers,
-        body: request.body ? JSON.stringify(request.body) : undefined,
-      });
-      const response = await auth.handler(req);
-      reply.status(response.status);
-      response.headers.forEach((value, key) => reply.header(key, value));
-      reply.send(response.body ? await response.text() : null);
-    } catch (error) {
-      fastify.log.error({ err: error }, "Authentication Error:");
-      reply.status(500).send({
-        error: "Internal authentication error",
-        code: "AUTH_FAILURE",
-      });
-    }
-  },
+	method: ["GET", "POST"],
+	url: "/api/auth/*",
+	config: {
+		rateLimit: {
+			max: 20, // 20 requests por minuto para auth
+			timeWindow: "1 minute",
+		},
+	},
+	async handler(request, reply) {
+		try {
+			// Construir URL completa
+			const protocol = request.headers["x-forwarded-proto"] || "http";
+			const host = request.headers["x-forwarded-host"] || request.headers.host;
+			const url = new URL(request.url, `${protocol}://${host}`);
+
+			// Converter headers do Fastify para Headers do Web API
+			const headers = new Headers();
+			Object.entries(request.headers).forEach(([key, value]) => {
+				if (value) {
+					if (Array.isArray(value)) {
+						value.forEach((v) => headers.append(key, v));
+					} else {
+						headers.append(key, value);
+					}
+				}
+			});
+
+			// Criar Request do Web API
+			const webRequest = new Request(url.toString(), {
+				method: request.method,
+				headers,
+				body: request.body ? JSON.stringify(request.body) : undefined,
+			});
+
+			// Processar com Better Auth
+			const response = await auth.handler(webRequest);
+
+			// Transferir status e headers da resposta
+			reply.status(response.status);
+			response.headers.forEach((value, key) => {
+				reply.header(key, value);
+			});
+
+			// Enviar body
+			if (response.body) {
+				const text = await response.text();
+				return reply.send(text);
+			}
+
+			return reply.send(null);
+		} catch (error) {
+			fastify.log.error(
+				{ err: error, url: request.url },
+				"Authentication Error",
+			);
+
+			return reply.status(500).send({
+				success: false,
+				error: "Erro interno de autenticacao",
+				code: "AUTH_FAILURE",
+			});
+		}
+	},
 });
 
-fastify.register(fastifyTRPCPlugin, {
-  prefix: "/trpc",
-  trpcOptions: {
-    router: appRouter,
-    createContext,
-    onError({ path, error }) {
-      console.error(`Error in tRPC handler on path '${path}':`, error);
-    },
-  } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"],
+// =============================================================================
+// tRPC ROUTES
+// =============================================================================
+
+await fastify.register(fastifyTRPCPlugin, {
+	prefix: "/trpc",
+	trpcOptions: {
+		router: appRouter,
+		createContext,
+		onError({ path, error }) {
+			fastify.log.error(
+				{ path, error: error.message, code: error.code },
+				"tRPC Error",
+			);
+		},
+	} satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"],
 });
+
+// =============================================================================
+// AI ROUTES
+// =============================================================================
 
 interface AiRequestBody {
-  id?: string;
-  messages: UIMessage[];
+	id?: string;
+	messages: UIMessage[];
 }
 
 fastify.post("/ai", async function (request) {
-  const { messages } = request.body as AiRequestBody;
-  const model = wrapLanguageModel({
-    model: google("gemini-2.5-flash"),
-    middleware: devToolsMiddleware(),
-  });
-  const result = streamText({
-    model,
-    messages: await convertToModelMessages(messages),
-  });
+	const { messages } = request.body as AiRequestBody;
+	const model = wrapLanguageModel({
+		model: google("gemini-2.5-flash"),
+		middleware: devToolsMiddleware(),
+	});
+	const result = streamText({
+		model,
+		messages: await convertToModelMessages(messages),
+	});
 
-  return result.toUIMessageStreamResponse();
+	return result.toUIMessageStreamResponse();
 });
 
-fastify.get("/", async () => {
-  return "OK";
-});
+// =============================================================================
+// START SERVER
+// =============================================================================
 
-fastify.listen({ port: Number(env.PORT) }, (err) => {
-  if (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-  console.log(`Server running on port ${Number(env.PORT)}`);
-});
+const start = async (): Promise<void> => {
+	try {
+		const port = Number(env.PORT);
+		const host = "0.0.0.0"; // Escutar em todas as interfaces
+
+		await fastify.listen({ port, host });
+
+		fastify.log.info(`WhatLead API running on port ${port}`);
+		fastify.log.info(`Environment: ${env.NODE_ENV}`);
+	} catch (err) {
+		fastify.log.error(err);
+		process.exit(1);
+	}
+};
+
+// Graceful shutdown
+const gracefulShutdown = async (signal: string): Promise<void> => {
+	fastify.log.info(`Received ${signal}. Shutting down gracefully...`);
+
+	try {
+		await fastify.close();
+		fastify.log.info("Server closed successfully");
+		process.exit(0);
+	} catch (err) {
+		fastify.log.error(err, "Error during shutdown");
+		process.exit(1);
+	}
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+start();
