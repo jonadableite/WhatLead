@@ -48,3 +48,6 @@ coverage
 .cache
 tmp
 temp
+
+# MCP Configuration (contains secrets)
+opencode.jsonc
