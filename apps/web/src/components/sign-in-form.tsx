@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { logger } from "@/lib/logger";
 
 import Loader from "./loader";
 import { Button } from "./ui/button";
@@ -31,31 +32,59 @@ export default function SignInForm({
 			password: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
-				},
-				{
-					onSuccess: () => {
-						router.push("/dashboard");
-						toast.success("Login realizado com sucesso!");
-					},
-					onError: (error) => {
-						// Verificar se é erro de email não verificado
-						if (
-							error.error.status === 403 ||
-							error.error.message?.toLowerCase().includes("verif")
-						) {
-							setVerificationEmail(value.email);
-							setNeedsVerification(true);
-							return;
-						}
+			const startTime = Date.now();
 
-						toast.error(error.error.message || "Email ou senha incorretos");
+			try {
+				logger.userAction("attempted_login", { email: value.email });
+
+				await authClient.signIn.email(
+					{
+						email: value.email,
+						password: value.password,
 					},
-				},
-			);
+					{
+						onSuccess: () => {
+							const duration = Date.now() - startTime;
+							logger.business("user_logged_in", "User successfully logged in", {
+								email: value.email,
+								duration,
+							});
+							logger.performance("login_flow", duration);
+
+							router.push("/dashboard");
+							toast.success("Login realizado com sucesso!");
+						},
+						onError: (error) => {
+							const duration = Date.now() - startTime;
+							logger.error("Login failed", error.error, {
+								email: value.email,
+								duration,
+								status: error.error.status,
+							});
+
+							// Verificar se é erro de email não verificado
+							if (
+								error.error.status === 403 ||
+								error.error.message?.toLowerCase().includes("verif")
+							) {
+								setVerificationEmail(value.email);
+								setNeedsVerification(true);
+								logger.info("Login failed due to unverified email", { email: value.email });
+								return;
+							}
+
+							toast.error(error.error.message || "Email ou senha incorretos");
+						},
+					},
+				);
+			} catch (error) {
+				const duration = Date.now() - startTime;
+				logger.error("Unexpected error during login", error, {
+					email: value.email,
+					duration,
+				});
+				toast.error("Erro inesperado. Tente novamente.");
+			}
 		},
 		validators: {
 			onSubmit: z.object({
@@ -69,14 +98,17 @@ export default function SignInForm({
 		return <Loader />;
 	}
 
-	const handleResendVerification = async () => {
-		try {
-			await authClient.sendVerificationEmail({ email: verificationEmail });
-			toast.success("Email de verificacao reenviado!");
-		} catch {
-			toast.error("Erro ao reenviar email");
-		}
-	};
+  const handleResendVerification = async () => {
+ 		try {
+ 			logger.userAction("requested_verification_email", { email: verificationEmail });
+ 			await authClient.sendVerificationEmail({ email: verificationEmail });
+ 			logger.business("verification_email_sent", "Verification email sent", { email: verificationEmail });
+ 			toast.success("Email de verificacao reenviado!");
+ 		} catch (error) {
+ 			logger.error("Failed to send verification email", error, { email: verificationEmail });
+ 			toast.error("Erro ao reenviar email");
+ 		}
+ 	};
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">

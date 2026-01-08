@@ -92,13 +92,36 @@ export const signIn = authClient.signIn;
 export const signUp = authClient.signUp;
 
 /**
- * Solicitar reset de senha
+ * Solicitar reset de senha via API
  * @example
  * ```tsx
- * await forgetPassword({ email });
+ * await requestPasswordReset({ email, redirectTo });
  * ```
  */
-export const forgetPassword = authClient.forgetPassword;
+export const requestPasswordReset = async (params: {
+	email: string;
+	redirectTo?: string;
+}): Promise<{ data: { status: boolean } | null; error: { message?: string } | null }> => {
+	try {
+		const response = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/api/auth/request-password-reset`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(params),
+		});
+		const result = await response.json();
+		if (!response.ok) {
+			return { data: null, error: { message: result.message || "Erro ao solicitar reset de senha" } };
+		}
+		return { data: result, error: null };
+	} catch (error) {
+		return { data: null, error: { message: "Erro de conexão" } };
+	}
+};
+
+/**
+ * Alias para compatibilidade
+ */
+export const forgetPassword = requestPasswordReset;
 
 /**
  * Redefinir senha com token
@@ -110,13 +133,31 @@ export const forgetPassword = authClient.forgetPassword;
 export const resetPassword = authClient.resetPassword;
 
 /**
- * Verificar email com token
+ * Verificar email com token via API
  * @example
  * ```tsx
  * await verifyEmail({ token });
  * ```
  */
-export const verifyEmail = authClient.verifyEmail;
+export const verifyEmail = async (params: {
+	token: string;
+	callbackURL?: string;
+}): Promise<{ data: { status: boolean } | null; error: { message?: string } | null }> => {
+	try {
+		const url = new URL(`${env.NEXT_PUBLIC_SERVER_URL}/api/auth/verify-email`);
+		url.searchParams.set("token", params.token);
+		if (params.callbackURL) url.searchParams.set("callbackURL", params.callbackURL);
+		
+		const response = await fetch(url.toString(), { method: "GET" });
+		const result = await response.json();
+		if (!response.ok) {
+			return { data: null, error: { message: result.message || "Erro ao verificar email" } };
+		}
+		return { data: result, error: null };
+	} catch (error) {
+		return { data: null, error: { message: "Erro de conexão" } };
+	}
+};
 
 /**
  * Reenviar email de verificação

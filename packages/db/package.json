@@ -25,6 +25,7 @@
     "@prisma/adapter-pg": "^7.1.0",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@WhatLead/env": "workspace:*"
+    "@WhatLead/env": "workspace:*",
+    "@WhatLead/logger": "workspace:*"
   }
 }

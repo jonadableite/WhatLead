@@ -23,6 +23,7 @@
     "zod": "catalog:",
     "@WhatLead/env": "workspace:*",
     "@WhatLead/auth": "workspace:*",
-    "@WhatLead/db": "workspace:*"
+    "@WhatLead/db": "workspace:*",
+    "@WhatLead/logger": "workspace:*"
   }
 }

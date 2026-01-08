@@ -75,3 +75,16 @@ WhatLead/
 - `pnpm run db:push`: Push schema changes to database
 - `pnpm run db:studio`: Open database studio UI
 - `pnpm run check`: Run Biome formatting and linting
+- `node demo-logs.js`: Demo beautiful logging system with colors and emojis
+
+## Logging System 🎨
+
+This project features a beautiful, structured logging system with:
+
+- **Colorful Terminal Output**: Pino-Pretty with emojis and custom colors
+- **Request Correlation**: TraceId tracking across all requests
+- **Business Event Logging**: Dedicated logging for user actions and business events
+- **Performance Monitoring**: Automatic slow operation detection
+- **Error Context**: Full stack traces with request correlation
+
+Run `node demo-logs.js` to see the logging system in action!

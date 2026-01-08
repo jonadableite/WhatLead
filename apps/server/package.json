@@ -23,7 +23,8 @@
 		"@WhatLead/env": "workspace:*",
 		"@WhatLead/api": "workspace:*",
 		"@WhatLead/auth": "workspace:*",
-		"@WhatLead/db": "workspace:*"
+		"@WhatLead/db": "workspace:*",
+		"@WhatLead/logger": "workspace:*"
 	},
 	"devDependencies": {
 		"tsx": "^4.19.2",
