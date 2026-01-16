@@ -29,7 +29,7 @@ export default function ForgotPasswordForm() {
 		},
 		onSubmit: async ({ value }) => {
 			try {
-				const result = await authClient.forgetPassword({
+				const result = await authClient.requestPasswordReset({
 					email: value.email,
 					redirectTo: "/reset-password",
 				});
@@ -69,7 +69,7 @@ export default function ForgotPasswordForm() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<p className="text-center text-sm text-gray-400">
+					<p className="text-center text-gray-400 text-sm">
 						Nao recebeu o email? Verifique sua caixa de spam ou{" "}
 						<button
 							onClick={() => setIsSubmitted(false)}
@@ -130,7 +130,7 @@ export default function ForgotPasswordForm() {
 										className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 									/>
 									{field.state.meta.errors.map((error) => (
-										<p key={error?.message} className="text-sm text-red-500">
+										<p key={error?.message} className="text-red-500 text-sm">
 											{error?.message}
 										</p>
 									))}

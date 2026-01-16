@@ -1,41 +1,392 @@
-# AGENTS.md - WhatLead Codebase Guide
+# AGENTS.md — WhatLead Codebase Guide (Advanced / Optimized)
 
-This document provides essential information for AI agents working in the WhatLead codebase.
+> This document defines **how AI agents and engineers must operate** inside the WhatLead codebase.
+> It is mandatory reading before modifying **domain, reputation, heater, campaign, instance, or dispatch logic**.
 
-## Project Overview
+This guide enforces **DDD + Clean Architecture + SOLID + Type Safety**, aligned with the business goal of WhatLead:
+**maximize WhatsApp deliverability while minimizing ban risk through intelligent reputation management.**
 
-WhatLead is a SaaS WhatsApp Marketing platform built as a TypeScript monorepo using pnpm workspaces and Turborepo.
+---
 
-**Tech Stack:** Next.js 16+ (App Router), React 19+, TailwindCSS v4, shadcn/ui, Fastify 5+, tRPC, Better Auth, PostgreSQL with Prisma ORM, Pino logging, pnpm@10.18.2, ESM modules.
+## 1. Project Overview
 
-## Build/Lint/Test Commands
+WhatLead is a **WhatsApp Marketing SaaS** designed to operate at scale while behaving as close to **human-like interaction** as possible.
 
-```bash
-# Development
-pnpm dev                    # Start all apps in dev mode
-pnpm dev:web                # Start only web app (Next.js on port 3001)
-pnpm dev:server             # Start only server (Fastify API)
+### Core Goals
+- Prevent bans and rate-limits
+- Continuously evaluate instance health and reputation
+- Dynamically adapt dispatch behavior
+- Learn from real usage patterns (future ML integration)
 
-# Build & Quality
-pnpm build                  # Build all apps via Turborepo
-pnpm check-types            # TypeScript type checking across all packages
-pnpm check                  # Lint and format all files with Biome (auto-fix)
+### Tech Stack
+- TypeScript (strict)
+- Fastify 5+
+- tRPC
+- Next.js 16+ (App Router)
+- React 19+
+- TailwindCSS v4
+- Prisma + PostgreSQL
+- pnpm workspaces + Turborepo
+- Biome (lint/format)
+- ESM modules only
 
-# Database (Prisma)
-pnpm db:push                # Push schema changes to database
-pnpm db:generate            # Generate Prisma client
-pnpm db:migrate             # Run database migrations
-pnpm db:studio              # Open Prisma Studio GUI
+---
 
-# Run specific workspace
-pnpm turbo -F <workspace> <command>   # e.g., pnpm turbo -F web build
+## 2. Architectural Principles (Non-Negotiable)
+
+### Clean Architecture
+API / Controllers
+↓
+Use Cases
+↓
+Domain (Entities, Policies, Services)
+↓
+Repository Interfaces
+↓
+Infrastructure (Prisma, DB, Queues, Providers)
+
+### Golden Rules
+- Domain **never** depends on infrastructure
+- Infrastructure **always** depends on domain
+- No business logic inside controllers, routes, or adapters
+- No ORM types inside domain
+
+---
+
+## 3. Folder Structure (Relevant)
+
+apps/server/src
+├── domain
+│ ├── entities
+│ ├── value-objects
+│ ├── policies
+│ ├── services
+│ ├── repositories # INTERFACES ONLY
+│ └── use-cases
+├── application # composition roots / DI
+└── infra
+├── repositories # Prisma adapters
+├── providers
+└── events
+
+---
+
+## 4. Mandatory TypeScript Rules
+
+- `strict: true`
+- **NEVER** use `any`
+- Use `unknown` + validation when required
+- Always type function returns
+- Prefer `interface` over `type` (except unions)
+- No `var`
+- No implicit `any`
+- Arrow functions preferred
+- Async/await only (no `.then()` chains)
+
+---
+
+## 5. Domain Rules (CRITICAL)
+
+### Entities
+- Must enforce invariants
+- Can mutate internal state
+- Cannot call repositories
+- Cannot know about Prisma or HTTP
+
+### Value Objects
+- Immutable
+- Self-validating
+- Comparable
+
+### Use Cases
+- Orchestrate domain logic
+- Call repositories
+- Coordinate services and policies
+- No HTTP, no DB logic
+
+### Policies
+- Pure functions
+- Deterministic rules
+- No side effects
+
+---
+
+## 6. Repository Pattern (Mandatory)
+
+Repositories are **contracts**, not implementations.
+
+### Interface Example
+
+```ts
+// domain/repositories/instance-reputation-repository.ts
+import type { InstanceReputation } from "../entities/instance-reputation";
+
+export interface InstanceReputationRepository {
+  findByInstanceId(instanceId: string): Promise<InstanceReputation | null>;
+  create(reputation: InstanceReputation): Promise<void>;
+  save(reputation: InstanceReputation): Promise<void>;
+}
 ```
 
-**Testing:** Framework not configured. Use `pnpm check-types && pnpm check && pnpm build` for validation.
+Rules
+No findAll without strong justification
+
+No leaking ORM models
+
+Mapping happens in infra layer only
+
+7. Use Case Pattern (Standard)
+EvaluateInstanceReputationUseCase
+```ts
+interface EvaluateInstanceReputationRequest {
+  companyId: string;
+  instanceId: string;
+}
+
+interface EvaluateInstanceReputationResponse {
+  score: number;
+  temperature: InstanceTemperatureLevel;
+  trend: "UP" | "DOWN" | "STABLE";
+  alerts: string[];
+}
+```
+
+Responsibilities
+Load reputation
+
+Collect signals
+
+Evaluate health
+
+Persist new state
+
+Return actionable output
+
+8. Heater System Rules
+Core Principle
+Temperature is NEVER an input.
+It is always derived from reputation.
+
+Heater Flow
+Evaluate instance reputation
+
+Map reputation → temperature level
+
+Apply heating policy
+
+Return safe limits
+
+Heater Output
+maxMessagesPerHour
+
+maxMessagesPerDay
+
+minDelayBetweenMessages
+
+recommendedBatchSize
+
+warnings / alerts
+
+9. Instance Reputation Model
+Reputation is calculated from signals, never assumptions.
+
+Signals Examples
+Reply rate
+
+Block rate
+
+Message delivery failures
+
+Human interaction ratio
+
+Group participation
+
+Media vs text balance
+
+Conversation reciprocity
+
+Time-of-day consistency
+
+Reputation Trends
+UP: healthy interaction
+
+STABLE: safe but stagnant
+
+DOWN: increasing risk
+
+10. Event Instrumentation (Required)
+All behavior must be observable.
+
+Mandatory Events
+message.sent
+
+message.delivered
+
+message.read
+
+message.replied
+
+message.blocked
+
+instance.warmed
+
+instance.cooled
+
+campaign.dispatched
+
+Event Rules
+JSON only
+
+ISO timestamps
+
+No PII
+
+Use IDs, hashes, or references
+
+11. Machine Learning Strategy (Future-Proof)
+ML is an Adapter, Not Core Logic
+Default evaluator: rule-based
+
+ML evaluator: optional, replaceable
+
+Fallback always exists
+
+ML Guidelines
+Offline training only
+
+Anonymized data
+
+Feature-based (never raw messages)
+
+Versioned models
+
+A/B testing mandatory
+
+Canary rollout required
+
+Evaluator Interface
+```ts
+export interface ReputationEvaluator {
+  evaluate(features: FeatureVector): Promise<EvaluationResult>;
+}
+```
+
+12. Tests (Mandatory)
+Required Coverage
+Domain services
+
+Reputation evaluation
+
+Heater policy limits
+
+Repository adapters
+
+Rules
+No untested business rules
+
+Tests live next to source (*.spec.ts)
+
+Use in-memory DB for integration tests
+
+13. Error Handling
+Domain
+Use domain errors
+
+Never throw HTTP errors
+
+API / tRPC
+Always throw TRPCError
+
+Never expose internal messages
+
+14. Naming Conventions
+Element	Convention
+Classes	PascalCase
+Interfaces	PascalCase
+Methods	camelCase (verbs)
+Files	kebab-case
+Constants	UPPER_SNAKE_CASE
+
+15. Forbidden Practices
+Business logic inside routes/controllers
+
+ORM types in domain
+
+Accepting user-defined temperature
+
+Hardcoded limits
+
+Silent failures
+
+Logging sensitive data
+
+Massive PRs without design docs
+
+16. PR & Commit Rules
+Commit Message
+```
+feat(reputation): evaluate instance health based on replies
+```
+
+PR Requirements
+Small, focused
+
+Clear description
+
+Architectural rationale
+
+Tests included
+
+No breaking changes without approval
+
+17. Pre-Merge Checklist
+ No any
+
+ Domain clean
+
+ Interfaces respected
+
+ Tests passing
+
+ Type-check passing
+
+ Lint passing
+
+ Events instrumented
+
+ Docs updated if needed
+
+18. Final Principle
+If the system behaves like a human, the platform survives.
+If it behaves like a bot, it will be banned.
+
+Everything in WhatLead exists to enforce this rule.
+
+---
+🧭 Skill Set Summary (Recommended for WhatLead)
+Core (Must-have)
+
+ddd-domain-architect
+
+clean-architecture-enforcer
+
+solid-typescript-engineer
+
+integration-provider-architect
+
+Strategic (Highly recommended)
+
+event-normalization-specialist
+
+use-case-orchestrator
+
+ml-ready-domain-designer
+
+Optional (Quality at scale)
+
+safe-refactor-guardian
 
 ## Logging System (Pino + Pino-Pretty) 🎨✨
-
-**Beautiful, colorful, structured logging with emojis, traceId correlation, and maximum terminal UI/UX**
 
 **Beautiful, structured logging with traceId correlation and business event tracking.**
 
@@ -146,144 +497,7 @@ Every request gets a unique `traceId` that follows through:
 
 **Header:** `X-Trace-Id` or `X-Request-Id` for external correlation.
 
-## Code Style Guidelines
-
-### TypeScript & Naming
-
-- **Strict mode:** No `any`/`var`, explicit return types, arrow functions + async/await
-- **Interfaces** over type aliases (except unions/intersections)
-- **Naming:** PascalCase (classes/interfaces), camelCase (functions/vars), kebab-case (files), UPPER_SNAKE_CASE (constants)
-- **Functions:** Must be verbs (`sendMessage`, not `messageSender`)
-
-### Formatting (Biome)
-
-- **Indentation:** Tabs, **Quotes:** Double, **Self-closing JSX:** Required
-- **Tailwind classes:** Auto-sorted via `cn()`, `clsx()`, `cva()`
-
-### tRPC Pattern
-
-```typescript
-export const exampleRouter = router({
-  getAll: publicProcedure.query(async () => {
-    return await prisma.example.findMany({ orderBy: { id: "asc" } });
-  }),
-  create: publicProcedure
-    .input(z.object({ name: z.string().min(1) }))
-    .mutation(async ({ input }) => {
-      return await prisma.example.create({ data: { name: input.name } });
-    }),
-});
-```
-
-### Error Handling
-
-**tRPC Procedures:**
-```typescript
-try {
-  return await prisma.item.update({ where: { id: input.id }, data: input.data });
-} catch (error) {
-  if (error.code === 'P2025') {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
-  }
-  throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Operation failed" });
-}
-```
-
-**React Components:**
-```typescript
-const handleSubmit = async (data: FormData) => {
-  try {
-    await api.example.create.mutate(data);
-    toast.success("Success!");
-  } catch (error) {
-    toast.error(error.message || "Failed");
-  }
-}
-```
-
-### React Component Patterns
-
-```typescript
-// Client components require "use client" directive
-"use client";
-
-import { useForm } from "@tanstack/react-form";
-import { toast } from "sonner";
-
-// @tanstack/react-form + Zod validation pattern
-export default function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
-  const form = useForm({
-    defaultValues: { email: "", password: "" },
-    onSubmit: async ({ value }) => {
-      const result = await authClient.signIn.email(value);
-      if (result.success) {
-        toast.success("Login successful!");
-      }
-    },
-    validators: {
-      onSubmit: z.object({
-        email: z.string().email(),
-        password: z.string().min(8),
-      }),
-    },
-  });
-
-  return (
-    <form onSubmit={form.handleSubmit}>
-      <form.Field name="email">
-        {(field) => (
-          <div>
-            <input {...field.getInputProps()} />
-            {field.state.meta.errors.map((error) => (
-              <p key={error.message} className="text-red-500">{error.message}</p>
-            ))}
-          </div>
-        )}
-      </form.Field>
-    </form>
-  );
-}
-
-interface SignInFormProps {
-  onSwitchToSignUp: () => void;
-}
-```
-
-### Environment Variables
-
-All environment variables MUST be validated via `@WhatLead/env`:
-```typescript
-import { env } from "@WhatLead/env/server";  // Server-side
-import { env } from "@WhatLead/env/web";     // Client-side (Next.js)
-```
-
-### Export Patterns
-
-- **Named exports** (ALWAYS - preferred for utilities, hooks, types)
-- **Default exports** ONLY for: React page/layout components, Prisma client
-- **Barrel exports** for clean API surfaces: `export * from "./components"`
-- **Type exports** alongside value exports: `export type { User } from "./types"`
-
-
-
-## Code Review Checklist
-
-**MANDATORY Commands (run before committing):**
-1. `pnpm check-types` - TypeScript validation
-2. `pnpm check` - Lint/format with Biome
-3. `pnpm build` - Build verification
-
-**Requirements:**
-- ✅ No `any`/`var` (use `unknown` for unknowns)
-- ✅ Zod validation on all inputs
-- ✅ Functions < 50 lines (< 30 preferred)
-- ✅ Early returns (avoid nested if/else)
-- ✅ TRPCError for API errors, toast for UI
-- ✅ `@WhatLead/env` for environment variables
-- ✅ No secrets in code/logs
-- ✅ Layered architecture: Frontend → API → Database
-
-**Note:** Cursor rules and Copilot instructions not configured.
+---
 
 ## Workspace Packages
 
@@ -295,4 +509,3 @@ import { env } from "@WhatLead/env/web";     // Client-side (Next.js)
 | `@WhatLead/env` | Environment validation (`/server`, `/web`) |
 | `@WhatLead/logger` | Pino logging system with traceId correlation |
 | `@WhatLead/config` | Shared TypeScript config |
-

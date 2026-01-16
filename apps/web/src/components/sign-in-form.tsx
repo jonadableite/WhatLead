@@ -112,7 +112,7 @@ export default function SignInForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-2 text-center text-3xl font-bold text-white">
+			<h1 className="mb-2 text-center font-bold text-3xl text-white">
 				Bem-vindo de volta
 			</h1>
 			<p className="mb-6 text-center text-gray-400">
@@ -124,7 +124,7 @@ export default function SignInForm({
 					<div className="flex items-start gap-3">
 						<AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-500" />
 						<div>
-							<p className="text-sm font-medium text-yellow-500">
+							<p className="font-medium text-sm text-yellow-500">
 								Email nao verificado
 							</p>
 							<p className="mt-1 text-xs text-yellow-400/80">
@@ -167,7 +167,7 @@ export default function SignInForm({
 									className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-sm text-red-500">
+									<p key={error?.message} className="text-red-500 text-sm">
 										{error?.message}
 									</p>
 								))}
@@ -186,7 +186,7 @@ export default function SignInForm({
 									</Label>
 									<Link
 										href="/forgot-password"
-										className="text-xs text-[#1e1b4a] hover:text-[#2d2a5e] hover:underline"
+										className="text-[#1e1b4a] text-xs hover:text-[#2d2a5e] hover:underline"
 									>
 										Esqueceu a senha?
 									</Link>
@@ -202,7 +202,7 @@ export default function SignInForm({
 									className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-sm text-red-500">
+									<p key={error?.message} className="text-red-500 text-sm">
 										{error?.message}
 									</p>
 								))}

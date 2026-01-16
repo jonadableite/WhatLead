@@ -18,7 +18,7 @@ export default async function MembersPage({ params }: Props) {
 		},
 	});
 
-	if (!session?.user) {
+	if (!session?.data?.user) {
 		redirect("/login");
 	}
 

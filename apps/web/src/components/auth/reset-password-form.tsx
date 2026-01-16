@@ -210,7 +210,7 @@ export default function ResetPasswordForm() {
 										<button
 											type="button"
 											onClick={() => setShowPassword(!showPassword)}
-											className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+											className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-white"
 										>
 											{showPassword ? (
 												<EyeOff className="h-4 w-4" />
@@ -220,7 +220,7 @@ export default function ResetPasswordForm() {
 										</button>
 									</div>
 									{field.state.meta.errors.map((error) => (
-										<p key={error?.message} className="text-sm text-red-500">
+										<p key={error?.message} className="text-red-500 text-sm">
 											{error?.message}
 										</p>
 									))}
@@ -252,7 +252,7 @@ export default function ResetPasswordForm() {
 											onClick={() =>
 												setShowConfirmPassword(!showConfirmPassword)
 											}
-											className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+											className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-white"
 										>
 											{showConfirmPassword ? (
 												<EyeOff className="h-4 w-4" />
@@ -262,7 +262,7 @@ export default function ResetPasswordForm() {
 										</button>
 									</div>
 									{field.state.meta.errors.map((error) => (
-										<p key={error?.message} className="text-sm text-red-500">
+										<p key={error?.message} className="text-red-500 text-sm">
 											{error?.message}
 										</p>
 									))}
@@ -272,8 +272,8 @@ export default function ResetPasswordForm() {
 					</div>
 
 					<div className="rounded-lg border border-gray-700 bg-gray-800/50 p-3">
-						<p className="text-xs text-gray-400">Sua senha deve conter:</p>
-						<ul className="mt-1 space-y-1 text-xs text-gray-500">
+						<p className="text-gray-400 text-xs">Sua senha deve conter:</p>
+						<ul className="mt-1 space-y-1 text-gray-500 text-xs">
 							<li>• Pelo menos 8 caracteres</li>
 							<li>• Uma letra maiuscula</li>
 							<li>• Uma letra minuscula</li>

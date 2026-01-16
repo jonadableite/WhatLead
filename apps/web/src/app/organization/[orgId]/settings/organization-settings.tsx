@@ -137,13 +137,13 @@ export default function OrganizationSettings({
 				<div className="mb-6">
 					<Link
 						href={`/organization/${orgId}/members`}
-						className="mb-4 inline-flex items-center text-sm text-gray-400 hover:text-white"
+						className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Voltar
 					</Link>
-					<h1 className="text-2xl font-bold text-white">Configuracoes</h1>
-					<p className="text-sm text-gray-400">
+					<h1 className="font-bold text-2xl text-white">Configuracoes</h1>
+					<p className="text-gray-400 text-sm">
 						Gerencie as configuracoes da sua organizacao
 					</p>
 				</div>
@@ -174,7 +174,7 @@ export default function OrganizationSettings({
 								}
 								className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 							/>
-							<p className="text-xs text-gray-500">
+							<p className="text-gray-500 text-xs">
 								Sera usado na URL: whatlead.com.br/org/{slug || "slug"}
 							</p>
 						</div>
@@ -214,7 +214,7 @@ export default function OrganizationSettings({
 							<div className="flex items-center justify-between rounded-lg border border-red-500/30 bg-red-500/5 p-4">
 								<div>
 									<p className="font-medium text-white">Excluir Organizacao</p>
-									<p className="text-sm text-gray-400">
+									<p className="text-gray-400 text-sm">
 										Esta acao e permanente e nao pode ser desfeita.
 									</p>
 								</div>
@@ -230,7 +230,7 @@ export default function OrganizationSettings({
 							<div className="space-y-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
 								<div>
 									<p className="font-medium text-red-400">Tem certeza?</p>
-									<p className="text-sm text-gray-400">
+									<p className="text-gray-400 text-sm">
 										Esta acao ira excluir permanentemente a organizacao{" "}
 										<strong className="text-white">{organization?.name}</strong>
 										, todos os membros e times associados.

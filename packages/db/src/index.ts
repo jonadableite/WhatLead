@@ -1,11 +1,11 @@
-import { PrismaPg } from "@prisma/adapter-pg";
 import { env } from "@WhatLead/env/server";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { logSlowQuery, createChildLogger } from "@WhatLead/logger";
 
 import { PrismaClient } from "../prisma/generated/client.js";
 
 const adapter = new PrismaPg({
-  connectionString: env.DATABASE_URL,
+	connectionString: env.DATABASE_URL,
 });
 
 // Create database logger

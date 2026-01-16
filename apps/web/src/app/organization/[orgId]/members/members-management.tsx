@@ -213,17 +213,17 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 				<div className="mb-6">
 					<Link
 						href="/organization"
-						className="mb-4 inline-flex items-center text-sm text-gray-400 hover:text-white"
+						className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Voltar para Organizacoes
 					</Link>
 					<div className="flex items-center justify-between">
 						<div>
-							<h1 className="text-2xl font-bold text-white">
+							<h1 className="font-bold text-2xl text-white">
 								{organization?.name || "Organizacao"}
 							</h1>
-							<p className="text-sm text-gray-400">
+							<p className="text-gray-400 text-sm">
 								{members.length} membro{members.length !== 1 ? "s" : ""} •{" "}
 								{invitations.filter((i) => i.status === "pending").length}{" "}
 								convite
@@ -296,7 +296,7 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 										Gestor
 									</Button>
 								</div>
-								<p className="text-xs text-gray-500">
+								<p className="text-gray-500 text-xs">
 									{inviteRole === "admin"
 										? "Gestores podem gerenciar membros e configuracoes"
 										: "Colaboradores podem usar as ferramentas da organizacao"}
@@ -373,12 +373,12 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 														<span className="font-medium text-white">
 															{member.user.name}
 														</span>
-														<span className="flex items-center gap-1 rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-300">
+														<span className="flex items-center gap-1 rounded bg-gray-700 px-2 py-0.5 text-gray-300 text-xs">
 															<RoleIcon className="h-3 w-3" />
 															{roleLabels[member.role] || member.role}
 														</span>
 													</div>
-													<p className="text-sm text-gray-400">
+													<p className="text-gray-400 text-sm">
 														{member.user.email}
 													</p>
 												</div>
@@ -386,19 +386,21 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 
 											{member.role !== "owner" && (
 												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button
-															variant="ghost"
-															size="sm"
-															className="text-gray-400 hover:text-white"
-															disabled={actionLoading === member.id}
-														>
-															{actionLoading === member.id ? (
-																<Loader2 className="h-4 w-4 animate-spin" />
-															) : (
-																<MoreHorizontal className="h-4 w-4" />
-															)}
-														</Button>
+													<DropdownMenuTrigger
+														render={
+															<Button
+																variant="ghost"
+																size="sm"
+																className="text-gray-400 hover:text-white"
+																disabled={actionLoading === member.id}
+															/>
+														}
+													>
+														{actionLoading === member.id ? (
+															<Loader2 className="h-4 w-4 animate-spin" />
+														) : (
+															<MoreHorizontal className="h-4 w-4" />
+														)}
 													</DropdownMenuTrigger>
 													<DropdownMenuContent
 														align="end"
@@ -466,7 +468,7 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 												<p className="font-medium text-white">
 													{invitation.email}
 												</p>
-												<p className="text-sm text-gray-400">
+												<p className="text-gray-400 text-sm">
 													{roleLabels[invitation.role] || invitation.role} •
 													Expira em{" "}
 													{new Date(invitation.expiresAt).toLocaleDateString(

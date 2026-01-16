@@ -1,21 +1,21 @@
+import { createContext } from "@WhatLead/api/context";
+import { type AppRouter, appRouter } from "@WhatLead/api/routers/index";
+import { auth } from "@WhatLead/auth";
+import { env } from "@WhatLead/env/server";
+import { createRequestLogger, generateTraceId } from "@WhatLead/logger";
 import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { google } from "@ai-sdk/google";
 import fastifyCors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import {
-  fastifyTRPCPlugin,
-  type FastifyTRPCPluginOptions,
+    fastifyTRPCPlugin,
+    type FastifyTRPCPluginOptions,
 } from "@trpc/server/adapters/fastify";
-import { createContext } from "@WhatLead/api/context";
-import { appRouter, type AppRouter } from "@WhatLead/api/routers/index";
-import { auth } from "@WhatLead/auth";
-import { env } from "@WhatLead/env/server";
-import { createRequestLogger, generateTraceId } from "@WhatLead/logger";
 import {
-  convertToModelMessages,
-  streamText,
-  wrapLanguageModel,
-  type UIMessage,
+    convertToModelMessages,
+    streamText,
+    type UIMessage,
+    wrapLanguageModel,
 } from "ai";
 import Fastify from "fastify";
 
@@ -262,7 +262,7 @@ interface AiRequestBody {
 	messages: UIMessage[];
 }
 
-fastify.post("/ai", async function (request) {
+fastify.post("/ai", async (request) => {
 	const { messages } = request.body as AiRequestBody;
 	const model = wrapLanguageModel({
 		model: google("gemini-2.5-flash"),

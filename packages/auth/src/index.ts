@@ -1,7 +1,3 @@
-import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, organization } from "better-auth/plugins";
-
 import prisma from "@WhatLead/db";
 import { sendEmail } from "@WhatLead/email";
 import {
@@ -10,6 +6,9 @@ import {
 	verifyEmailTemplate,
 } from "@WhatLead/email/templates";
 import { env } from "@WhatLead/env/server";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { admin, organization } from "better-auth/plugins";
 
 /**
  * WhatLead Authentication Configuration
@@ -152,8 +151,19 @@ export const auth = betterAuth({
 				organization: org,
 				inviter,
 				role,
-				url,
+				invitation,
 			}) {
+				const maybeToken = (invitation as { token?: unknown }).token;
+				const invitationToken =
+					typeof maybeToken === "string" && maybeToken
+						? maybeToken
+						: invitation.id;
+
+				const inviteUrl = new URL(
+					`/invite/${invitationToken}`,
+					env.CORS_ORIGIN,
+				);
+
 				await sendEmail({
 					to: email,
 					subject: `Voce foi convidado para ${org.name} - WhatLead`,
@@ -161,7 +171,7 @@ export const auth = betterAuth({
 						organizationName: org.name,
 						inviterName: inviter.user.name,
 						role,
-						url,
+						url: inviteUrl.toString(),
 					}),
 				});
 			},

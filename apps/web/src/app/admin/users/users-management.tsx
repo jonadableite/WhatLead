@@ -129,17 +129,17 @@ export default function UsersManagement() {
 				<div className="mb-6">
 					<Link
 						href="/admin"
-						className="mb-4 inline-flex items-center text-sm text-gray-400 hover:text-white"
+						className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Voltar para Admin
 					</Link>
 					<div className="flex items-center justify-between">
 						<div>
-							<h1 className="text-2xl font-bold text-white">
+							<h1 className="font-bold text-2xl text-white">
 								Gerenciar Usuarios
 							</h1>
-							<p className="text-sm text-gray-400">
+							<p className="text-gray-400 text-sm">
 								{users.length} usuarios cadastrados
 							</p>
 						</div>
@@ -203,12 +203,12 @@ export default function UsersManagement() {
 														{user.name}
 													</span>
 													{user.role === "admin" && (
-														<span className="rounded bg-[#1e1b4a] px-2 py-0.5 text-xs text-white">
+														<span className="rounded bg-[#1e1b4a] px-2 py-0.5 text-white text-xs">
 															Admin
 														</span>
 													)}
 													{user.banned && (
-														<span className="rounded bg-red-500/20 px-2 py-0.5 text-xs text-red-400">
+														<span className="rounded bg-red-500/20 px-2 py-0.5 text-red-400 text-xs">
 															Banido
 														</span>
 													)}
@@ -218,24 +218,26 @@ export default function UsersManagement() {
 														</span>
 													)}
 												</div>
-												<p className="text-sm text-gray-400">{user.email}</p>
+												<p className="text-gray-400 text-sm">{user.email}</p>
 											</div>
 										</div>
 
 										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													size="sm"
-													className="text-gray-400 hover:text-white"
-													disabled={actionLoading === user.id}
-												>
-													{actionLoading === user.id ? (
-														<Loader2 className="h-4 w-4 animate-spin" />
-													) : (
-														<MoreHorizontal className="h-4 w-4" />
-													)}
-												</Button>
+											<DropdownMenuTrigger
+												render={
+													<Button
+														variant="ghost"
+														size="sm"
+														className="text-gray-400 hover:text-white"
+														disabled={actionLoading === user.id}
+													/>
+												}
+											>
+												{actionLoading === user.id ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<MoreHorizontal className="h-4 w-4" />
+												)}
 											</DropdownMenuTrigger>
 											<DropdownMenuContent
 												align="end"

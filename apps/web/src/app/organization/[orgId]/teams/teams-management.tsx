@@ -78,9 +78,16 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 		setIsLoading(true);
 		try {
 			await authClient.organization.setActive({ organizationId: orgId });
-			const result = await authClient.organization.listTeams();
-			if (result.data) {
-				setTeams(result.data as Team[]);
+			const result = await authClient.$fetch("/organization/list-teams", {
+				method: "GET",
+				query: {
+					organizationId: orgId,
+				},
+			});
+
+			const data = (result as { data?: unknown }).data;
+			if (Array.isArray(data)) {
+				setTeams(data as Team[]);
 			}
 		} catch (error) {
 			console.error("Error fetching teams:", error);
@@ -102,13 +109,21 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 
 		setIsCreating(true);
 		try {
-			const result = await authClient.organization.createTeam({
-				name: teamName,
-				organizationId: orgId,
+			const result = await authClient.$fetch("/organization/create-team", {
+				method: "POST",
+				body: {
+					name: teamName,
+					organizationId: orgId,
+				},
 			});
 
-			if (result.error) {
-				toast.error(result.error.message || "Erro ao criar time");
+			const error = (result as { error?: unknown }).error;
+			if (error && typeof error === "object" && "message" in error) {
+				toast.error(
+					typeof (error as { message?: unknown }).message === "string"
+						? (error as { message: string }).message
+						: "Erro ao criar time",
+				);
 				return;
 			}
 
@@ -125,10 +140,24 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 
 	const handleDeleteTeam = async (teamId: string) => {
 		try {
-			await authClient.organization.deleteTeam({
-				teamId,
-				organizationId: orgId,
+			const result = await authClient.$fetch("/organization/remove-team", {
+				method: "POST",
+				body: {
+					teamId,
+					organizationId: orgId,
+				},
 			});
+
+			const error = (result as { error?: unknown }).error;
+			if (error && typeof error === "object" && "message" in error) {
+				toast.error(
+					typeof (error as { message?: unknown }).message === "string"
+						? (error as { message: string }).message
+						: "Erro ao remover time",
+				);
+				return;
+			}
+
 			toast.success("Time removido com sucesso");
 			await fetchTeams();
 		} catch {
@@ -151,15 +180,15 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 				<div className="mb-6">
 					<Link
 						href={`/organization/${orgId}/members`}
-						className="mb-4 inline-flex items-center text-sm text-gray-400 hover:text-white"
+						className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Voltar para Membros
 					</Link>
 					<div className="flex items-center justify-between">
 						<div>
-							<h1 className="text-2xl font-bold text-white">Times</h1>
-							<p className="text-sm text-gray-400">
+							<h1 className="font-bold text-2xl text-white">Times</h1>
+							<p className="text-gray-400 text-sm">
 								Organize seus colaboradores em times especializados
 							</p>
 						</div>
@@ -217,7 +246,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 												<Icon className="mr-2 h-4 w-4" />
 												{suggested.name}
 												{alreadyExists && (
-													<span className="ml-auto text-xs text-gray-500">
+													<span className="ml-auto text-gray-500 text-xs">
 														ja existe
 													</span>
 												)}
@@ -262,7 +291,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 					<Card className="border-gray-800 bg-gray-900">
 						<CardContent className="py-12 text-center">
 							<Users className="mx-auto mb-4 h-12 w-12 text-gray-600" />
-							<h3 className="mb-2 text-lg font-medium text-white">
+							<h3 className="mb-2 font-medium text-lg text-white">
 								Nenhum time criado
 							</h3>
 							<p className="mb-6 text-gray-400">
@@ -295,7 +324,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 													<h3 className="font-semibold text-white">
 														{team.name}
 													</h3>
-													<p className="text-sm text-gray-400">
+													<p className="text-gray-400 text-sm">
 														{team.members?.length || 0} membros
 													</p>
 												</div>
@@ -318,7 +347,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 
 				{/* Info */}
 				<div className="mt-6 rounded-lg border border-gray-800 bg-gray-800/50 p-4">
-					<p className="text-sm text-gray-400">
+					<p className="text-gray-400 text-sm">
 						<strong className="text-gray-300">Dica:</strong> Times ajudam a
 						organizar seus colaboradores por area. Voce pode adicionar membros a
 						times na pagina de gerenciamento de membros.

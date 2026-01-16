@@ -67,7 +67,7 @@ export default function SignUpForm({
 					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
 						<CheckCircle className="h-8 w-8 text-green-500" />
 					</div>
-					<h1 className="mb-2 text-2xl font-bold text-white">Conta criada!</h1>
+					<h1 className="mb-2 font-bold text-2xl text-white">Conta criada!</h1>
 					<p className="mb-6 text-gray-400">
 						Enviamos um email de confirmacao para{" "}
 						<span className="font-medium text-white">{submittedEmail}</span>
@@ -77,10 +77,10 @@ export default function SignUpForm({
 						<div className="flex items-start gap-3">
 							<Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#1e1b4a]" />
 							<div className="text-left">
-								<p className="text-sm font-medium text-white">
+								<p className="font-medium text-sm text-white">
 									Verifique sua caixa de entrada
 								</p>
-								<p className="mt-1 text-xs text-gray-400">
+								<p className="mt-1 text-gray-400 text-xs">
 									Clique no link que enviamos para confirmar seu email e comecar
 									a usar o WhatLead.
 								</p>
@@ -88,7 +88,7 @@ export default function SignUpForm({
 						</div>
 					</div>
 
-					<p className="text-sm text-gray-500">
+					<p className="text-gray-500 text-sm">
 						Nao recebeu o email?{" "}
 						<button
 							onClick={() => {
@@ -117,7 +117,7 @@ export default function SignUpForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-2 text-center text-3xl font-bold text-white">
+			<h1 className="mb-2 text-center font-bold text-3xl text-white">
 				Criar conta
 			</h1>
 			<p className="mb-6 text-center text-gray-400">
@@ -149,7 +149,7 @@ export default function SignUpForm({
 									className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-sm text-red-500">
+									<p key={error?.message} className="text-red-500 text-sm">
 										{error?.message}
 									</p>
 								))}
@@ -176,7 +176,7 @@ export default function SignUpForm({
 									className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-sm text-red-500">
+									<p key={error?.message} className="text-red-500 text-sm">
 										{error?.message}
 									</p>
 								))}
@@ -203,7 +203,7 @@ export default function SignUpForm({
 									className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-sm text-red-500">
+									<p key={error?.message} className="text-red-500 text-sm">
 										{error?.message}
 									</p>
 								))}

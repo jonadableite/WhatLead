@@ -59,7 +59,7 @@ export default function AcceptInvitePage() {
 
 		try {
 			const result = await authClient.organization.getInvitation({
-				query: { token },
+				query: { id: token },
 			});
 
 			if (result.error) {
@@ -76,7 +76,7 @@ export default function AcceptInvitePage() {
 				setInvitation({
 					organizationName: result.data.organizationName,
 					organizationSlug: result.data.organizationSlug,
-					inviterName: result.data.inviterName || "Um membro",
+					inviterName: "Um membro",
 					role: result.data.role,
 					email: result.data.email,
 				});
@@ -154,10 +154,10 @@ export default function AcceptInvitePage() {
 						</CardHeader>
 						<CardContent className="space-y-6">
 							<div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4 text-center">
-								<p className="text-sm text-gray-400">
+								<p className="text-gray-400 text-sm">
 									Seu papel na equipe sera:
 								</p>
-								<p className="mt-1 text-xl font-semibold text-[#1e1b4a]">
+								<p className="mt-1 font-semibold text-[#1e1b4a] text-xl">
 									{roleLabels[invitation.role] || invitation.role}
 								</p>
 							</div>
@@ -187,7 +187,7 @@ export default function AcceptInvitePage() {
 								)}
 							</Button>
 
-							<p className="text-center text-xs text-gray-500">
+							<p className="text-center text-gray-500 text-xs">
 								Ao aceitar, voce entrara para a organizacao{" "}
 								{invitation.organizationName}
 							</p>

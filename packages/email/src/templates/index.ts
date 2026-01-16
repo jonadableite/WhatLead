@@ -1,11 +1,8 @@
-export { baseTemplate } from "./base";
 export type { BaseTemplateParams } from "./base";
-
-export { verifyEmailTemplate } from "./verify-email";
-export type { VerifyEmailParams } from "./verify-email";
-
-export { resetPasswordTemplate } from "./reset-password";
-export type { ResetPasswordParams } from "./reset-password";
-
-export { invitationTemplate } from "./invitation";
+export { baseTemplate } from "./base";
 export type { InvitationParams } from "./invitation";
+export { invitationTemplate } from "./invitation";
+export type { ResetPasswordParams } from "./reset-password";
+export { resetPasswordTemplate } from "./reset-password";
+export type { VerifyEmailParams } from "./verify-email";
+export { verifyEmailTemplate } from "./verify-email";

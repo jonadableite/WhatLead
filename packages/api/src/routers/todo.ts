@@ -1,6 +1,6 @@
-import { TRPCError } from "@trpc/server";
 import prisma from "@WhatLead/db";
 import { businessLogger, perfLogger } from "@WhatLead/logger";
+import { TRPCError } from "@trpc/server";
 import z from "zod";
 
 import { publicProcedure, router } from "../index";
@@ -11,15 +11,15 @@ export const todoRouter = router({
 
     try {
       const todos = await prisma.todo.findMany({
-        where: ctx.user?.id ? { userId: ctx.user.id } : undefined,
         orderBy: { id: "asc" },
       });
 
       timer.end({ todoCount: todos.length });
       return todos;
     } catch (error) {
-      timer.fail(error);
-      throw error;
+      const err = error instanceof Error ? error : new Error(String(error));
+      timer.fail(err);
+      throw err;
     }
   }),
 
@@ -35,7 +35,6 @@ export const todoRouter = router({
         const todo = await prisma.todo.create({
           data: {
             text: input.text,
-            userId: ctx.user?.id,
           },
         });
 
@@ -48,8 +47,9 @@ export const todoRouter = router({
 
         return todo;
       } catch (error) {
-        timer.fail(error);
-        throw error;
+        const err = error instanceof Error ? error : new Error(String(error));
+        timer.fail(err);
+        throw err;
       }
     }),
 
@@ -64,7 +64,7 @@ export const todoRouter = router({
 
       try {
         const todo = await prisma.todo.update({
-          where: { id: input.id, userId: ctx.user?.id },
+          where: { id: input.id },
           data: { completed: input.completed },
         });
 
@@ -77,14 +77,20 @@ export const todoRouter = router({
 
         return todo;
       } catch (error) {
-        timer.fail(error);
-        if (error.code === 'P2025') {
+        const err = error instanceof Error ? error : new Error(String(error));
+        timer.fail(err);
+        const prismaCode =
+          typeof error === "object" && error !== null && "code" in error
+            ? (error as { code?: unknown }).code
+            : undefined;
+
+        if (prismaCode === "P2025") {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Todo not found",
           });
         }
-        throw error;
+        throw err;
       }
     }),
 
@@ -96,7 +102,7 @@ export const todoRouter = router({
 
     try {
       const todo = await prisma.todo.delete({
-        where: { id: input.id, userId: ctx.user?.id },
+        where: { id: input.id },
       });
 
       timer.end({ todoId: todo.id });
@@ -108,14 +114,20 @@ export const todoRouter = router({
 
       return todo;
     } catch (error) {
-      timer.fail(error);
-      if (error.code === 'P2025') {
+      const err = error instanceof Error ? error : new Error(String(error));
+      timer.fail(err);
+      const prismaCode =
+        typeof error === "object" && error !== null && "code" in error
+          ? (error as { code?: unknown }).code
+          : undefined;
+
+      if (prismaCode === "P2025") {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Todo not found",
         });
       }
-      throw error;
+      throw err;
     }
   }),
 });

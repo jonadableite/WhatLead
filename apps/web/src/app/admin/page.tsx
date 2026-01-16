@@ -12,14 +12,16 @@ export default async function AdminPage() {
 		},
 	});
 
-	if (!session?.user) {
+	if (!session?.data?.user) {
 		redirect("/login");
 	}
 
 	// Verificar se é admin
-	if (session.user.role !== "admin") {
+	const user = session.data.user;
+
+	if (user.role !== "admin") {
 		redirect("/dashboard");
 	}
 
-	return <AdminDashboard user={session.user} />;
+	return <AdminDashboard user={user} />;
 }

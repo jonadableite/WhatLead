@@ -12,9 +12,9 @@ export default async function OrganizationPage() {
 		},
 	});
 
-	if (!session?.user) {
+	if (!session?.data?.user) {
 		redirect("/login");
 	}
 
-	return <OrganizationDashboard user={session.user} />;
+	return <OrganizationDashboard user={session.data.user} />;
 }

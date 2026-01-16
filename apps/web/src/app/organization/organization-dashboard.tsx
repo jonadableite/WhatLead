@@ -23,7 +23,7 @@ interface Organization {
 	name: string;
 	slug: string;
 	logo?: string;
-	createdAt: string;
+	createdAt: Date;
 }
 
 interface OrganizationDashboardProps {
@@ -112,10 +112,10 @@ export default function OrganizationDashboard({
 								<Building2 className="h-5 w-5 text-white" />
 							</div>
 							<div>
-								<h1 className="text-2xl font-bold text-white">
+								<h1 className="font-bold text-2xl text-white">
 									Minhas Organizacoes
 								</h1>
-								<p className="text-sm text-gray-400">
+								<p className="text-gray-400 text-sm">
 									Gerencie seus times e colaboradores
 								</p>
 							</div>
@@ -173,7 +173,7 @@ export default function OrganizationDashboard({
 									}
 									className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 								/>
-								<p className="text-xs text-gray-500">
+								<p className="text-gray-500 text-xs">
 									Sera usado na URL: whatlead.com.br/org/{newOrgSlug || "slug"}
 								</p>
 							</div>
@@ -217,7 +217,7 @@ export default function OrganizationDashboard({
 					<Card className="border-gray-800 bg-gray-900">
 						<CardContent className="py-12 text-center">
 							<Building2 className="mx-auto mb-4 h-12 w-12 text-gray-600" />
-							<h3 className="mb-2 text-lg font-medium text-white">
+							<h3 className="mb-2 font-medium text-lg text-white">
 								Nenhuma organizacao
 							</h3>
 							<p className="mb-6 text-gray-400">
@@ -251,14 +251,14 @@ export default function OrganizationDashboard({
 														className="h-full w-full rounded-lg object-cover"
 													/>
 												) : (
-													<span className="text-lg font-bold">
+													<span className="font-bold text-lg">
 														{org.name.charAt(0).toUpperCase()}
 													</span>
 												)}
 											</div>
 											<div>
 												<h3 className="font-semibold text-white">{org.name}</h3>
-												<p className="text-sm text-gray-400">/{org.slug}</p>
+												<p className="text-gray-400 text-sm">/{org.slug}</p>
 											</div>
 										</div>
 										<div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export default function OrganizationDashboard({
 				<div className="mt-8">
 					<Link
 						href="/dashboard"
-						className="text-sm text-gray-400 hover:text-white"
+						className="text-gray-400 text-sm hover:text-white"
 					>
 						&larr; Voltar para o Dashboard
 					</Link>

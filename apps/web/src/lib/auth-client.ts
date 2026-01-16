@@ -1,6 +1,6 @@
 import { env } from "@WhatLead/env/web";
-import { createAuthClient } from "better-auth/react";
 import { adminClient, organizationClient } from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 
 /**
  * WhatLead Auth Client
@@ -11,7 +11,7 @@ import { adminClient, organizationClient } from "better-auth/client/plugins";
  */
 export const authClient = createAuthClient({
 	baseURL: env.NEXT_PUBLIC_SERVER_URL,
-	plugins: [adminClient(), organizationClient()],
+	plugins: [adminClient(), organizationClient({ teams: { enabled: true } })],
 });
 
 // =============================================================================
@@ -147,7 +147,7 @@ export const verifyEmail = async (params: {
 		const url = new URL(`${env.NEXT_PUBLIC_SERVER_URL}/api/auth/verify-email`);
 		url.searchParams.set("token", params.token);
 		if (params.callbackURL) url.searchParams.set("callbackURL", params.callbackURL);
-		
+
 		const response = await fetch(url.toString(), { method: "GET" });
 		const result = await response.json();
 		if (!response.ok) {

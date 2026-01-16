@@ -1,6 +1,5 @@
-import type { SendMailOptions } from "nodemailer";
-
 import { env } from "@WhatLead/env/server";
+import type { SendMailOptions } from "nodemailer";
 
 import {
 	closeTransporter,
@@ -92,7 +91,7 @@ export const sendEmail = async (
 
 			if (attempt < MAX_RETRIES) {
 				// Exponential backoff: 1s, 2s, 4s
-				const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+				const delay = RETRY_DELAY_MS * 2 ** (attempt - 1);
 				await sleep(delay);
 			}
 		}

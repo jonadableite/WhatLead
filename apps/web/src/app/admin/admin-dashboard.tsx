@@ -27,10 +27,10 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 							<Shield className="h-5 w-5 text-white" />
 						</div>
 						<div>
-							<h1 className="text-2xl font-bold text-white">
+							<h1 className="font-bold text-2xl text-white">
 								Painel Administrativo
 							</h1>
-							<p className="text-sm text-gray-400">Bem-vindo, {user.name}</p>
+							<p className="text-gray-400 text-sm">Bem-vindo, {user.name}</p>
 						</div>
 					</div>
 				</div>
@@ -39,40 +39,40 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 				<div className="mb-8 grid gap-6 md:grid-cols-3">
 					<Card className="border-gray-800 bg-gray-900">
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
-							<CardTitle className="text-sm font-medium text-gray-400">
+							<CardTitle className="font-medium text-gray-400 text-sm">
 								Total de Usuarios
 							</CardTitle>
 							<Users className="h-4 w-4 text-gray-400" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-white">--</div>
-							<p className="text-xs text-gray-500">Carregando...</p>
+							<div className="font-bold text-2xl text-white">--</div>
+							<p className="text-gray-500 text-xs">Carregando...</p>
 						</CardContent>
 					</Card>
 
 					<Card className="border-gray-800 bg-gray-900">
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
-							<CardTitle className="text-sm font-medium text-gray-400">
+							<CardTitle className="font-medium text-gray-400 text-sm">
 								Organizacoes
 							</CardTitle>
 							<BarChart3 className="h-4 w-4 text-gray-400" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-white">--</div>
-							<p className="text-xs text-gray-500">Carregando...</p>
+							<div className="font-bold text-2xl text-white">--</div>
+							<p className="text-gray-500 text-xs">Carregando...</p>
 						</CardContent>
 					</Card>
 
 					<Card className="border-gray-800 bg-gray-900">
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
-							<CardTitle className="text-sm font-medium text-gray-400">
+							<CardTitle className="font-medium text-gray-400 text-sm">
 								Usuarios Banidos
 							</CardTitle>
 							<Shield className="h-4 w-4 text-gray-400" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-white">--</div>
-							<p className="text-xs text-gray-500">Carregando...</p>
+							<div className="font-bold text-2xl text-white">--</div>
+							<p className="text-gray-500 text-xs">Carregando...</p>
 						</CardContent>
 					</Card>
 				</div>
@@ -91,7 +91,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<ul className="space-y-2 text-sm text-gray-500">
+								<ul className="space-y-2 text-gray-500 text-sm">
 									<li>• Listar todos os usuarios</li>
 									<li>• Banir/Desbanir usuarios</li>
 									<li>• Alterar roles (admin/user)</li>
@@ -106,7 +106,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 							<CardTitle className="flex items-center gap-2 text-white">
 								<BarChart3 className="h-5 w-5" />
 								Analytics
-								<span className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-400">
+								<span className="rounded bg-gray-700 px-2 py-0.5 text-gray-400 text-xs">
 									Em breve
 								</span>
 							</CardTitle>
@@ -115,7 +115,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<ul className="space-y-2 text-sm text-gray-500">
+							<ul className="space-y-2 text-gray-500 text-sm">
 								<li>• Usuarios ativos</li>
 								<li>• Organizacoes criadas</li>
 								<li>• Metricas de uso</li>
@@ -129,7 +129,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 				<div className="mt-8">
 					<Link
 						href="/dashboard"
-						className="text-sm text-gray-400 hover:text-white"
+						className="text-gray-400 text-sm hover:text-white"
 					>
 						&larr; Voltar para o Dashboard
 					</Link>

@@ -1,0 +1,18 @@
+// =============================================================================
+// REPUTATION MODELS - Instance Reputation System (DDD)
+// =============================================================================
+
+model InstanceReputation {
+  instanceId            String   @id
+  score                 Int
+  temperatureLevel      String
+  trend                 String
+  lastHumanInteractionAt DateTime?
+  lastEvaluatedAt       DateTime
+  cooldownCount         Int      @default(0)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("instance_reputation")
+}
