@@ -19,14 +19,14 @@ import {
 } from "ai";
 import Fastify from "fastify";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
-import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
-import { InMemoryInstanceMetricRepository } from "./infra/metrics/in-memory-instance-metric-repository";
 import { InMemoryMetricIngestion } from "./infra/metrics/in-memory-metric-ingestion";
+import { InMemoryInstanceMetricRepository } from "./infra/metrics/in-memory-instance-metric-repository";
 import { InMemoryMetricStore } from "./infra/metrics/in-memory-metric-store";
-import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
+import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
 // =============================================================================
