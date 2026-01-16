@@ -1,11 +1,12 @@
+import type { DomainEventBus } from "../events/domain-event-bus";
 import type { InstanceDomainEvent } from "../events/instance-events";
-import { InstanceReputation } from "../entities/instance-reputation";
 import type { InstanceRepository } from "../repositories/instance-repository";
 import type { InstanceMetricRepository } from "../repositories/instance-metric-repository";
 import type { InstanceReputationRepository } from "../repositories/instance-reputation-repository";
 import type { IInstanceReputationEvaluator } from "../services/instance-reputation-evaluator";
 import type { InstanceTemperatureLevel } from "../value-objects/instance-temperature-level";
 import type { ReputationAlert } from "../value-objects/reputation-alert";
+import { EvaluateInstanceHealthUseCase } from "./evaluate-instance-health";
 
 interface UpdateInstanceHealthRequest {
 	companyId: string;
@@ -37,72 +38,45 @@ export class UpdateInstanceHealthUseCase {
 		request: UpdateInstanceHealthRequest,
 	): Promise<UpdateInstanceHealthResponse> {
 		const now = request.now ?? new Date();
-
 		const instance = await this.instanceRepository.findById(request.instanceId);
 		if (!instance) {
 			throw new Error("Instance not found");
 		}
 
-		let reputation =
-			await this.reputationRepository.findByInstanceId(request.instanceId);
-		if (!reputation) {
-			reputation = InstanceReputation.initialize(request.instanceId);
-		}
-
-		const signals = await this.metricRepository.getRecentSignals(request.instanceId);
-		const evaluated = this.evaluator.evaluate(reputation, signals);
-
-		instance.updateReputation(evaluated);
-
 		const events: InstanceDomainEvent[] = [];
+		const eventBus: DomainEventBus<InstanceDomainEvent> = {
+			publish: (event) => {
+				events.push(event);
+			},
+			publishMany: (toPublish) => {
+				events.push(...toPublish);
+			},
+		};
 
-		if (instance.requiresCooldown() && instance.lifecycleStatus !== "COOLDOWN") {
-			instance.enterCooldown();
-			events.push({
-				type: "InstanceEnteredCooldown",
-				occurredAt: now,
-				instanceId: instance.id,
-				companyId: instance.companyId,
-			});
-		}
+		const evaluate = new EvaluateInstanceHealthUseCase(
+			this.instanceRepository,
+			this.reputationRepository,
+			this.metricRepository,
+			this.evaluator,
+			eventBus,
+		);
 
-		if (
-			instance.lifecycleStatus === "COOLDOWN" &&
-			!instance.requiresCooldown() &&
-			!instance.isAtRisk()
-		) {
-			instance.exitCooldown();
-			events.push({
-				type: "InstanceRecovered",
-				occurredAt: now,
-				instanceId: instance.id,
-				companyId: instance.companyId,
-			});
-		}
-
-		if (instance.isAtRisk()) {
-			events.push({
-				type: "InstanceAtRisk",
-				occurredAt: now,
-				instanceId: instance.id,
-				companyId: instance.companyId,
-			});
-		}
-
-		await this.reputationRepository.save(evaluated);
-		await this.instanceRepository.save(instance);
+		const result = await evaluate.execute({
+			instanceId: request.instanceId,
+			reason: "CRON",
+			now,
+		});
 
 		return {
-			instanceId: instance.id,
+			instanceId: request.instanceId,
 			companyId: instance.companyId,
-			lifecycleStatus: instance.lifecycleStatus,
-			connectionStatus: instance.connectionStatus,
-			reputationScore: evaluated.score,
-			temperatureLevel: evaluated.temperatureLevel,
-			riskLevel: evaluated.getRiskLevel(),
-			alerts: evaluated.alerts,
+			lifecycleStatus: result.status.lifecycle,
+			connectionStatus: result.status.connection,
+			reputationScore: result.reputationScore,
+			temperatureLevel: result.temperatureLevel,
+			riskLevel: result.riskLevel.toLowerCase() as "low" | "medium" | "high",
+			alerts: result.alerts,
 			events,
 		};
 	}
 }
-

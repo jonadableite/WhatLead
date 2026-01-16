@@ -1,4 +1,7 @@
+import type { InstanceDomainEvent } from "../events/instance-events";
 import type { InstanceConnectionStatus } from "../value-objects/instance-connection-status";
+import type { InstanceHealthAction } from "../value-objects/instance-health-action";
+import type { InstanceHealthEvaluationReason } from "../value-objects/instance-health-evaluation-reason";
 import type { InstanceLifecycleStatus } from "../value-objects/instance-lifecycle-status";
 import type { InstancePurpose } from "../value-objects/instance-purpose";
 import type { WhatsAppEngine } from "../value-objects/whatsapp-engine";
@@ -198,5 +201,79 @@ export class Instance {
 
 	requiresCooldown(): boolean {
 		return this._reputation.requiresCooldown();
+	}
+
+	allowedActions(now: Date = new Date()): readonly InstanceHealthAction[] {
+		const actions: InstanceHealthAction[] = [];
+
+		if (this._lifecycleStatus === "BANNED") {
+			return ["BLOCK_DISPATCH", "ALERT"];
+		}
+
+		if (this._lifecycleStatus === "COOLDOWN") {
+			return ["ENTER_COOLDOWN", "BLOCK_DISPATCH", "ALERT"];
+		}
+
+		if (this.isAtRisk()) {
+			actions.push("ALERT");
+		}
+
+		if (this.canDispatch(now)) {
+			actions.push("ALLOW_DISPATCH");
+		} else {
+			actions.push("BLOCK_DISPATCH");
+		}
+
+		return actions;
+	}
+
+	evaluateHealth(params: {
+		reason: InstanceHealthEvaluationReason;
+		now?: Date;
+	}): { actions: readonly InstanceHealthAction[]; events: readonly InstanceDomainEvent[] } {
+		const now = params.now ?? new Date();
+		const events: InstanceDomainEvent[] = [];
+
+		if (this._lifecycleStatus === "BANNED") {
+			return { actions: this.allowedActions(now), events };
+		}
+
+		if (this.requiresCooldown() && this._lifecycleStatus !== "COOLDOWN") {
+			this.enterCooldown();
+			events.push({
+				type: "InstanceEnteredCooldown",
+				occurredAt: now,
+				instanceId: this._id,
+				companyId: this._companyId,
+				reason: params.reason,
+			});
+		}
+
+		if (
+			this._lifecycleStatus === "COOLDOWN" &&
+			!this.requiresCooldown() &&
+			!this.isAtRisk()
+		) {
+			this.exitCooldown();
+			events.push({
+				type: "InstanceRecovered",
+				occurredAt: now,
+				instanceId: this._id,
+				companyId: this._companyId,
+				reason: params.reason,
+			});
+		}
+
+		if (this.isAtRisk()) {
+			events.push({
+				type: "InstanceAtRisk",
+				occurredAt: now,
+				instanceId: this._id,
+				companyId: this._companyId,
+				reason: params.reason,
+			});
+		}
+
+		return { actions: this.allowedActions(now), events };
 	}
 }

@@ -8,6 +8,7 @@ export interface InstanceEnteredCooldownEvent {
 	occurredAt: Date;
 	instanceId: string;
 	companyId: string;
+	reason: import("../value-objects/instance-health-evaluation-reason").InstanceHealthEvaluationReason;
 }
 
 export interface InstanceAtRiskEvent {
@@ -15,6 +16,7 @@ export interface InstanceAtRiskEvent {
 	occurredAt: Date;
 	instanceId: string;
 	companyId: string;
+	reason: import("../value-objects/instance-health-evaluation-reason").InstanceHealthEvaluationReason;
 }
 
 export interface InstanceRecoveredEvent {
@@ -22,5 +24,5 @@ export interface InstanceRecoveredEvent {
 	occurredAt: Date;
 	instanceId: string;
 	companyId: string;
+	reason: import("../value-objects/instance-health-evaluation-reason").InstanceHealthEvaluationReason;
 }
-

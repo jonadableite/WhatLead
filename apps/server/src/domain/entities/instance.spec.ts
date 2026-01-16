@@ -114,4 +114,30 @@ describe("Instance", () => {
 		instance.markConnected();
 		expect(instance.canDispatch()).toBe(false);
 	});
+
+	it("exposes allowedActions according to current state", () => {
+		const reputation = InstanceReputation.initialize("i-1");
+		const instance = Instance.initialize({
+			id: "i-1",
+			companyId: "c-1",
+			engine: "TURBOZAP",
+			reputation,
+			purpose: "MIXED",
+		});
+
+		expect(instance.allowedActions(new Date())).toEqual(["BLOCK_DISPATCH"]);
+
+		instance.markConnected();
+		expect(instance.allowedActions(new Date())).toEqual(["ALLOW_DISPATCH"]);
+
+		instance.enterCooldown();
+		expect(instance.allowedActions(new Date())).toEqual([
+			"ENTER_COOLDOWN",
+			"BLOCK_DISPATCH",
+			"ALERT",
+		]);
+
+		instance.markBanned();
+		expect(instance.allowedActions(new Date())).toEqual(["BLOCK_DISPATCH", "ALERT"]);
+	});
 });
