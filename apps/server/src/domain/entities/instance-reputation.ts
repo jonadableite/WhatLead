@@ -312,7 +312,11 @@ export class InstanceReputation {
 	 * Checks if cooldown is required based on current state.
 	 */
 	requiresCooldown(): boolean {
-		return this._score < 30 || this._temperatureLevel === "OVERHEATED";
+		return (
+			this._score < 30 ||
+			this._temperatureLevel === "OVERHEATED" ||
+			this._temperatureLevel === "COOLDOWN"
+		);
 	}
 
 	/**

@@ -2,13 +2,13 @@
  * Shared types for WhatsApp providers.
  * These are DTOs used across the application layer.
  *
- * IMPORTANT: Domain types (WhatsAppEngine, InstanceStatus) are imported,
+ * IMPORTANT: Domain types (WhatsAppEngine, InstanceConnectionStatus) are imported,
  * never redefined here.
  */
 
 // Re-export domain types for convenience
 export type { WhatsAppEngine } from "../../domain/value-objects/whatsapp-engine";
-export type { InstanceStatus } from "../../domain/value-objects/instance-status";
+export type { InstanceConnectionStatus } from "../../domain/value-objects/instance-connection-status";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -150,7 +150,7 @@ export interface ConnectionResult {
 	/** QR code data (if waiting for scan) */
 	qrCode?: string;
 	/** Current status after operation */
-	status: import("../../domain/value-objects/instance-status").InstanceStatus;
+	status: import("../../domain/value-objects/instance-connection-status").InstanceConnectionStatus;
 	/** Error message if failed */
 	error?: string;
 }
@@ -170,7 +170,7 @@ export interface QRCodeResult {
  */
 export interface InstanceStatusInfo {
 	/** Current connection status */
-	status: import("../../domain/value-objects/instance-status").InstanceStatus;
+	status: import("../../domain/value-objects/instance-connection-status").InstanceConnectionStatus;
 	/** Connected phone number (if connected) */
 	phoneNumber?: string;
 	/** Profile name (if connected) */

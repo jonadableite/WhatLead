@@ -31,7 +31,7 @@ import type {
 	SendTextParams,
 	SetPresenceParams,
 } from "../../../../application/providers/types";
-import type { InstanceStatus } from "../../../../domain/value-objects/instance-status";
+import type { InstanceConnectionStatus } from "../../../../domain/value-objects/instance-connection-status";
 import { TurboZapClient } from "./turbozap.client";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -43,7 +43,7 @@ import { TurboZapClient } from "./turbozap.client";
  */
 const mapTurboZapStatus = (
 	status: string,
-): InstanceStatus => {
+): InstanceConnectionStatus => {
 	switch (status) {
 		case "connected":
 			return "CONNECTED";

@@ -6,20 +6,20 @@ import { authClient } from "@/lib/auth-client";
 import UsersManagement from "./users-management";
 
 export default async function AdminUsersPage() {
-	const session = await authClient.getSession({
-		fetchOptions: {
-			headers: await headers(),
-		},
-	});
+  const session = await authClient.getSession({
+    fetchOptions: {
+      headers: await headers(),
+    },
+  });
 
-	if (!session?.data?.user) {
-		redirect("/login");
-	}
+  if (!session?.data?.user) {
+    redirect("/login");
+  }
 
-	// Verificar se é admin
-	if (session.data.user.role !== "admin") {
-		redirect("/dashboard");
-	}
+  // Verificar se é admin
+  if (session.data.user.role !== "admin") {
+    redirect("/dashboard");
+  }
 
-	return <UsersManagement />;
+  return <UsersManagement />;
 }

@@ -1,6 +1,6 @@
-import { env } from "@WhatLead/env/server";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { logSlowQuery, createChildLogger } from "@WhatLead/logger";
+import { env } from "@WhatLead/env/server";
+import { createChildLogger, logSlowQuery } from "@WhatLead/logger";
 
 import { PrismaClient } from "../prisma/generated/client.js";
 

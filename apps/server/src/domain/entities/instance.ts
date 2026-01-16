@@ -1,0 +1,202 @@
+import type { InstanceConnectionStatus } from "../value-objects/instance-connection-status";
+import type { InstanceLifecycleStatus } from "../value-objects/instance-lifecycle-status";
+import type { InstancePurpose } from "../value-objects/instance-purpose";
+import type { WhatsAppEngine } from "../value-objects/whatsapp-engine";
+import type { InstanceReputation } from "./instance-reputation";
+
+export interface InstanceProps {
+	id: string;
+	companyId: string;
+	engine: WhatsAppEngine;
+	purpose: InstancePurpose;
+	lifecycleStatus: InstanceLifecycleStatus;
+	connectionStatus: InstanceConnectionStatus;
+	reputation: InstanceReputation;
+	activeCampaignIds: string[];
+	createdAt: Date;
+	lastConnectedAt: Date | null;
+}
+
+export class Instance {
+	private readonly _id: string;
+	private readonly _companyId: string;
+	private readonly _engine: WhatsAppEngine;
+
+	private _purpose: InstancePurpose;
+	private _lifecycleStatus: InstanceLifecycleStatus;
+	private _connectionStatus: InstanceConnectionStatus;
+	private _reputation: InstanceReputation;
+	private _activeCampaignIds: string[];
+	private _lastConnectedAt: Date | null;
+	private readonly _createdAt: Date;
+
+	private constructor(props: InstanceProps) {
+		this._id = props.id;
+		this._companyId = props.companyId;
+		this._engine = props.engine;
+		this._purpose = props.purpose;
+		this._lifecycleStatus = props.lifecycleStatus;
+		this._connectionStatus = props.connectionStatus;
+		this._reputation = props.reputation;
+		this._activeCampaignIds = [...props.activeCampaignIds];
+		this._createdAt = props.createdAt;
+		this._lastConnectedAt = props.lastConnectedAt;
+	}
+
+	static initialize(params: {
+		id: string;
+		companyId: string;
+		engine: WhatsAppEngine;
+		reputation: InstanceReputation;
+		purpose?: InstancePurpose;
+	}): Instance {
+		return new Instance({
+			id: params.id,
+			companyId: params.companyId,
+			engine: params.engine,
+			purpose: params.purpose ?? "WARMUP",
+			lifecycleStatus: "CREATED",
+			connectionStatus: "DISCONNECTED",
+			reputation: params.reputation,
+			activeCampaignIds: [],
+			createdAt: new Date(),
+			lastConnectedAt: null,
+		});
+	}
+
+	static reconstitute(props: InstanceProps): Instance {
+		return new Instance(props);
+	}
+
+	get id(): string {
+		return this._id;
+	}
+
+	get companyId(): string {
+		return this._companyId;
+	}
+
+	get engine(): WhatsAppEngine {
+		return this._engine;
+	}
+
+	get lifecycleStatus(): InstanceLifecycleStatus {
+		return this._lifecycleStatus;
+	}
+
+	get connectionStatus(): InstanceConnectionStatus {
+		return this._connectionStatus;
+	}
+
+	get purpose(): InstancePurpose {
+		return this._purpose;
+	}
+
+	get reputation(): InstanceReputation {
+		return this._reputation;
+	}
+
+	get activeCampaignIds(): string[] {
+		return [...this._activeCampaignIds];
+	}
+
+	get createdAt(): Date {
+		return this._createdAt;
+	}
+
+	get lastConnectedAt(): Date | null {
+		return this._lastConnectedAt;
+	}
+
+	markConnecting(): void {
+		if (this._lifecycleStatus === "BANNED") {
+			return;
+		}
+		this._connectionStatus = "CONNECTING";
+	}
+
+	markConnected(): void {
+		if (this._lifecycleStatus === "BANNED") {
+			return;
+		}
+		this._connectionStatus = "CONNECTED";
+		this._lastConnectedAt = new Date();
+
+		if (this._lifecycleStatus === "CREATED") {
+			this._lifecycleStatus = "ACTIVE";
+		}
+	}
+
+	markDisconnected(): void {
+		if (this._lifecycleStatus === "BANNED") {
+			return;
+		}
+		this._connectionStatus = "DISCONNECTED";
+	}
+
+	markBanned(): void {
+		this._lifecycleStatus = "BANNED";
+		this._connectionStatus = "DISCONNECTED";
+	}
+
+	enterCooldown(): void {
+		if (this._lifecycleStatus === "BANNED") {
+			return;
+		}
+		this._lifecycleStatus = "COOLDOWN";
+	}
+
+	exitCooldown(): void {
+		if (this._lifecycleStatus === "COOLDOWN") {
+			this._lifecycleStatus = "ACTIVE";
+		}
+	}
+
+	attachCampaign(campaignId: string): void {
+		if (this._activeCampaignIds.includes(campaignId)) {
+			return;
+		}
+		this._activeCampaignIds.push(campaignId);
+	}
+
+	detachCampaign(campaignId: string): void {
+		this._activeCampaignIds = this._activeCampaignIds.filter(
+			(id) => id !== campaignId,
+		);
+	}
+
+	updateReputation(reputation: InstanceReputation): void {
+		this._reputation = reputation;
+	}
+
+	canWarmUp(): boolean {
+		if (this._lifecycleStatus !== "ACTIVE") {
+			return false;
+		}
+		if (this._connectionStatus !== "CONNECTED") {
+			return false;
+		}
+		return this._purpose !== "DISPATCH";
+	}
+
+	canDispatch(now: Date = new Date()): boolean {
+		if (this._lifecycleStatus !== "ACTIVE") {
+			return false;
+		}
+		if (this._connectionStatus !== "CONNECTED") {
+			return false;
+		}
+		if (this._purpose === "WARMUP") {
+			return false;
+		}
+		return this._reputation.canDispatch(now);
+	}
+
+	isAtRisk(): boolean {
+		return this._reputation.isAtRisk();
+	}
+
+	requiresCooldown(): boolean {
+		return this._reputation.requiresCooldown();
+	}
+}

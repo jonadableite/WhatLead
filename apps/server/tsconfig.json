@@ -8,5 +8,6 @@
 			"@/*": ["./src/*"]
 		},
 		"jsx": "react-jsx"
-	}
+	},
+	"exclude": ["dist", "**/*.spec.ts", "**/*.test.ts", "vitest.config.ts"]
 }

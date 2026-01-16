@@ -1,9 +1,9 @@
 import prisma from "@WhatLead/db";
 import { sendEmail } from "@WhatLead/email";
 import {
-	invitationTemplate,
-	resetPasswordTemplate,
-	verifyEmailTemplate,
+    invitationTemplate,
+    resetPasswordTemplate,
+    verifyEmailTemplate,
 } from "@WhatLead/email/templates";
 import { env } from "@WhatLead/env/server";
 import { betterAuth } from "better-auth";

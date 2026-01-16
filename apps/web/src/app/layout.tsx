@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 
 import { Geist, Geist_Mono } from "next/font/google";
 
-import "../index.css";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
+import "../index.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,8 +23,16 @@ export const metadata: Metadata = {
     default: "WhatLead - WhatsApp Marketing Platform",
     template: "%s | WhatLead",
   },
-  description: "Plataforma completa de WhatsApp Marketing com automação, proteção anti-ban, disparos em massa e IA avançada.",
-  keywords: ["whatsapp", "marketing", "automação", "disparos", "mensagens", "vendas"],
+  description:
+    "Plataforma completa de WhatsApp Marketing com automação, proteção anti-ban, disparos em massa e IA avançada.",
+  keywords: [
+    "whatsapp",
+    "marketing",
+    "automação",
+    "disparos",
+    "mensagens",
+    "vendas",
+  ],
   authors: [{ name: "WhatLead" }],
   creator: "WhatLead",
   openGraph: {
@@ -58,13 +66,13 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({
-	children,
+  children,
 }: Readonly<{
-	children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className="dark">
-      <body 
+      <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-dvh bg-background text-foreground`}
       >
         <Providers>
@@ -74,11 +82,9 @@ export default function RootLayout({
               <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-50" />
               <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-primary/3 via-transparent to-transparent opacity-30" />
             </div>
-            
+
             <Header />
-            <main className="flex-1 safe-bottom">
-              {children}
-            </main>
+            <main className="flex-1 safe-bottom">{children}</main>
           </div>
         </Providers>
       </body>

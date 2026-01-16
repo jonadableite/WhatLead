@@ -6,22 +6,22 @@ import { authClient } from "@/lib/auth-client";
 import AdminDashboard from "./admin-dashboard";
 
 export default async function AdminPage() {
-	const session = await authClient.getSession({
-		fetchOptions: {
-			headers: await headers(),
-		},
-	});
+  const session = await authClient.getSession({
+    fetchOptions: {
+      headers: await headers(),
+    },
+  });
 
-	if (!session?.data?.user) {
-		redirect("/login");
-	}
+  if (!session?.data?.user) {
+    redirect("/login");
+  }
 
-	// Verificar se é admin
-	const user = session.data.user;
+  // Verificar se é admin
+  const user = session.data.user;
 
-	if (user.role !== "admin") {
-		redirect("/dashboard");
-	}
+  if (user.role !== "admin") {
+    redirect("/dashboard");
+  }
 
-	return <AdminDashboard user={user} />;
+  return <AdminDashboard user={user} />;
 }
