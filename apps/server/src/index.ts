@@ -18,6 +18,16 @@ import {
     wrapLanguageModel,
 } from "ai";
 import Fastify from "fastify";
+import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
+import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
+import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
+import { InMemoryInstanceMetricRepository } from "./infra/metrics/in-memory-instance-metric-repository";
+import { InMemoryMetricIngestion } from "./infra/metrics/in-memory-metric-ingestion";
+import { InMemoryMetricStore } from "./infra/metrics/in-memory-metric-store";
+import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
+import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
+import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
 // =============================================================================
 // FASTIFY SERVER CONFIGURATION
@@ -130,6 +140,29 @@ await fastify.register(rateLimit, {
 	allowList: (request) => {
 		return request.url === "/" || request.url === "/health";
 	},
+});
+
+const metricStore = new InMemoryMetricStore();
+const metricIngestion = new InMemoryMetricIngestion(metricStore);
+const metricRepository = new InMemoryInstanceMetricRepository(metricStore);
+const instanceRepository = new InMemoryInstanceRepository("system", "TURBOZAP");
+const reputationRepository = new InMemoryInstanceReputationRepository();
+const evaluator = new InstanceReputationEvaluator();
+const eventBus = new LoggingDomainEventBus();
+const evaluateInstanceHealth = new EvaluateInstanceHealthUseCase(
+	instanceRepository,
+	reputationRepository,
+	metricRepository,
+	evaluator,
+	eventBus,
+);
+const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
+	metricIngestion,
+	evaluateInstanceHealth,
+);
+
+await registerWebhookRoutes(fastify, {
+	eventHandler: webhookEventHandler,
 });
 
 // =============================================================================
