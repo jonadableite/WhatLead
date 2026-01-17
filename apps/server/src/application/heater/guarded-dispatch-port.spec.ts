@@ -22,16 +22,16 @@ describe("GuardedDispatchPort", () => {
 			}),
 		).rejects.toThrow("blocked");
 
-		expect(guard.ensureCanDispatch).toHaveBeenCalledWith("i-1");
+		expect(guard.ensureCanDispatch).toHaveBeenCalledTimes(1);
 		expect(inner.send).not.toHaveBeenCalled();
 	});
 
-	it("does not call PreDispatchGuard for SET_PRESENCE", async () => {
+	it("still calls PreDispatchGuard for SET_PRESENCE (no-op guard) and dispatches", async () => {
 		const inner = {
 			send: vi.fn(async () => ({ success: true })),
 		};
 		const guard = {
-			ensureCanDispatch: vi.fn(),
+			ensureCanDispatch: vi.fn(async () => {}),
 		};
 		const port = new GuardedDispatchPort(inner as any, guard as any);
 
@@ -44,8 +44,7 @@ describe("GuardedDispatchPort", () => {
 			}),
 		).resolves.toMatchObject({ success: true });
 
-		expect(guard.ensureCanDispatch).not.toHaveBeenCalled();
+		expect(guard.ensureCanDispatch).toHaveBeenCalledTimes(1);
 		expect(inner.send).toHaveBeenCalledTimes(1);
 	});
 });
-

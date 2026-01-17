@@ -1,13 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { InMemoryReputationSignalRepository } from "../../infra/signals/in-memory-reputation-signal-repository";
-import { GetReputationTimelineUseCase } from "../use-cases/get-reputation-timeline.use-case";
 import { DispatchUseCase } from "./dispatch.use-case";
-import { DispatchPolicy } from "../../domain/services/dispatch-policy";
 import { Instance } from "../../domain/entities/instance";
 import { InstanceReputation } from "../../domain/entities/instance-reputation";
 
 describe("DispatchUseCase", () => {
-	it("blocks when health does not allow dispatch", async () => {
+	it("blocks when gate blocks", async () => {
 		const rep = InstanceReputation.initialize("i-1");
 		const instance = Instance.initialize({
 			id: "i-1",
@@ -21,33 +18,18 @@ describe("DispatchUseCase", () => {
 			findById: vi.fn(async () => instance),
 		};
 
-		const evaluateInstanceHealth = {
-			execute: vi.fn(async () => ({
-				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-				reputationScore: 50,
-				temperatureLevel: "COLD",
-				riskLevel: "LOW",
-				alerts: [],
-				actions: ["BLOCK_DISPATCH"],
-				warmUpPhase: "NEWBORN",
-				cooldownReason: null,
-				signalsSnapshot: {} as any,
-			})),
+		const gate = {
+			execute: vi.fn(async () => ({ allowed: false, reason: "RATE_LIMIT" })),
 		};
-
-		const repo = new InMemoryReputationSignalRepository();
-		const timeline = new GetReputationTimelineUseCase(repo);
 
 		const metricIngestion = { recordMany: vi.fn(async () => {}) };
 		const dispatchPort = { send: vi.fn() };
 
 		const useCase = new DispatchUseCase(
 			instanceRepository as any,
-			evaluateInstanceHealth as any,
-			new DispatchPolicy(),
+			gate as any,
 			dispatchPort as any,
 			metricIngestion as any,
-			timeline,
 		);
 
 		const out = await useCase.execute({
@@ -75,22 +57,9 @@ describe("DispatchUseCase", () => {
 			findById: vi.fn(async () => instance),
 		};
 
-		const evaluateInstanceHealth = {
-			execute: vi.fn(async () => ({
-				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-				reputationScore: 50,
-				temperatureLevel: "COLD",
-				riskLevel: "LOW",
-				alerts: [],
-				actions: ["ALLOW_DISPATCH"],
-				warmUpPhase: "NEWBORN",
-				cooldownReason: null,
-				signalsSnapshot: {} as any,
-			})),
+		const gate = {
+			execute: vi.fn(async () => ({ allowed: true })),
 		};
-
-		const repo = new InMemoryReputationSignalRepository();
-		const timeline = new GetReputationTimelineUseCase(repo);
 
 		const producedEvents = [
 			{
@@ -117,11 +86,9 @@ describe("DispatchUseCase", () => {
 
 		const useCase = new DispatchUseCase(
 			instanceRepository as any,
-			evaluateInstanceHealth as any,
-			new DispatchPolicy(),
+			gate as any,
 			dispatchPort as any,
 			metricIngestion as any,
-			timeline,
 			outboundRecorder as any,
 		);
 
@@ -137,7 +104,7 @@ describe("DispatchUseCase", () => {
 		expect(outboundRecorder.execute).toHaveBeenCalledTimes(1);
 	});
 
-	it("blocks when min interval is not respected", async () => {
+	it("blocks when gate returns RATE_LIMIT", async () => {
 		const rep = InstanceReputation.initialize("i-1");
 		const instance = Instance.initialize({
 			id: "i-1",
@@ -151,41 +118,18 @@ describe("DispatchUseCase", () => {
 			findById: vi.fn(async () => instance),
 		};
 
-		const evaluateInstanceHealth = {
-			execute: vi.fn(async () => ({
-				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-				reputationScore: 50,
-				temperatureLevel: "COLD",
-				riskLevel: "LOW",
-				alerts: [],
-				actions: ["ALLOW_DISPATCH"],
-				warmUpPhase: "NEWBORN",
-				cooldownReason: null,
-				signalsSnapshot: {} as any,
-			})),
+		const gate = {
+			execute: vi.fn(async () => ({ allowed: false, reason: "RATE_LIMIT" })),
 		};
-
-		const repo = new InMemoryReputationSignalRepository();
-		await repo.append({
-			type: "MESSAGE_SENT",
-			severity: "LOW",
-			source: "DISPATCH",
-			instanceId: "i-1",
-			occurredAt: new Date("2026-01-16T00:04:30.000Z"),
-			context: {},
-		});
-		const timeline = new GetReputationTimelineUseCase(repo);
 
 		const metricIngestion = { recordMany: vi.fn(async () => {}) };
 		const dispatchPort = { send: vi.fn() };
 
 		const useCase = new DispatchUseCase(
 			instanceRepository as any,
-			evaluateInstanceHealth as any,
-			new DispatchPolicy(),
+			gate as any,
 			dispatchPort as any,
 			metricIngestion as any,
-			timeline,
 		);
 
 		const out = await useCase.execute({

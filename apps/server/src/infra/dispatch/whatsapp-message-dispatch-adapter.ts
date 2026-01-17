@@ -33,6 +33,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 					to: params.message.to,
 					occurredAt,
 					messageType: "text",
+					metadata: { text: params.message.text },
 					result,
 				});
 			}
@@ -118,6 +119,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 					to: params.message.to,
 					occurredAt,
 					messageType: "audio",
+					metadata: { ptt: params.message.ptt },
 					result,
 				});
 			}
@@ -136,6 +138,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 					to: params.message.to,
 					occurredAt,
 					messageType: "image",
+					metadata: { caption: params.message.caption },
 					result,
 				});
 			}
@@ -165,6 +168,7 @@ const mapMessageResult = (params: {
 	to: string;
 	occurredAt: Date;
 	messageType: string;
+	metadata?: Record<string, unknown>;
 	result: { success: boolean; error?: string; errorCode?: string; messageId?: string };
 }): DispatchPortResult => {
 	const producedEvents: NormalizedWhatsAppEvent[] = [
@@ -178,6 +182,7 @@ const mapMessageResult = (params: {
 			messageId: params.result.messageId,
 			metadata: {
 				messageType: params.messageType,
+				...(params.metadata ?? {}),
 				error: params.result.error,
 				errorCode: params.result.errorCode,
 			},

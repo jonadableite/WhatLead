@@ -23,6 +23,7 @@ import { AssignConversationUseCase } from "./application/conversation/assign-con
 import { ConversationEventPipelineUseCase } from "./application/conversation/conversation-event-pipeline.use-case";
 import { ConversationRouter } from "./application/conversation/conversation-router";
 import { ReplyIntentDispatcher } from "./application/conversation/reply-intent-dispatcher";
+import { DispatchGateUseCase } from "./application/dispatch-gate/dispatch-gate.use-case";
 import { DispatchUseCase } from "./application/dispatch/dispatch.use-case";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
@@ -37,7 +38,9 @@ import { RecordReputationSignalUseCase } from "./application/use-cases/record-re
 import { WarmupOrchestratorUseCase } from "./application/warmup/warmup-orchestrator.use-case";
 import { DispatchPolicy } from "./domain/services/dispatch-policy";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
+import { SLAEvaluator } from "./domain/services/sla-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { TimelineDispatchRateSnapshotAdapter } from "./infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
 import { WhatsAppMessageDispatchAdapter } from "./infra/dispatch/whatsapp-message-dispatch-adapter";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
 import { StaticWarmUpContentProvider } from "./infra/heater/static-warmup-content-provider";
@@ -316,6 +319,19 @@ const outboundMessageRecorded = new OutboundMessageRecordedUseCase(
 	idFactory,
 );
 
+const timeline = new GetReputationTimelineUseCase(signalRepository);
+const dispatchPolicy = new DispatchPolicy();
+const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
+const slaEvaluator = new SLAEvaluator();
+const dispatchGate = new DispatchGateUseCase(
+	instanceRepository,
+	evaluateInstanceHealth,
+	dispatchPolicy,
+	rateSnapshots,
+	conversationRepository,
+	slaEvaluator,
+);
+
 const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 	baseUrl: env.TURBOZAP_BASE_URL,
 	apiKey: env.TURBOZAP_API_KEY,
@@ -323,7 +339,7 @@ const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 });
 
 const dispatchPort = new WhatsAppProviderDispatchAdapter(provider);
-const preDispatchGuard = new PreDispatchGuard(evaluateInstanceHealth);
+const preDispatchGuard = new PreDispatchGuard(dispatchGate);
 const delayedDispatchPort = new DelayedDispatchPort(dispatchPort);
 const guardedDispatchPort = new GuardedDispatchPort(
 	delayedDispatchPort,
@@ -331,17 +347,12 @@ const guardedDispatchPort = new GuardedDispatchPort(
 );
 const warmUpTargets = new StaticWarmUpTargetsProvider(env.WARMUP_TARGETS);
 const warmUpContent = new StaticWarmUpContentProvider();
-
-const timeline = new GetReputationTimelineUseCase(signalRepository);
-const dispatchPolicy = new DispatchPolicy();
 const messageDispatchPort = new WhatsAppMessageDispatchAdapter(provider);
 const dispatch = new DispatchUseCase(
 	instanceRepository,
-	evaluateInstanceHealth,
-	dispatchPolicy,
+	dispatchGate,
 	messageDispatchPort,
 	metricIngestion,
-	timeline,
 	outboundMessageRecorded,
 );
 const heater = new WarmupOrchestratorUseCase(
@@ -352,6 +363,7 @@ const heater = new WarmupOrchestratorUseCase(
 	guardedDispatchPort,
 	metricIngestion,
 	timeline,
+	rateSnapshots,
 );
 fastify.decorate("heater", heater);
 

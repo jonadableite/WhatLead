@@ -9,11 +9,8 @@ export class GuardedDispatchPort implements DispatchPort {
 	) {}
 
 	async send(action: DispatchAction): Promise<DispatchResult> {
-		if (action.type === "SEND_TEXT" || action.type === "SEND_REACTION") {
-			await this.guard.ensureCanDispatch(action.instanceId);
-		}
+		await this.guard.ensureCanDispatch(action);
 
 		return await this.inner.send(action);
 	}
 }
-

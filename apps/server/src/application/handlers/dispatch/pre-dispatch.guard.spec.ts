@@ -2,39 +2,38 @@ import { describe, expect, it, vi } from "vitest";
 import { DispatchBlockedError, PreDispatchGuard } from "./pre-dispatch.guard";
 
 describe("PreDispatchGuard", () => {
-	it("throws DispatchBlockedError when use case returns BLOCK_DISPATCH", async () => {
-		const evaluateInstanceHealth = {
-			execute: vi.fn(async () => ({
-				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-				reputationScore: 50,
-				temperatureLevel: "COLD",
-				riskLevel: "LOW",
-				alerts: [],
-				actions: ["BLOCK_DISPATCH"],
-			})),
+	it("throws DispatchBlockedError when gate blocks", async () => {
+		const gate = {
+			execute: vi.fn(async () => ({ allowed: false, reason: "RATE_LIMIT" })),
 		};
 
-		const guard = new PreDispatchGuard(evaluateInstanceHealth as any);
+		const guard = new PreDispatchGuard(gate as any);
 
-		await expect(guard.ensureCanDispatch("i-1")).rejects.toBeInstanceOf(
-			DispatchBlockedError,
-		);
+		await expect(
+			guard.ensureCanDispatch({
+				type: "SEND_TEXT",
+				instanceId: "i-1",
+				to: "t",
+				text: "oi",
+				delayMs: 0,
+			} as any),
+		).rejects.toBeInstanceOf(DispatchBlockedError);
 	});
 
-	it("does not throw when use case allows dispatch", async () => {
-		const evaluateInstanceHealth = {
-			execute: vi.fn(async () => ({
-				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-				reputationScore: 50,
-				temperatureLevel: "COLD",
-				riskLevel: "LOW",
-				alerts: [],
-				actions: ["ALLOW_DISPATCH"],
-			})),
+	it("does not throw when gate allows", async () => {
+		const gate = {
+			execute: vi.fn(async () => ({ allowed: true })),
 		};
 
-		const guard = new PreDispatchGuard(evaluateInstanceHealth as any);
-		await expect(guard.ensureCanDispatch("i-1")).resolves.toBeUndefined();
+		const guard = new PreDispatchGuard(gate as any);
+		await expect(
+			guard.ensureCanDispatch({
+				type: "SEND_TEXT",
+				instanceId: "i-1",
+				to: "t",
+				text: "oi",
+				delayMs: 0,
+			} as any),
+		).resolves.toBeUndefined();
 	});
 });
-

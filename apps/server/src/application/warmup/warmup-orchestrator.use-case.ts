@@ -1,5 +1,6 @@
 import type { EvaluateInstanceHealthUseCase } from "../../domain/use-cases/evaluate-instance-health";
 import type { DispatchUseCase } from "../dispatch/dispatch.use-case";
+import type { DispatchRateSnapshotPort } from "../dispatch-gate/dispatch-rate-snapshot-port";
 import type { WarmUpContentProvider } from "../heater/content/warmup-content-provider";
 import type { DispatchAction, DispatchPort } from "../heater/dispatch-port";
 import type { WarmUpTargetsProvider } from "../heater/targets/warmup-targets-provider";
@@ -20,8 +21,9 @@ export class WarmupOrchestratorUseCase {
 		private readonly dispatchPort: DispatchPort,
 		private readonly metricIngestion: MetricIngestionPort,
 		private readonly timeline: GetReputationTimelineUseCase,
+		private readonly rateSnapshots: DispatchRateSnapshotPort,
 	) {
-		this.limiter = new WarmupLimiter(this.timeline);
+		this.limiter = new WarmupLimiter(this.rateSnapshots);
 	}
 
 	async execute(

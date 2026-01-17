@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { TimelineDispatchRateSnapshotAdapter } from "../../infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
 import { InMemoryReputationSignalRepository } from "../../infra/signals/in-memory-reputation-signal-repository";
 import { GetReputationTimelineUseCase } from "../use-cases/get-reputation-timeline.use-case";
 import { WarmupOrchestratorUseCase } from "./warmup-orchestrator.use-case";
@@ -49,6 +50,7 @@ describe("WarmupOrchestratorUseCase", () => {
 
 		const repo = new InMemoryReputationSignalRepository();
 		const timeline = new GetReputationTimelineUseCase(repo);
+		const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
 
 		const orchestrator = new WarmupOrchestratorUseCase(
 			evaluateInstanceHealth as any,
@@ -58,6 +60,7 @@ describe("WarmupOrchestratorUseCase", () => {
 			dispatchPort as any,
 			metricIngestion as any,
 			timeline,
+			rateSnapshots,
 		);
 
 		const now = new Date("2026-01-16T00:00:00.000Z");
@@ -122,6 +125,7 @@ describe("WarmupOrchestratorUseCase", () => {
 		});
 
 		const timeline = new GetReputationTimelineUseCase(repo);
+		const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
 		const orchestrator = new WarmupOrchestratorUseCase(
 			evaluateInstanceHealth as any,
 			targets as any,
@@ -130,6 +134,7 @@ describe("WarmupOrchestratorUseCase", () => {
 			dispatchPort as any,
 			metricIngestion as any,
 			timeline,
+			rateSnapshots,
 		);
 
 		const result = await orchestrator.execute(

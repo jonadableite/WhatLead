@@ -1,7 +1,7 @@
-import type { GetReputationTimelineUseCase } from "../use-cases/get-reputation-timeline.use-case";
+import type { DispatchRateSnapshotPort } from "../dispatch-gate/dispatch-rate-snapshot-port";
 
 export class WarmupLimiter {
-	constructor(private readonly timeline: GetReputationTimelineUseCase) {}
+	constructor(private readonly rateSnapshots: DispatchRateSnapshotPort) {}
 
 	async getBudget(params: {
 		instanceId: string;
@@ -11,18 +11,12 @@ export class WarmupLimiter {
 		usedMessageLikeInLastHour: number;
 		remainingMessageLikeInLastHour: number;
 	}> {
-		const since = new Date(params.now.getTime() - 60 * 60 * 1000);
-		const signals = await this.timeline.execute({
+		const snapshot = await this.rateSnapshots.getSnapshot({
 			instanceId: params.instanceId,
-			since,
-			until: params.now,
+			now: params.now,
 		});
 
-		const used = signals.filter(
-			(s) =>
-				s.source === "DISPATCH" &&
-				(s.type === "MESSAGE_SENT" || s.type === "REACTION_SENT"),
-		).length;
+		const used = snapshot.sentLastHour;
 
 		const remaining = Math.max(0, params.maxMessagesPerHour - used);
 
@@ -32,4 +26,3 @@ export class WarmupLimiter {
 		};
 	}
 }
-

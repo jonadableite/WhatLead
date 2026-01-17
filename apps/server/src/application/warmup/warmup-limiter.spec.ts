@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryReputationSignalRepository } from "../../infra/signals/in-memory-reputation-signal-repository";
 import { GetReputationTimelineUseCase } from "../use-cases/get-reputation-timeline.use-case";
+import { TimelineDispatchRateSnapshotAdapter } from "../../infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
 import { WarmupLimiter } from "./warmup-limiter";
 
 describe("WarmupLimiter", () => {
 	it("counts only DISPATCH message-like signals in last hour", async () => {
 		const repo = new InMemoryReputationSignalRepository();
 		const timeline = new GetReputationTimelineUseCase(repo);
-		const limiter = new WarmupLimiter(timeline);
+		const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
+		const limiter = new WarmupLimiter(rateSnapshots);
 
 		const now = new Date("2026-01-16T02:00:00.000Z");
 		await repo.append({
@@ -37,4 +39,3 @@ describe("WarmupLimiter", () => {
 		expect(budget.remainingMessageLikeInLastHour).toBe(2);
 	});
 });
-

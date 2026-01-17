@@ -12,6 +12,7 @@ export class ReplyIntentDispatcher {
 		if (intent.type === "TEXT") {
 			const out = await this.dispatch.execute({
 				instanceId: intent.instanceId,
+				conversationId: intent.conversationId,
 				intent: { source: "BOT", reason: intent.reason },
 				message: { type: "TEXT", to: intent.payload.to, text: intent.payload.text },
 			});
@@ -24,6 +25,7 @@ export class ReplyIntentDispatcher {
 		if (intent.type === "REACTION") {
 			const out = await this.dispatch.execute({
 				instanceId: intent.instanceId,
+				conversationId: intent.conversationId,
 				intent: { source: "BOT", reason: intent.reason },
 				message: {
 					type: "REACTION",

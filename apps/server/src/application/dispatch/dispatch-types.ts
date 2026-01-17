@@ -22,6 +22,7 @@ export type DispatchPayload =
 
 export interface DispatchRequest {
 	instanceId: string;
+	conversationId?: string;
 	intent: DispatchIntent;
 	message: DispatchPayload;
 	now?: Date;
@@ -53,4 +54,3 @@ export interface DispatchExecutionResult {
 }
 
 export const messageTypeOf = (p: DispatchPayload): MessageType => p.type;
-
