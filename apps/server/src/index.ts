@@ -8,17 +8,19 @@ import { google } from "@ai-sdk/google";
 import fastifyCors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import {
-  fastifyTRPCPlugin,
-  type FastifyTRPCPluginOptions,
+    fastifyTRPCPlugin,
+    type FastifyTRPCPluginOptions,
 } from "@trpc/server/adapters/fastify";
 import {
-  convertToModelMessages,
-  streamText,
-  type UIMessage,
-  wrapLanguageModel,
+    convertToModelMessages,
+    streamText,
+    type UIMessage,
+    wrapLanguageModel,
 } from "ai";
 import { randomUUID } from "crypto";
 import Fastify from "fastify";
+import { AgentOrchestratorUseCase } from "./application/agents/agent-orchestrator.use-case";
+import { DefaultAgentPlaybook } from "./application/agents/default-agent-playbook";
 import { AssignConversationUseCase } from "./application/conversation/assign-conversation.use-case";
 import { ConversationEventPipelineUseCase } from "./application/conversation/conversation-event-pipeline.use-case";
 import { ConversationRouter } from "./application/conversation/conversation-router";
@@ -30,16 +32,22 @@ import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhoo
 import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port";
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
+import { CreateLeadUseCase } from "./application/sdr/create-lead.use-case";
+import { OpenConversationForLeadUseCase } from "./application/sdr/open-conversation-for-lead.use-case";
+import { StartSdrFlowUseCase } from "./application/sdr/start-sdr-flow.use-case";
+import { UpdateLeadOnInboundUseCase } from "./application/sdr/update-lead-on-inbound.use-case";
 import { GetReputationTimelineUseCase } from "./application/use-cases/get-reputation-timeline.use-case";
 import { InboundMessageUseCase } from "./application/use-cases/inbound-message.use-case";
 import { IngestReputationSignalUseCase } from "./application/use-cases/ingest-reputation-signal.use-case";
 import { OutboundMessageRecordedUseCase } from "./application/use-cases/outbound-message-recorded.use-case";
 import { RecordReputationSignalUseCase } from "./application/use-cases/record-reputation-signal.use-case";
 import { WarmupOrchestratorUseCase } from "./application/warmup/warmup-orchestrator.use-case";
+import { Agent } from "./domain/entities/agent";
 import { DispatchPolicy } from "./domain/services/dispatch-policy";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { SLAEvaluator } from "./domain/services/sla-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { InMemoryDispatchGateDecisionRecorder } from "./infra/dispatch-gate/in-memory-dispatch-gate-decision-recorder";
 import { TimelineDispatchRateSnapshotAdapter } from "./infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
 import { WhatsAppMessageDispatchAdapter } from "./infra/dispatch/whatsapp-message-dispatch-adapter";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
@@ -52,17 +60,19 @@ import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-re
 import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
 import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
+import { PrismaLeadRepository } from "./infra/repositories/prisma-lead-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
 import {
-  isCrossSiteMutationWithoutOrigin,
-  isProbablyAutomation,
-  isUntrustedOrigin,
+    isCrossSiteMutationWithoutOrigin,
+    isProbablyAutomation,
+    isUntrustedOrigin,
 } from "./infra/security/bot-fight";
 import { verifyTurnstile } from "./infra/security/turnstile";
 import { InMemoryReputationSignalRepository } from "./infra/signals/in-memory-reputation-signal-repository";
 import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-ingest-reputation-signal-use-case";
 import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
 import { SignalMetricIngestionAdapter } from "./infra/signals/signal-metric-ingestion-adapter";
+import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
 // =============================================================================
@@ -312,6 +322,7 @@ const metricIngestion = new SignalMetricIngestionAdapter(ingestSignal);
 
 const conversationRepository = new PrismaConversationRepository();
 const messageRepository = new PrismaMessageRepository();
+const leadRepository = new PrismaLeadRepository();
 const idFactory = { createId: () => randomUUID() };
 const outboundMessageRecorded = new OutboundMessageRecordedUseCase(
 	conversationRepository,
@@ -323,6 +334,7 @@ const timeline = new GetReputationTimelineUseCase(signalRepository);
 const dispatchPolicy = new DispatchPolicy();
 const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
 const slaEvaluator = new SLAEvaluator();
+const gateDecisionRecorder = new InMemoryDispatchGateDecisionRecorder();
 const dispatchGate = new DispatchGateUseCase(
 	instanceRepository,
 	evaluateInstanceHealth,
@@ -330,6 +342,7 @@ const dispatchGate = new DispatchGateUseCase(
 	rateSnapshots,
 	conversationRepository,
 	slaEvaluator,
+	gateDecisionRecorder,
 );
 
 const provider = WhatsAppProviderFactory.create("TURBOZAP", {
@@ -373,10 +386,29 @@ const inboundMessage = new InboundMessageUseCase({
 	messageRepository,
 	idFactory,
 });
-const agents = new InMemoryAgentRepository([]);
+const agents = new InMemoryAgentRepository([
+	Agent.create({
+		id: "agent-sdr-1",
+		organizationId: "system",
+		role: "SDR",
+		status: "ONLINE",
+		purpose: "SDR",
+	}),
+	Agent.create({
+		id: "agent-follow-1",
+		organizationId: "system",
+		role: "SDR",
+		status: "ONLINE",
+		purpose: "FOLLOW_UP",
+	}),
+]);
 const router = new ConversationRouter(agents);
 const assignConversation = new AssignConversationUseCase(conversationRepository);
 const replyDispatcher = new ReplyIntentDispatcher(dispatch);
+const updateLeadOnInbound = new UpdateLeadOnInboundUseCase(
+	conversationRepository,
+	leadRepository,
+);
 const ingestConversation = new ConversationEventPipelineUseCase(
 	inboundMessage,
 	outboundMessageRecorded,
@@ -385,6 +417,7 @@ const ingestConversation = new ConversationEventPipelineUseCase(
 	router,
 	assignConversation,
 	replyDispatcher,
+	updateLeadOnInbound,
 );
 const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
 	ingestConversation,
@@ -393,6 +426,33 @@ const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
 
 await registerWebhookRoutes(fastify, {
 	eventHandler: webhookEventHandler,
+});
+
+const playbook = new DefaultAgentPlaybook();
+const agentOrchestrator = new AgentOrchestratorUseCase(
+	conversationRepository,
+	agents,
+	slaEvaluator,
+	playbook,
+);
+const createLead = new CreateLeadUseCase(leadRepository, idFactory);
+const openConversationForLead = new OpenConversationForLeadUseCase(
+	instanceRepository,
+	conversationRepository,
+	idFactory,
+);
+const startSdrFlow = new StartSdrFlowUseCase(
+	createLead,
+	openConversationForLead,
+	agentOrchestrator,
+	dispatch,
+	leadRepository,
+	conversationRepository,
+);
+
+await registerSdrFlowRoutes(fastify, {
+	startSdrFlow,
+	gateDecisions: gateDecisionRecorder,
 });
 
 // =============================================================================

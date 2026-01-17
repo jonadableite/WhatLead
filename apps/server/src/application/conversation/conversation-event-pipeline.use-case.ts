@@ -6,6 +6,7 @@ import type { AssignConversationUseCase } from "./assign-conversation.use-case";
 import type { ReplyIntentDispatcher } from "./reply-intent-dispatcher";
 import type { InboundMessageUseCase } from "../use-cases/inbound-message.use-case";
 import type { OutboundMessageRecordedUseCase } from "../use-cases/outbound-message-recorded.use-case";
+import type { UpdateLeadOnInboundUseCase } from "../sdr/update-lead-on-inbound.use-case";
 
 export class ConversationEventPipelineUseCase {
 	constructor(
@@ -16,6 +17,7 @@ export class ConversationEventPipelineUseCase {
 		private readonly router: ConversationRouter,
 		private readonly assignConversation: AssignConversationUseCase,
 		private readonly replyDispatcher: ReplyIntentDispatcher,
+		private readonly updateLeadOnInbound: UpdateLeadOnInboundUseCase,
 	) {}
 
 	async execute(event: NormalizedWhatsAppEvent): Promise<void> {
@@ -27,6 +29,11 @@ export class ConversationEventPipelineUseCase {
 			const instance = await this.instances.findById(event.instanceId);
 
 			if (conversation && instance) {
+				await this.updateLeadOnInbound.execute({
+					conversationId: inbound.conversationId,
+					event,
+				});
+
 				const decision = await this.router.route({
 					conversation,
 					instance,
