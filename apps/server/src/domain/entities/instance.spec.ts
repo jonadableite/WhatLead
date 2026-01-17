@@ -101,7 +101,7 @@ describe("Instance", () => {
 		expect(instance.canDispatch()).toBe(true);
 	});
 
-	it("blocks dispatch when purpose is WARMUP", () => {
+	it("allows dispatch when purpose is WARMUP", () => {
 		const reputation = InstanceReputation.initialize("i-1");
 		const instance = Instance.initialize({
 			id: "i-1",
@@ -112,7 +112,7 @@ describe("Instance", () => {
 		});
 
 		instance.markConnected();
-		expect(instance.canDispatch()).toBe(false);
+		expect(instance.canDispatch()).toBe(true);
 	});
 
 	it("exposes allowedActions according to current state", () => {

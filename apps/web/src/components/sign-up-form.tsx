@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { setTurnstileToken } from "@/lib/bot-challenge";
 
 import Loader from "./loader";
+import { TurnstileWidget } from "./turnstile-widget";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -21,6 +23,7 @@ export default function SignUpForm({
 	const { isPending } = authClient.useSession();
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [submittedEmail, setSubmittedEmail] = useState("");
+	const [needsBotChallenge, setNeedsBotChallenge] = useState(false);
 
 	const form = useForm({
 		defaultValues: {
@@ -42,6 +45,16 @@ export default function SignUpForm({
 						toast.success("Conta criada com sucesso! Verifique seu email.");
 					},
 					onError: (error) => {
+						if (
+							error.error.status === 403 &&
+							["BOT_CHALLENGE_REQUIRED", "BOT_BLOCKED", "UNTRUSTED_ORIGIN"].includes(
+								(error.error as any).code,
+							)
+						) {
+							setNeedsBotChallenge(true);
+							toast.error("Confirme que voce nao e um robo para continuar");
+							return;
+						}
 						toast.error(error.error.message || "Erro ao criar conta");
 					},
 				},
@@ -132,6 +145,16 @@ export default function SignUpForm({
 				}}
 				className="space-y-4"
 			>
+				{needsBotChallenge && (
+					<div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+						<TurnstileWidget
+							onToken={(token) => {
+								setTurnstileToken(token);
+								setNeedsBotChallenge(false);
+							}}
+						/>
+					</div>
+				)}
 				<div>
 					<form.Field name="name">
 						{(field) => (

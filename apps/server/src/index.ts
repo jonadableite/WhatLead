@@ -19,28 +19,43 @@ import {
 } from "ai";
 import { randomUUID } from "crypto";
 import Fastify from "fastify";
+import { AssignConversationUseCase } from "./application/conversation/assign-conversation.use-case";
+import { ConversationEventPipelineUseCase } from "./application/conversation/conversation-event-pipeline.use-case";
+import { ConversationRouter } from "./application/conversation/conversation-router";
+import { ReplyIntentDispatcher } from "./application/conversation/reply-intent-dispatcher";
+import { DispatchUseCase } from "./application/dispatch/dispatch.use-case";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
 import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port";
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
 import { GetReputationTimelineUseCase } from "./application/use-cases/get-reputation-timeline.use-case";
-import { IngestConversationEventUseCase } from "./application/use-cases/ingest-conversation-event.use-case";
+import { InboundMessageUseCase } from "./application/use-cases/inbound-message.use-case";
 import { IngestReputationSignalUseCase } from "./application/use-cases/ingest-reputation-signal.use-case";
+import { OutboundMessageRecordedUseCase } from "./application/use-cases/outbound-message-recorded.use-case";
 import { RecordReputationSignalUseCase } from "./application/use-cases/record-reputation-signal.use-case";
 import { WarmupOrchestratorUseCase } from "./application/warmup/warmup-orchestrator.use-case";
+import { DispatchPolicy } from "./domain/services/dispatch-policy";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { WhatsAppMessageDispatchAdapter } from "./infra/dispatch/whatsapp-message-dispatch-adapter";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
 import { StaticWarmUpContentProvider } from "./infra/heater/static-warmup-content-provider";
 import { StaticWarmUpTargetsProvider } from "./infra/heater/static-warmup-targets-provider";
 import { WhatsAppProviderDispatchAdapter } from "./infra/heater/whatsapp-dispatch-adapter";
 import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-backed-instance-metric-repository";
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
+import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-repository";
 import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
 import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
+import {
+  isCrossSiteMutationWithoutOrigin,
+  isProbablyAutomation,
+  isUntrustedOrigin,
+} from "./infra/security/bot-fight";
+import { verifyTurnstile } from "./infra/security/turnstile";
 import { InMemoryReputationSignalRepository } from "./infra/signals/in-memory-reputation-signal-repository";
 import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-ingest-reputation-signal-use-case";
 import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
@@ -94,6 +109,104 @@ fastify.addHook("onRequest", async (request, reply) => {
 	(reply.request as any).traceId = traceId;
 });
 
+fastify.addHook("onRequest", async (request, reply) => {
+	if (env.BOT_FIGHT_MODE === "OFF") {
+		return;
+	}
+
+	const url = request.url.split("?")[0] ?? request.url;
+	const isSensitive = url.startsWith("/api/auth/") || url === "/ai";
+	if (!isSensitive) {
+		return;
+	}
+
+	const userAgent = request.headers["user-agent"];
+	const tokenHeader =
+		request.headers["cf-turnstile-response"] ?? request.headers["x-turnstile-token"];
+	const turnstileToken = typeof tokenHeader === "string" ? tokenHeader : undefined;
+	const hasTurnstile = Boolean(env.TURNSTILE_SECRET_KEY && turnstileToken);
+
+	if (isProbablyAutomation(typeof userAgent === "string" ? userAgent : undefined)) {
+		if (
+			hasTurnstile &&
+			(await verifyTurnstile({
+				secretKey: env.TURNSTILE_SECRET_KEY!,
+				token: turnstileToken!,
+				remoteIp: request.ip,
+			}))
+		) {
+			return;
+		}
+
+		return reply.status(403).send({
+			error: {
+				message: "Acesso bloqueado",
+				status: 403,
+				code: "BOT_BLOCKED",
+			},
+		});
+	}
+
+	const origin = request.headers.origin;
+	const referer = request.headers.referer;
+
+	if (url.startsWith("/api/auth/")) {
+		if (
+			isCrossSiteMutationWithoutOrigin({
+				method: request.method,
+				origin: typeof origin === "string" ? origin : undefined,
+				referer: typeof referer === "string" ? referer : undefined,
+			})
+		) {
+			if (
+				hasTurnstile &&
+				(await verifyTurnstile({
+					secretKey: env.TURNSTILE_SECRET_KEY!,
+					token: turnstileToken!,
+					remoteIp: request.ip,
+				}))
+			) {
+				return;
+			}
+
+			return reply.status(403).send({
+				error: {
+					message: "Requisicao sem origem",
+					status: 403,
+					code: "BOT_CHALLENGE_REQUIRED",
+				},
+			});
+		}
+
+		if (
+			isUntrustedOrigin({
+				origin: typeof origin === "string" ? origin : undefined,
+				referer: typeof referer === "string" ? referer : undefined,
+				trustedOrigin: env.CORS_ORIGIN,
+			})
+		) {
+			if (
+				hasTurnstile &&
+				(await verifyTurnstile({
+					secretKey: env.TURNSTILE_SECRET_KEY!,
+					token: turnstileToken!,
+					remoteIp: request.ip,
+				}))
+			) {
+				return;
+			}
+
+			return reply.status(403).send({
+				error: {
+					message: "Origem nao confiavel",
+					status: 403,
+					code: "UNTRUSTED_ORIGIN",
+				},
+			});
+		}
+	}
+});
+
 // =============================================================================
 // REQUEST LOGGING MIDDLEWARE
 // =============================================================================
@@ -132,6 +245,14 @@ fastify.addHook("onResponse", async (request, reply) => {
 		icon: reply.statusCode >= 400 ? "❌" : "📤",
 		event: reply.statusCode >= 400 ? "request_error" : "response",
 	}, "Request completed");
+});
+
+fastify.addHook("onSend", async (_request, reply, payload) => {
+	reply.header("x-content-type-options", "nosniff");
+	reply.header("x-frame-options", "DENY");
+	reply.header("referrer-policy", "no-referrer");
+	reply.header("permissions-policy", "camera=(), microphone=(), geolocation=()");
+	return payload;
 });
 
 // =============================================================================
@@ -186,6 +307,15 @@ const ingestSignal = new IngestReputationSignalUseCase(recordSignal);
 const ingestSignalWithLogging = new LoggingIngestReputationSignalUseCase(ingestSignal);
 const metricIngestion = new SignalMetricIngestionAdapter(ingestSignal);
 
+const conversationRepository = new PrismaConversationRepository();
+const messageRepository = new PrismaMessageRepository();
+const idFactory = { createId: () => randomUUID() };
+const outboundMessageRecorded = new OutboundMessageRecordedUseCase(
+	conversationRepository,
+	messageRepository,
+	idFactory,
+);
+
 const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 	baseUrl: env.TURBOZAP_BASE_URL,
 	apiKey: env.TURBOZAP_API_KEY,
@@ -203,25 +333,47 @@ const warmUpTargets = new StaticWarmUpTargetsProvider(env.WARMUP_TARGETS);
 const warmUpContent = new StaticWarmUpContentProvider();
 
 const timeline = new GetReputationTimelineUseCase(signalRepository);
+const dispatchPolicy = new DispatchPolicy();
+const messageDispatchPort = new WhatsAppMessageDispatchAdapter(provider);
+const dispatch = new DispatchUseCase(
+	instanceRepository,
+	evaluateInstanceHealth,
+	dispatchPolicy,
+	messageDispatchPort,
+	metricIngestion,
+	timeline,
+	outboundMessageRecorded,
+);
 const heater = new WarmupOrchestratorUseCase(
 	evaluateInstanceHealth,
 	warmUpTargets,
 	warmUpContent,
+	dispatch,
 	guardedDispatchPort,
 	metricIngestion,
 	timeline,
 );
 fastify.decorate("heater", heater);
 
-const conversationRepository = new PrismaConversationRepository();
-const messageRepository = new PrismaMessageRepository();
-const idFactory = { createId: () => randomUUID() };
-const ingestConversation = new IngestConversationEventUseCase({
+const inboundMessage = new InboundMessageUseCase({
 	instanceRepository,
 	conversationRepository,
 	messageRepository,
 	idFactory,
 });
+const agents = new InMemoryAgentRepository([]);
+const router = new ConversationRouter(agents);
+const assignConversation = new AssignConversationUseCase(conversationRepository);
+const replyDispatcher = new ReplyIntentDispatcher(dispatch);
+const ingestConversation = new ConversationEventPipelineUseCase(
+	inboundMessage,
+	outboundMessageRecorded,
+	conversationRepository,
+	instanceRepository,
+	router,
+	assignConversation,
+	replyDispatcher,
+);
 const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
 	ingestConversation,
 	ingestSignalWithLogging,
@@ -361,8 +513,28 @@ interface AiRequestBody {
 	messages: UIMessage[];
 }
 
-fastify.post("/ai", async (request) => {
-	const { messages } = request.body as AiRequestBody;
+fastify.route({
+	method: "POST",
+	url: "/ai",
+	config: {
+		rateLimit: {
+			max: 10,
+			timeWindow: "1 minute",
+		},
+	},
+	async handler(request, reply) {
+		const session = await auth.api.getSession({
+			headers: request.headers as any,
+		});
+		if (!session) {
+			return reply.status(401).send({
+				success: false,
+				error: "Nao autorizado",
+				code: "UNAUTHORIZED",
+			});
+		}
+
+		const { messages } = request.body as AiRequestBody;
 	const model = wrapLanguageModel({
 		model: google("gemini-2.5-flash"),
 		middleware: devToolsMiddleware(),
@@ -373,6 +545,7 @@ fastify.post("/ai", async (request) => {
 	});
 
 	return result.toUIMessageStreamResponse();
+	},
 });
 
 // =============================================================================

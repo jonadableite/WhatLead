@@ -1,0 +1,12 @@
+export const DISPATCH_BLOCK_REASONS = [
+	"INSTANCE_NOT_ACTIVE",
+	"INSTANCE_NOT_CONNECTED",
+	"COOLDOWN",
+	"OVERHEATED",
+	"UNSUPPORTED_MESSAGE_TYPE",
+	"POLICY_BLOCKED",
+	"RATE_LIMIT",
+] as const;
+
+export type DispatchBlockReason = (typeof DISPATCH_BLOCK_REASONS)[number];
+

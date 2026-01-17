@@ -13,9 +13,9 @@
  */
 
 import type {
-    NormalizedWhatsAppEvent,
-    WebhookEventTransformer,
-    WhatsAppEventType,
+	NormalizedWhatsAppEvent,
+	WebhookEventTransformer,
+	WhatsAppEventType,
 } from "../../../application/event-handlers/webhook-event-handler";
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -1,9 +1,11 @@
 import type { ConversationChannel } from "../value-objects/conversation-channel";
+import { ConversationSLA } from "../value-objects/conversation-sla";
+import type { ConversationStage } from "../value-objects/conversation-stage";
 import type { ConversationStatus } from "../value-objects/conversation-status";
-import { Message } from "./message";
-import type { MessageType } from "../value-objects/message-type";
 import type { MessageDirection } from "../value-objects/message-direction";
 import type { MessageSender } from "../value-objects/message-sender";
+import type { MessageType } from "../value-objects/message-type";
+import { Message } from "./message";
 
 export interface ConversationProps {
 	id: string;
@@ -12,13 +14,22 @@ export interface ConversationProps {
 	instanceId: string;
 	contactId: string;
 	status: ConversationStatus;
+	stage: ConversationStage;
 	assignedAgentId?: string | null;
 	openedAt: Date;
 	lastMessageAt: Date;
+	lastInboundAt: Date | null;
+	lastOutboundAt: Date | null;
+	unreadCount: number;
+	metadata: Record<string, unknown>;
+	sla: ConversationSLA | null;
 	isActive: boolean;
 }
 
 export class Conversation {
+	private static readonly FIRST_RESPONSE_SLA_MS = 10 * 60 * 1000;
+	private static readonly NEXT_RESPONSE_SLA_MS = 30 * 60 * 1000;
+
 	private readonly _id: string;
 	private readonly _tenantId: string;
 	private readonly _channel: ConversationChannel;
@@ -26,9 +37,15 @@ export class Conversation {
 	private readonly _contactId: string;
 
 	private _status: ConversationStatus;
+	private _stage: ConversationStage;
 	private _assignedAgentId: string | null;
 	private _openedAt: Date;
 	private _lastMessageAt: Date;
+	private _lastInboundAt: Date | null;
+	private _lastOutboundAt: Date | null;
+	private _unreadCount: number;
+	private _metadata: Record<string, unknown>;
+	private _sla: ConversationSLA | null;
 	private _isActive: boolean;
 
 	private constructor(props: ConversationProps) {
@@ -38,9 +55,15 @@ export class Conversation {
 		this._instanceId = props.instanceId;
 		this._contactId = props.contactId;
 		this._status = props.status;
+		this._stage = props.stage;
 		this._assignedAgentId = props.assignedAgentId ?? null;
 		this._openedAt = props.openedAt;
 		this._lastMessageAt = props.lastMessageAt;
+		this._lastInboundAt = props.lastInboundAt;
+		this._lastOutboundAt = props.lastOutboundAt;
+		this._unreadCount = props.unreadCount;
+		this._metadata = props.metadata;
+		this._sla = props.sla;
 		this._isActive = props.isActive;
 	}
 
@@ -59,9 +82,15 @@ export class Conversation {
 			instanceId: params.instanceId,
 			contactId: params.contactId,
 			status: "OPEN",
+			stage: "LEAD",
 			assignedAgentId: null,
 			openedAt: params.openedAt,
 			lastMessageAt: params.openedAt,
+			lastInboundAt: null,
+			lastOutboundAt: null,
+			unreadCount: 0,
+			metadata: {},
+			sla: null,
 			isActive: true,
 		});
 	}
@@ -94,6 +123,10 @@ export class Conversation {
 		return this._status;
 	}
 
+	get stage(): ConversationStage {
+		return this._stage;
+	}
+
 	get assignedAgentId(): string | null {
 		return this._assignedAgentId;
 	}
@@ -106,6 +139,26 @@ export class Conversation {
 		return this._lastMessageAt;
 	}
 
+	get lastInboundAt(): Date | null {
+		return this._lastInboundAt;
+	}
+
+	get lastOutboundAt(): Date | null {
+		return this._lastOutboundAt;
+	}
+
+	get unreadCount(): number {
+		return this._unreadCount;
+	}
+
+	get metadata(): Record<string, unknown> {
+		return this._metadata;
+	}
+
+	get sla(): ConversationSLA | null {
+		return this._sla;
+	}
+
 	get isActive(): boolean {
 		return this._isActive;
 	}
@@ -115,16 +168,136 @@ export class Conversation {
 			return;
 		}
 		this._assignedAgentId = agentId;
-		this._status = "ASSIGNED";
+		this._status = "OPEN";
 	}
 
-	close(now: Date = new Date()): void {
-		this._status = "CLOSED";
+	markAsWaiting(): void {
+		if (!this._isActive) {
+			return;
+		}
+		if (this._assignedAgentId) {
+			return;
+		}
+		this._status = "WAITING";
+	}
+
+	advanceStage(nextStage: ConversationStage): void {
+		this._stage = nextStage;
+		if (nextStage === "LOST") {
+			this._status = "LOST";
+			this._isActive = false;
+			this.clearSLA();
+		}
+		if (nextStage === "WON") {
+			this._status = "CLOSED";
+			this._isActive = false;
+			this.clearSLA();
+		}
+	}
+
+	close(params: { now?: Date; lost?: boolean } = {}): void {
+		const now = params.now ?? new Date();
+		this._status = params.lost ? "LOST" : "CLOSED";
+		if (params.lost) {
+			this._stage = "LOST";
+		}
 		this._isActive = false;
 		this._lastMessageAt = now;
+		this.clearSLA();
 	}
 
-	appendMessage(params: {
+	receiveInboundMessage(params: {
+		messageId: string;
+		type: MessageType;
+		providerMessageId?: string;
+		contentRef?: string;
+		metadata?: Record<string, unknown>;
+		occurredAt: Date;
+	}): Message {
+		this.ensureActive(params.occurredAt);
+		this._unreadCount += 1;
+		this._lastInboundAt = params.occurredAt;
+		this._lastMessageAt = params.occurredAt;
+		this.ensureSLA();
+		this._sla!.clearBreach();
+
+		if (this._lastOutboundAt === null) {
+			this._sla!.startFirstResponse({
+				dueAt: new Date(params.occurredAt.getTime() + Conversation.FIRST_RESPONSE_SLA_MS),
+			});
+		} else {
+			this._sla!.startNextResponse({
+				dueAt: new Date(params.occurredAt.getTime() + Conversation.NEXT_RESPONSE_SLA_MS),
+			});
+		}
+
+		if (this._status === "CLOSED" || this._status === "LOST") {
+			this._status = "OPEN";
+		}
+
+		return this.createMessage({
+			messageId: params.messageId,
+			direction: "INBOUND",
+			type: params.type,
+			sentBy: "CONTACT",
+			providerMessageId: params.providerMessageId,
+			contentRef: params.contentRef,
+			metadata: params.metadata,
+			occurredAt: params.occurredAt,
+		});
+	}
+
+	recordOutboundMessage(params: {
+		messageId: string;
+		type: MessageType;
+		sentBy: Exclude<MessageSender, "CONTACT">;
+		providerMessageId?: string;
+		contentRef?: string;
+		metadata?: Record<string, unknown>;
+		occurredAt: Date;
+	}): Message {
+		this.ensureActive(params.occurredAt);
+		this._lastOutboundAt = params.occurredAt;
+		this._lastMessageAt = params.occurredAt;
+		this._unreadCount = 0;
+		this.clearSLA();
+
+		return this.createMessage({
+			messageId: params.messageId,
+			direction: "OUTBOUND",
+			type: params.type,
+			sentBy: params.sentBy,
+			providerMessageId: params.providerMessageId,
+			contentRef: params.contentRef,
+			metadata: params.metadata,
+			occurredAt: params.occurredAt,
+		});
+	}
+
+	private ensureActive(openedAt: Date): void {
+		if (this._isActive) {
+			return;
+		}
+		this._isActive = true;
+		this._status = "OPEN";
+		this._openedAt = openedAt;
+		this._unreadCount = 0;
+	}
+
+	private ensureSLA(): void {
+		if (!this._sla) {
+			this._sla = ConversationSLA.empty();
+		}
+	}
+
+	private clearSLA(): void {
+		if (this._sla) {
+			this._sla.clear();
+		}
+		this._sla = null;
+	}
+
+	private createMessage(params: {
 		messageId: string;
 		direction: MessageDirection;
 		type: MessageType;
@@ -134,13 +307,6 @@ export class Conversation {
 		metadata?: Record<string, unknown>;
 		occurredAt: Date;
 	}): Message {
-		if (!this._isActive) {
-			this._isActive = true;
-			this._status = "OPEN";
-			this._openedAt = params.occurredAt;
-		}
-
-		this._lastMessageAt = params.occurredAt;
 		return Message.create({
 			id: params.messageId,
 			conversationId: this._id,
@@ -154,4 +320,3 @@ export class Conversation {
 		});
 	}
 }
-

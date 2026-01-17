@@ -27,18 +27,20 @@ describe("WarmupOrchestratorUseCase", () => {
 			randomText: () => "kkk",
 		};
 
-		const producedEvent = {
-			type: "MESSAGE_SENT",
-			source: "DISPATCH",
-			instanceId: "i-1",
-			occurredAt: new Date("2026-01-16T00:00:00.000Z"),
-			isGroup: false,
-			remoteJid: "t",
-			metadata: {},
+		const dispatch = {
+			execute: vi.fn(async () => ({
+				decision: {
+					allowed: true,
+					maxMessages: 2,
+					minIntervalSeconds: 60,
+					allowedMessageTypes: ["TEXT", "REACTION"],
+				},
+				result: { status: "SENT", occurredAt: new Date("2026-01-16T00:00:00.000Z") },
+			})),
 		};
 
 		const dispatchPort = {
-			send: vi.fn(async () => ({ success: true, producedEvents: [producedEvent] })),
+			send: vi.fn(),
 		};
 
 		const metricIngestion = {
@@ -52,6 +54,7 @@ describe("WarmupOrchestratorUseCase", () => {
 			evaluateInstanceHealth as any,
 			targets as any,
 			content as any,
+			dispatch as any,
 			dispatchPort as any,
 			metricIngestion as any,
 			timeline,
@@ -62,8 +65,7 @@ describe("WarmupOrchestratorUseCase", () => {
 
 		expect(result.plan).not.toBeNull();
 		expect(result.executedActions).toBe(1);
-		expect(dispatchPort.send).toHaveBeenCalledTimes(1);
-		expect(metricIngestion.recordMany).toHaveBeenCalledWith([producedEvent]);
+		expect(dispatch.execute).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not execute when budget is exhausted", async () => {
@@ -87,6 +89,10 @@ describe("WarmupOrchestratorUseCase", () => {
 
 		const content = {
 			randomText: () => "kkk",
+		};
+
+		const dispatch = {
+			execute: vi.fn(),
 		};
 
 		const dispatchPort = {
@@ -120,6 +126,7 @@ describe("WarmupOrchestratorUseCase", () => {
 			evaluateInstanceHealth as any,
 			targets as any,
 			content as any,
+			dispatch as any,
 			dispatchPort as any,
 			metricIngestion as any,
 			timeline,
@@ -133,6 +140,6 @@ describe("WarmupOrchestratorUseCase", () => {
 		expect(result.plan).not.toBeNull();
 		expect(result.executedActions).toBe(0);
 		expect(dispatchPort.send).not.toHaveBeenCalled();
+		expect(dispatch.execute).not.toHaveBeenCalled();
 	});
 });
-

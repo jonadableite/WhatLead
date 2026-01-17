@@ -47,6 +47,10 @@ export const env = createEnv({
 			.default("true")
 			.transform((v) => v === "true"),
 		S3_REGION: z.string().optional(),
+		BOT_FIGHT_MODE: z
+			.enum(["OFF", "STANDARD", "SUPERCOMBAT"])
+			.default("SUPERCOMBAT"),
+		TURNSTILE_SECRET_KEY: z.string().optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

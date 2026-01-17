@@ -1,4 +1,5 @@
 import type { EvaluateInstanceHealthUseCase } from "../../domain/use-cases/evaluate-instance-health";
+import type { DispatchUseCase } from "../dispatch/dispatch.use-case";
 import type { WarmUpContentProvider } from "../heater/content/warmup-content-provider";
 import type { DispatchAction, DispatchPort } from "../heater/dispatch-port";
 import type { WarmUpTargetsProvider } from "../heater/targets/warmup-targets-provider";
@@ -15,6 +16,7 @@ export class WarmupOrchestratorUseCase {
 		private readonly evaluateInstanceHealth: EvaluateInstanceHealthUseCase,
 		private readonly targets: WarmUpTargetsProvider,
 		private readonly content: WarmUpContentProvider,
+		private readonly dispatch: DispatchUseCase,
 		private readonly dispatchPort: DispatchPort,
 		private readonly metricIngestion: MetricIngestionPort,
 		private readonly timeline: GetReputationTimelineUseCase,
@@ -87,6 +89,47 @@ export class WarmupOrchestratorUseCase {
 			}
 
 			try {
+				if (action.type === "SEND_TEXT") {
+					const out = await this.dispatch.execute({
+						instanceId,
+						intent: { source: "WARMUP" },
+						message: { type: "TEXT", to: action.to, text: action.text },
+						now,
+					});
+					if (out.result.status !== "SENT") {
+						return {
+							plan,
+							executedActions: executed,
+							stoppedBecause: out.result.status === "FAILED" ? "DISPATCH_FAILED" : "BLOCKED",
+						};
+					}
+					executed += 1;
+					continue;
+				}
+
+				if (action.type === "SEND_REACTION") {
+					const out = await this.dispatch.execute({
+						instanceId,
+						intent: { source: "WARMUP" },
+						message: {
+							type: "REACTION",
+							to: action.to,
+							messageId: action.messageId,
+							emoji: action.emoji,
+						},
+						now,
+					});
+					if (out.result.status !== "SENT") {
+						return {
+							plan,
+							executedActions: executed,
+							stoppedBecause: out.result.status === "FAILED" ? "DISPATCH_FAILED" : "BLOCKED",
+						};
+					}
+					executed += 1;
+					continue;
+				}
+
 				const result = await this.dispatchPort.send(action);
 				if (!result.success) {
 					return {

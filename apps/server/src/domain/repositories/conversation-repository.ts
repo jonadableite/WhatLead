@@ -6,6 +6,7 @@ export interface ConversationRepository {
 		contactId: string;
 	}): Promise<Conversation | null>;
 
+	findById(params: { id: string }): Promise<Conversation | null>;
+
 	save(conversation: Conversation): Promise<void>;
 }
-

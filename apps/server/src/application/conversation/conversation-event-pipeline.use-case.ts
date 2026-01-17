@@ -1,0 +1,47 @@
+import type { NormalizedWhatsAppEvent } from "../event-handlers/webhook-event-handler";
+import type { InstanceRepository } from "../../domain/repositories/instance-repository";
+import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
+import type { ConversationRouter } from "./conversation-router";
+import type { AssignConversationUseCase } from "./assign-conversation.use-case";
+import type { ReplyIntentDispatcher } from "./reply-intent-dispatcher";
+import type { InboundMessageUseCase } from "../use-cases/inbound-message.use-case";
+import type { OutboundMessageRecordedUseCase } from "../use-cases/outbound-message-recorded.use-case";
+
+export class ConversationEventPipelineUseCase {
+	constructor(
+		private readonly inbound: InboundMessageUseCase,
+		private readonly outbound: OutboundMessageRecordedUseCase,
+		private readonly conversations: ConversationRepository,
+		private readonly instances: InstanceRepository,
+		private readonly router: ConversationRouter,
+		private readonly assignConversation: AssignConversationUseCase,
+		private readonly replyDispatcher: ReplyIntentDispatcher,
+	) {}
+
+	async execute(event: NormalizedWhatsAppEvent): Promise<void> {
+		const inbound = await this.inbound.execute(event);
+		if (inbound) {
+			const conversation = await this.conversations.findById({
+				id: inbound.conversationId,
+			});
+			const instance = await this.instances.findById(event.instanceId);
+
+			if (conversation && instance) {
+				const decision = await this.router.route({
+					conversation,
+					instance,
+					inboundEvent: event,
+				});
+
+				await this.assignConversation.execute({
+					conversationId: conversation.id,
+					decision,
+				});
+
+				await this.replyDispatcher.execute(decision.replyIntent);
+			}
+		}
+
+		await this.outbound.execute(event);
+	}
+}

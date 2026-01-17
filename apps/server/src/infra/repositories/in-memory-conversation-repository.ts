@@ -23,5 +23,8 @@ export class InMemoryConversationRepository implements ConversationRepository {
 	async save(conversation: Conversation): Promise<void> {
 		this.byId.set(conversation.id, conversation);
 	}
-}
 
+	async findById(params: { id: string }): Promise<Conversation | null> {
+		return this.byId.get(params.id) ?? null;
+	}
+}

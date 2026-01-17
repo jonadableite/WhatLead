@@ -32,19 +32,27 @@ export class AppendMessageUseCase {
 			}
 		}
 
-		const message = params.conversation.appendMessage({
-			messageId: this.idFactory.createId(),
-			direction: params.direction,
-			type: params.type,
-			sentBy: params.sentBy,
-			providerMessageId: params.providerMessageId,
-			contentRef: params.contentRef,
-			metadata: params.metadata,
-			occurredAt: params.occurredAt,
-		});
+		const message =
+			params.direction === "INBOUND"
+				? params.conversation.receiveInboundMessage({
+						messageId: this.idFactory.createId(),
+						type: params.type,
+						providerMessageId: params.providerMessageId,
+						contentRef: params.contentRef,
+						metadata: params.metadata,
+						occurredAt: params.occurredAt,
+					})
+				: params.conversation.recordOutboundMessage({
+						messageId: this.idFactory.createId(),
+						type: params.type,
+						sentBy: params.sentBy === "CONTACT" ? "BOT" : params.sentBy,
+						providerMessageId: params.providerMessageId,
+						contentRef: params.contentRef,
+						metadata: params.metadata,
+						occurredAt: params.occurredAt,
+					});
 
 		await this.messageRepository.append(message);
 		await this.conversationRepository.save(params.conversation);
 	}
 }
-

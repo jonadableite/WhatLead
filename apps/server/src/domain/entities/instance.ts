@@ -189,9 +189,6 @@ export class Instance {
 		if (this._connectionStatus !== "CONNECTED") {
 			return false;
 		}
-		if (this._purpose === "WARMUP") {
-			return false;
-		}
 		return this._reputation.canDispatch(now);
 	}
 
