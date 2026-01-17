@@ -13,6 +13,17 @@ export const env = createEnv({
 			.default("development"),
 		PORT: z.string().regex(/^\d+$/).default("3000"),
 		GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
+		TURBOZAP_BASE_URL: z.string().min(1).default("http://localhost:3001"),
+		TURBOZAP_API_KEY: z.string().min(1).default("dev"),
+		TURBOZAP_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+		REPUTATION_SIGNAL_REPOSITORY: z
+			.enum(["memory", "prisma"])
+			.default("memory"),
+		REPUTATION_SIGNAL_RETENTION_DAYS: z.coerce.number().int().positive().default(7),
+		WARMUP_TARGETS: z
+			.string()
+			.optional()
+			.transform((v) => (v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [])),
 		SMTP_HOST: z.string().nonempty(),
 		SMTP_PORT: z.string().regex(/^\d+$/).transform(Number),
 		SMTP_USERNAME: z.string().nonempty(),

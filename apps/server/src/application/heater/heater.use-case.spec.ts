@@ -50,6 +50,9 @@ describe("HeaterUseCase", () => {
 	it("dispatches plan actions and stops if mid-health blocks dispatch", async () => {
 		const instance = {
 			id: "i-1",
+			reputation: {
+				currentWarmUpPhase: () => "OBSERVER",
+			},
 		};
 
 		const instanceRepository = {
@@ -115,8 +118,13 @@ describe("HeaterUseCase", () => {
 		await heater.execute("i-1", new Date("2026-01-16T00:00:00.000Z"));
 
 		expect(warmUpStrategy.plan).toHaveBeenCalledTimes(1);
+		expect(warmUpStrategy.plan).toHaveBeenCalledWith(
+			expect.objectContaining({
+				instance,
+				phase: "OBSERVER",
+			}),
+		);
 		expect(dispatchPort.send).toHaveBeenCalledTimes(1);
 		expect(metricIngestion.recordMany).toHaveBeenCalledWith([producedEvent]);
 	});
 });
-

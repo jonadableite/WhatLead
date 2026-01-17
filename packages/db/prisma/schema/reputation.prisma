@@ -16,3 +16,18 @@ model InstanceReputation {
 
   @@map("instance_reputation")
 }
+
+model ReputationSignal {
+  id         String   @id @default(uuid())
+  instanceId String
+  occurredAt DateTime
+  type       String
+  messageId  String?
+  remoteJid  String?
+  isGroup    Boolean  @default(false)
+  latencyMs  Int?
+
+  @@index([instanceId, occurredAt])
+  @@index([instanceId, type, occurredAt])
+  @@map("reputation_signal")
+}

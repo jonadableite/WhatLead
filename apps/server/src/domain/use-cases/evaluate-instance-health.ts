@@ -11,6 +11,9 @@ import type { InstanceTemperatureLevel } from "../value-objects/instance-tempera
 import type { ReputationAlert } from "../value-objects/reputation-alert";
 import type { InstanceConnectionStatus } from "../value-objects/instance-connection-status";
 import type { InstanceLifecycleStatus } from "../value-objects/instance-lifecycle-status";
+import type { CooldownReason } from "../value-objects/cooldown-reason";
+import type { WarmUpPhase } from "../value-objects/warmup-phase";
+import type { ReputationSignals } from "../entities/instance-reputation";
 
 export interface EvaluateInstanceHealthUseCaseRequest {
 	instanceId: string;
@@ -28,6 +31,9 @@ export interface EvaluateInstanceHealthUseCaseResponse {
 	riskLevel: "LOW" | "MEDIUM" | "HIGH";
 	alerts: readonly ReputationAlert[];
 	actions: readonly InstanceHealthAction[];
+	warmUpPhase: WarmUpPhase;
+	cooldownReason: CooldownReason | null;
+	signalsSnapshot: Readonly<ReputationSignals>;
 }
 
 export class EvaluateInstanceHealthUseCase {
@@ -78,7 +84,9 @@ export class EvaluateInstanceHealthUseCase {
 			riskLevel: evaluated.getRiskLevel().toUpperCase() as "LOW" | "MEDIUM" | "HIGH",
 			alerts: evaluated.alerts,
 			actions,
+			warmUpPhase: evaluated.currentWarmUpPhase(now),
+			cooldownReason: evaluated.cooldownReason,
+			signalsSnapshot: signals,
 		};
 	}
 }
-

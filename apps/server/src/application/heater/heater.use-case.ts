@@ -29,7 +29,8 @@ export class HeaterUseCase {
 			return;
 		}
 
-		const plan = await this.warmUpStrategy.plan({ instance, now });
+		const phase = instance.reputation.currentWarmUpPhase(now);
+		const plan = await this.warmUpStrategy.plan({ instance, phase, now });
 
 		for (const action of plan.actions) {
 			const result = await this.dispatchPort.send(action);

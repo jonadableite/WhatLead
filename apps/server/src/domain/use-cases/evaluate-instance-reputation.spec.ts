@@ -12,6 +12,7 @@ describe("EvaluateInstanceReputationUseCase", () => {
 		const signals = {
 			messagesSent: 0,
 			messagesDelivered: 0,
+			messagesRead: 0,
 			messagesReplied: 0,
 			messagesBlocked: 0,
 			humanInteractions: 0,
@@ -19,8 +20,10 @@ describe("EvaluateInstanceReputationUseCase", () => {
 			mediaMessages: 0,
 			textMessages: 0,
 			averageReplyTimeInSeconds: 0,
+			averageDeliveryLatencyMs: 0,
 			deliveryFailures: 0,
 			reactionsReceived: 0,
+			connectionDisconnects: 0,
 		} as const;
 
 		const metricRepository = {
@@ -62,6 +65,7 @@ describe("EvaluateInstanceReputationUseCase", () => {
 		const signals = {
 			messagesSent: 100,
 			messagesDelivered: 95,
+			messagesRead: 0,
 			messagesReplied: 20,
 			messagesBlocked: 0,
 			humanInteractions: 1,
@@ -69,8 +73,10 @@ describe("EvaluateInstanceReputationUseCase", () => {
 			mediaMessages: 10,
 			textMessages: 90,
 			averageReplyTimeInSeconds: 15,
+			averageDeliveryLatencyMs: 0,
 			deliveryFailures: 0,
 			reactionsReceived: 1,
+			connectionDisconnects: 0,
 		} as const;
 
 		const metricRepository = {
@@ -113,4 +119,3 @@ describe("EvaluateInstanceReputationUseCase", () => {
 		expect(result.riskLevel).toBe("low");
 	});
 });
-

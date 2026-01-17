@@ -1,7 +1,9 @@
 import type { CooldownReason } from "../value-objects/cooldown-reason";
 import type { InstanceTemperatureLevel } from "../value-objects/instance-temperature-level";
 import type { ReputationAlert } from "../value-objects/reputation-alert";
+import { createAlert } from "../value-objects/reputation-alert";
 import type { TemperatureTrend } from "../value-objects/temperature-trend";
+import type { WarmUpPhase } from "../value-objects/warmup-phase";
 
 /**
  * Aggregated signals snapshot for reputation evaluation.
@@ -13,6 +15,8 @@ export interface ReputationSignals {
 	readonly messagesSent: number;
 	/** Total messages successfully delivered */
 	readonly messagesDelivered: number;
+	/** Total messages read */
+	readonly messagesRead: number;
 	/** Total replies received */
 	readonly messagesReplied: number;
 	/** Total blocks detected (critical signal) */
@@ -27,10 +31,14 @@ export interface ReputationSignals {
 	readonly textMessages: number;
 	/** Average reply time in seconds */
 	readonly averageReplyTimeInSeconds: number;
+	/** Average delivery latency in milliseconds */
+	readonly averageDeliveryLatencyMs: number;
 	/** Delivery failures count */
 	readonly deliveryFailures: number;
 	/** Reactions received on messages */
 	readonly reactionsReceived: number;
+	/** Connection disconnects observed */
+	readonly connectionDisconnects: number;
 }
 
 /**
@@ -39,6 +47,7 @@ export interface ReputationSignals {
 const DEFAULT_SIGNALS: ReputationSignals = {
 	messagesSent: 0,
 	messagesDelivered: 0,
+	messagesRead: 0,
 	messagesReplied: 0,
 	messagesBlocked: 0,
 	humanInteractions: 0,
@@ -46,8 +55,10 @@ const DEFAULT_SIGNALS: ReputationSignals = {
 	mediaMessages: 0,
 	textMessages: 0,
 	averageReplyTimeInSeconds: 0,
+	averageDeliveryLatencyMs: 0,
 	deliveryFailures: 0,
 	reactionsReceived: 0,
+	connectionDisconnects: 0,
 };
 
 /**
@@ -376,6 +387,134 @@ export class InstanceReputation {
 
 		const diffMs = now.getTime() - this._lastHumanInteractionAt.getTime();
 		return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	}
+
+	currentWarmUpPhase(now: Date = new Date()): WarmUpPhase {
+		if (this._temperatureLevel === "COOLDOWN" || this._temperatureLevel === "OVERHEATED") {
+			return "OBSERVER";
+		}
+
+		if (
+			this._lastHumanInteractionAt === null &&
+			this._cooldownCount === 0 &&
+			this._signals.messagesSent === 0 &&
+			this._signals.messagesReplied === 0 &&
+			this._score <= INITIAL_SCORE
+		) {
+			return "NEWBORN";
+		}
+
+		if (!this.canDispatch(now)) {
+			return "OBSERVER";
+		}
+
+		const hasHighOrCriticalAlert = this._alerts.some(
+			(alert) => alert.severity === "CRITICAL" || alert.severity === "HIGH",
+		);
+		if (hasHighOrCriticalAlert) {
+			return "OBSERVER";
+		}
+
+		if (this._cooldownCount >= 3) {
+			return "NEWBORN";
+		}
+
+		if (this._score < 55) return "OBSERVER";
+		if (this._score < 70) return "INTERACTING";
+		if (this._score < 85) return "SOCIAL";
+		return "READY";
+	}
+
+	evaluateWindow(signals: ReputationSignals): {
+		scoreDelta: number;
+		alerts: readonly ReputationAlert[];
+		requiresCooldown: boolean;
+		cooldownReason: CooldownReason | null;
+	} {
+		const alerts: ReputationAlert[] = [];
+		let scoreDelta = 0;
+
+		if (signals.messagesSent === 0) {
+			return {
+				scoreDelta: 0,
+				alerts: [],
+				requiresCooldown: false,
+				cooldownReason: null,
+			};
+		}
+
+		const observations =
+			signals.messagesDelivered +
+			signals.deliveryFailures +
+			signals.messagesRead +
+			signals.messagesReplied +
+			signals.connectionDisconnects;
+		if (observations < 5) {
+			return {
+				scoreDelta: 0,
+				alerts: [],
+				requiresCooldown: false,
+				cooldownReason: null,
+			};
+		}
+
+		const deliveredRate =
+			signals.messagesDelivered / signals.messagesSent;
+		const replyRate =
+			signals.messagesReplied / signals.messagesSent;
+		const readRate =
+			signals.messagesDelivered === 0 ? 0 : signals.messagesRead / signals.messagesDelivered;
+
+		const hasDeliveryEvidence = signals.messagesDelivered + signals.deliveryFailures > 0;
+		if (hasDeliveryEvidence) {
+			if (signals.messagesSent >= 20 && deliveredRate < 0.4) {
+				alerts.push(createAlert.deliveryDrop(deliveredRate));
+				scoreDelta -= 15;
+			}
+		}
+
+		if (signals.messagesSent >= 10 && readRate < 0.1) {
+			scoreDelta -= 5;
+		}
+
+		if (signals.messagesSent >= 10 && replyRate < 0.03) {
+			scoreDelta -= 8;
+		}
+
+		if (hasDeliveryEvidence) {
+			if (signals.averageDeliveryLatencyMs >= 15_000 && signals.messagesSent >= 5) {
+				alerts.push(createAlert.sendDelaySpike(signals.averageDeliveryLatencyMs));
+				scoreDelta -= 5;
+			}
+		}
+
+		if (signals.connectionDisconnects >= 3) {
+			scoreDelta -= 8;
+		}
+
+		let cooldownReason: CooldownReason | null = null;
+		if (hasDeliveryEvidence && deliveredRate < 0.25 && signals.messagesSent >= 20) {
+			cooldownReason = "DELIVERY_DROP";
+		}
+		if (
+			cooldownReason === null &&
+			hasDeliveryEvidence &&
+			signals.averageDeliveryLatencyMs >= 30_000 &&
+			signals.messagesSent >= 10
+		) {
+			cooldownReason = "SEND_DELAY_SPIKE";
+		}
+		if (
+			cooldownReason === null &&
+			signals.connectionDisconnects >= 5 &&
+			signals.messagesSent >= 5
+		) {
+			cooldownReason = "CONNECTION_INSTABILITY";
+		}
+
+		const requiresCooldown = cooldownReason !== null;
+
+		return { scoreDelta, alerts, requiresCooldown, cooldownReason };
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════════

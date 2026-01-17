@@ -1,4 +1,5 @@
 import type { Instance } from "../../domain/entities/instance";
+import type { WarmUpPhase } from "../../domain/value-objects/warmup-phase";
 import type { DispatchAction } from "./dispatch-port";
 
 export interface WarmUpPlan {
@@ -6,5 +7,5 @@ export interface WarmUpPlan {
 }
 
 export interface WarmUpStrategy {
-	plan(params: { instance: Instance; now?: Date }): Promise<WarmUpPlan>;
+	plan(params: { instance: Instance; phase: WarmUpPhase; now?: Date }): Promise<WarmUpPlan>;
 }

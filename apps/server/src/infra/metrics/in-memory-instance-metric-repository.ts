@@ -16,6 +16,7 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 
 		let messagesSent = 0;
 		let messagesDelivered = 0;
+		let messagesRead = 0;
 		let messagesReplied = 0;
 		let messagesBlocked = 0;
 		let humanInteractions = 0;
@@ -24,6 +25,8 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 		let textMessages = 0;
 		let deliveryFailures = 0;
 		let reactionsReceived = 0;
+		let connectionDisconnects = 0;
+		const deliveryLatencies: number[] = [];
 
 		for (const event of events) {
 			switch (event.type) {
@@ -44,6 +47,12 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 				}
 				case "MESSAGE_DELIVERED":
 					messagesDelivered += 1;
+					if (typeof event.latencyMs === "number") {
+						deliveryLatencies.push(event.latencyMs);
+					}
+					break;
+				case "MESSAGE_READ":
+					messagesRead += 1;
 					break;
 				case "MESSAGE_RECEIVED":
 					messagesReplied += 1;
@@ -63,14 +72,23 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 				case "REACTION_RECEIVED":
 					reactionsReceived += 1;
 					break;
+				case "CONNECTION_DISCONNECTED":
+					connectionDisconnects += 1;
+					break;
 				default:
 					break;
 			}
 		}
 
+		const averageDeliveryLatencyMs =
+			deliveryLatencies.length === 0
+				? 0
+				: deliveryLatencies.reduce((sum, v) => sum + v, 0) / deliveryLatencies.length;
+
 		return {
 			messagesSent,
 			messagesDelivered,
+			messagesRead,
 			messagesReplied,
 			messagesBlocked,
 			humanInteractions,
@@ -78,9 +96,10 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 			mediaMessages,
 			textMessages,
 			averageReplyTimeInSeconds: 0,
+			averageDeliveryLatencyMs,
 			deliveryFailures,
 			reactionsReceived,
+			connectionDisconnects,
 		};
 	}
 }
-

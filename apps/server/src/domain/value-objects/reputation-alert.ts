@@ -26,6 +26,8 @@ export interface ReputationAlert {
 export const REPUTATION_ALERT_CODES = {
 	BLOCK_DETECTED: "BLOCK_DETECTED",
 	LOW_REPLY_RATE: "LOW_REPLY_RATE",
+	DELIVERY_DROP: "DELIVERY_DROP",
+	SEND_DELAY_SPIKE: "SEND_DELAY_SPIKE",
 	HIGH_DELIVERY_FAILURES: "HIGH_DELIVERY_FAILURES",
 	OVERHEATED: "OVERHEATED",
 	COOLDOWN_REQUIRED: "COOLDOWN_REQUIRED",
@@ -51,6 +53,18 @@ export const createAlert = {
 	lowReplyRate: (rate: number): ReputationAlert => ({
 		code: REPUTATION_ALERT_CODES.LOW_REPLY_RATE,
 		message: `Reply rate is ${(rate * 100).toFixed(1)}%, below healthy threshold.`,
+		severity: "MEDIUM",
+	}),
+
+	deliveryDrop: (deliveredRate: number): ReputationAlert => ({
+		code: REPUTATION_ALERT_CODES.DELIVERY_DROP,
+		message: `Delivered rate is ${(deliveredRate * 100).toFixed(1)}%, indicating possible degradation.`,
+		severity: "HIGH",
+	}),
+
+	sendDelaySpike: (avgLatencyMs: number): ReputationAlert => ({
+		code: REPUTATION_ALERT_CODES.SEND_DELAY_SPIKE,
+		message: `Average delivery latency is ${Math.round(avgLatencyMs)}ms, indicating possible throttling.`,
 		severity: "MEDIUM",
 	}),
 

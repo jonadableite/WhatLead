@@ -8,25 +8,35 @@ import { google } from "@ai-sdk/google";
 import fastifyCors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import {
-    fastifyTRPCPlugin,
-    type FastifyTRPCPluginOptions,
+  fastifyTRPCPlugin,
+  type FastifyTRPCPluginOptions,
 } from "@trpc/server/adapters/fastify";
 import {
-    convertToModelMessages,
-    streamText,
-    type UIMessage,
-    wrapLanguageModel,
+  convertToModelMessages,
+  streamText,
+  type UIMessage,
+  wrapLanguageModel,
 } from "ai";
 import Fastify from "fastify";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
-import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { HeaterUseCase } from "./application/heater/heater.use-case";
+import { HumanLikeWarmUpStrategy } from "./application/heater/strategies/human-like.strategy";
+import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
+import { IngestReputationSignalUseCase } from "./application/use-cases/ingest-reputation-signal.use-case";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
+import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
-import { InMemoryMetricIngestion } from "./infra/metrics/in-memory-metric-ingestion";
-import { InMemoryInstanceMetricRepository } from "./infra/metrics/in-memory-instance-metric-repository";
-import { InMemoryMetricStore } from "./infra/metrics/in-memory-metric-store";
-import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
+import { StaticWarmUpContentProvider } from "./infra/heater/static-warmup-content-provider";
+import { StaticWarmUpTargetsProvider } from "./infra/heater/static-warmup-targets-provider";
+import { WhatsAppProviderDispatchAdapter } from "./infra/heater/whatsapp-dispatch-adapter";
+import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-backed-instance-metric-repository";
+import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
 import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
+import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
+import { InMemoryReputationSignalRepository } from "./infra/signals/in-memory-reputation-signal-repository";
+import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-ingest-reputation-signal-use-case";
+import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
+import { SignalMetricIngestionAdapter } from "./infra/signals/signal-metric-ingestion-adapter";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
 // =============================================================================
@@ -142,9 +152,13 @@ await fastify.register(rateLimit, {
 	},
 });
 
-const metricStore = new InMemoryMetricStore();
-const metricIngestion = new InMemoryMetricIngestion(metricStore);
-const metricRepository = new InMemoryInstanceMetricRepository(metricStore);
+registerTurboZapProvider();
+
+const signalRepository =
+	env.REPUTATION_SIGNAL_REPOSITORY === "prisma"
+		? new PrismaReputationSignalRepository(env.REPUTATION_SIGNAL_RETENTION_DAYS)
+		: new InMemoryReputationSignalRepository();
+const metricRepository = new SignalBackedInstanceMetricRepository(signalRepository);
 const instanceRepository = new InMemoryInstanceRepository("system", "TURBOZAP");
 const reputationRepository = new InMemoryInstanceReputationRepository();
 const evaluator = new InstanceReputationEvaluator();
@@ -156,9 +170,34 @@ const evaluateInstanceHealth = new EvaluateInstanceHealthUseCase(
 	evaluator,
 	eventBus,
 );
-const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
-	metricIngestion,
+const ingestSignal = new IngestReputationSignalUseCase(
+	signalRepository,
 	evaluateInstanceHealth,
+);
+const ingestSignalWithLogging = new LoggingIngestReputationSignalUseCase(ingestSignal);
+const metricIngestion = new SignalMetricIngestionAdapter(ingestSignal);
+
+const provider = WhatsAppProviderFactory.create("TURBOZAP", {
+	baseUrl: env.TURBOZAP_BASE_URL,
+	apiKey: env.TURBOZAP_API_KEY,
+	timeoutMs: env.TURBOZAP_TIMEOUT_MS,
+});
+
+const dispatchPort = new WhatsAppProviderDispatchAdapter(provider);
+const warmUpTargets = new StaticWarmUpTargetsProvider(env.WARMUP_TARGETS);
+const warmUpContent = new StaticWarmUpContentProvider();
+const warmUpStrategy = new HumanLikeWarmUpStrategy(warmUpTargets, warmUpContent);
+
+const heater = new HeaterUseCase(
+	instanceRepository,
+	evaluateInstanceHealth,
+	warmUpStrategy,
+	dispatchPort,
+	metricIngestion,
+);
+fastify.decorate("heater", heater);
+const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
+	ingestSignalWithLogging,
 );
 
 await registerWebhookRoutes(fastify, {

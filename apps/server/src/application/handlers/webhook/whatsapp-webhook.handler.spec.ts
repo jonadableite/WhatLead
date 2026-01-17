@@ -2,43 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import { WhatsAppWebhookApplicationHandler } from "./whatsapp-webhook.handler";
 
 describe("WhatsAppWebhookApplicationHandler", () => {
-	it("records metrics and evaluates instance health with reason WEBHOOK", async () => {
-		const metricIngestion = {
-			record: vi.fn(async () => {}),
-			recordMany: vi.fn(async () => {}),
+	it("delegates to IngestReputationSignalUseCase", async () => {
+		const ingestSignal = {
+			execute: vi.fn(async () => {}),
 		};
 
-		const evaluateInstanceHealth = {
-			execute: vi.fn(async () => ({
-				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-				reputationScore: 50,
-				temperatureLevel: "COLD",
-				riskLevel: "LOW",
-				alerts: [],
-				actions: ["ALLOW_DISPATCH"],
-			})),
-		};
-
-		const handler = new WhatsAppWebhookApplicationHandler(
-			metricIngestion,
-			evaluateInstanceHealth as any,
-		);
+		const handler = new WhatsAppWebhookApplicationHandler(ingestSignal as any);
 
 		const occurredAt = new Date("2026-01-16T00:00:00.000Z");
-		await handler.handle({
+		const event = {
 			type: "MESSAGE_RECEIVED",
 			instanceId: "i-1",
 			occurredAt,
 			isGroup: false,
 			metadata: {},
-		});
+		} as const;
+		await handler.handle(event);
 
-		expect(metricIngestion.record).toHaveBeenCalledTimes(1);
-		expect(evaluateInstanceHealth.execute).toHaveBeenCalledWith({
-			instanceId: "i-1",
-			reason: "WEBHOOK",
-			now: occurredAt,
-		});
+		expect(ingestSignal.execute).toHaveBeenCalledWith(event);
 	});
 });
-

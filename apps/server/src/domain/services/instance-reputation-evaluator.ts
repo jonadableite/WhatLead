@@ -75,9 +75,10 @@ export class InstanceReputationEvaluator
 		signals: ReputationSignals,
 	): InstanceReputation {
 		const previousScore = reputation.score;
+		const window = reputation.evaluateWindow(signals);
 
 		// Calculate new score based on signals
-		const newScore = this.calculateScore(previousScore, signals);
+		const newScore = this.calculateScore(previousScore, signals) + window.scoreDelta;
 
 		// Determine temperature from score
 		const newTemperature = this.determineTemperature(newScore, signals);
@@ -86,13 +87,16 @@ export class InstanceReputationEvaluator
 		const trend = this.calculateTrend(previousScore, newScore);
 
 		// Generate alerts based on evaluation
-		const alerts = this.generateAlerts(
-			newScore,
-			previousScore,
-			newTemperature,
-			signals,
-			reputation,
-		);
+		const alerts = [
+			...this.generateAlerts(
+				newScore,
+				previousScore,
+				newTemperature,
+				signals,
+				reputation,
+			),
+			...window.alerts,
+		];
 
 		// Apply all changes atomically to the entity
 		reputation.applyEvaluation(
@@ -104,7 +108,9 @@ export class InstanceReputationEvaluator
 		);
 
 		// Handle critical states that require cooldown
-		if (signals.messagesBlocked > 0) {
+		if (window.cooldownReason) {
+			reputation.enterCooldown(window.cooldownReason);
+		} else if (signals.messagesBlocked > 0) {
 			reputation.enterCooldown("BLOCK_SPIKE");
 		} else if (reputation.requiresCooldown()) {
 			reputation.enterCooldown("SCORE_THRESHOLD");

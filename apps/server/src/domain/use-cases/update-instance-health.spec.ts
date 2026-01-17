@@ -27,6 +27,7 @@ describe("UpdateInstanceHealthUseCase", () => {
 		const signals = {
 			messagesSent: 100,
 			messagesDelivered: 90,
+			messagesRead: 0,
 			messagesReplied: 0,
 			messagesBlocked: 1,
 			humanInteractions: 0,
@@ -34,8 +35,10 @@ describe("UpdateInstanceHealthUseCase", () => {
 			mediaMessages: 0,
 			textMessages: 100,
 			averageReplyTimeInSeconds: 0,
+			averageDeliveryLatencyMs: 0,
 			deliveryFailures: 0,
 			reactionsReceived: 0,
+			connectionDisconnects: 0,
 		};
 
 		const metricRepository = {
@@ -100,6 +103,7 @@ describe("UpdateInstanceHealthUseCase", () => {
 		const signals = {
 			messagesSent: 10,
 			messagesDelivered: 10,
+			messagesRead: 0,
 			messagesReplied: 5,
 			messagesBlocked: 0,
 			humanInteractions: 1,
@@ -107,8 +111,10 @@ describe("UpdateInstanceHealthUseCase", () => {
 			mediaMessages: 1,
 			textMessages: 9,
 			averageReplyTimeInSeconds: 10,
+			averageDeliveryLatencyMs: 0,
 			deliveryFailures: 0,
 			reactionsReceived: 0,
+			connectionDisconnects: 0,
 		};
 
 		const metricRepository = {
@@ -144,4 +150,3 @@ describe("UpdateInstanceHealthUseCase", () => {
 		);
 	});
 });
-
