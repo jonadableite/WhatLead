@@ -20,12 +20,13 @@ import {
 import Fastify from "fastify";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
+import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port";
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
-import { HeaterUseCase } from "./application/heater/heater.use-case";
-import { HumanLikeWarmUpStrategy } from "./application/heater/strategies/human-like.strategy";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
+import { GetReputationTimelineUseCase } from "./application/use-cases/get-reputation-timeline.use-case";
 import { IngestReputationSignalUseCase } from "./application/use-cases/ingest-reputation-signal.use-case";
 import { RecordReputationSignalUseCase } from "./application/use-cases/record-reputation-signal.use-case";
+import { WarmupOrchestratorUseCase } from "./application/warmup/warmup-orchestrator.use-case";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
@@ -189,17 +190,22 @@ const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 
 const dispatchPort = new WhatsAppProviderDispatchAdapter(provider);
 const preDispatchGuard = new PreDispatchGuard(evaluateInstanceHealth);
-const guardedDispatchPort = new GuardedDispatchPort(dispatchPort, preDispatchGuard);
+const delayedDispatchPort = new DelayedDispatchPort(dispatchPort);
+const guardedDispatchPort = new GuardedDispatchPort(
+	delayedDispatchPort,
+	preDispatchGuard,
+);
 const warmUpTargets = new StaticWarmUpTargetsProvider(env.WARMUP_TARGETS);
 const warmUpContent = new StaticWarmUpContentProvider();
-const warmUpStrategy = new HumanLikeWarmUpStrategy(warmUpTargets, warmUpContent);
 
-const heater = new HeaterUseCase(
-	instanceRepository,
+const timeline = new GetReputationTimelineUseCase(signalRepository);
+const heater = new WarmupOrchestratorUseCase(
 	evaluateInstanceHealth,
-	warmUpStrategy,
+	warmUpTargets,
+	warmUpContent,
 	guardedDispatchPort,
 	metricIngestion,
+	timeline,
 );
 fastify.decorate("heater", heater);
 const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
