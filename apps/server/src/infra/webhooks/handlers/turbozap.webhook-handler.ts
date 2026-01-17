@@ -13,9 +13,9 @@
  */
 
 import type {
-	NormalizedWhatsAppEvent,
-	WebhookEventTransformer,
-	WhatsAppEventType,
+    NormalizedWhatsAppEvent,
+    WebhookEventTransformer,
+    WhatsAppEventType,
 } from "../../../application/event-handlers/webhook-event-handler";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -207,6 +207,10 @@ export class TurboZapWebhookTransformer
 				metadata: {
 					messageType: data.type,
 					pushName: data.push_name,
+					text:
+						data.type === "text" && typeof data.content === "string"
+							? data.content
+							: undefined,
 				},
 			},
 		];

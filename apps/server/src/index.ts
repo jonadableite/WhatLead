@@ -17,6 +17,7 @@ import {
   type UIMessage,
   wrapLanguageModel,
 } from "ai";
+import { randomUUID } from "crypto";
 import Fastify from "fastify";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
@@ -24,6 +25,7 @@ import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port"
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
 import { GetReputationTimelineUseCase } from "./application/use-cases/get-reputation-timeline.use-case";
+import { IngestConversationEventUseCase } from "./application/use-cases/ingest-conversation-event.use-case";
 import { IngestReputationSignalUseCase } from "./application/use-cases/ingest-reputation-signal.use-case";
 import { RecordReputationSignalUseCase } from "./application/use-cases/record-reputation-signal.use-case";
 import { WarmupOrchestratorUseCase } from "./application/warmup/warmup-orchestrator.use-case";
@@ -37,6 +39,8 @@ import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-bac
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
 import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
+import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
+import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
 import { InMemoryReputationSignalRepository } from "./infra/signals/in-memory-reputation-signal-repository";
 import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-ingest-reputation-signal-use-case";
 import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
@@ -208,7 +212,18 @@ const heater = new WarmupOrchestratorUseCase(
 	timeline,
 );
 fastify.decorate("heater", heater);
+
+const conversationRepository = new PrismaConversationRepository();
+const messageRepository = new PrismaMessageRepository();
+const idFactory = { createId: () => randomUUID() };
+const ingestConversation = new IngestConversationEventUseCase({
+	instanceRepository,
+	conversationRepository,
+	messageRepository,
+	idFactory,
+});
 const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
+	ingestConversation,
 	ingestSignalWithLogging,
 );
 
