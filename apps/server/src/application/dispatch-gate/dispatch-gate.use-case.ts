@@ -4,9 +4,11 @@ import type { DispatchPolicy } from "../../domain/services/dispatch-policy";
 import type { SLAEvaluator } from "../../domain/services/sla-evaluator";
 import type { EvaluateInstanceHealthUseCase } from "../../domain/use-cases/evaluate-instance-health";
 import type { DispatchIntentSource } from "../../domain/value-objects/dispatch-intent-source";
+import type { PlanPolicy } from "../billing/plan-policy";
 import { messageTypeOf } from "../dispatch/dispatch-types";
-import type { DispatchIntent } from "./dispatch-intent";
 import type { DispatchGateDecision } from "./dispatch-gate-decision";
+import type { DispatchGateDecisionRecorderPort } from "./dispatch-gate-decision-recorder-port";
+import type { DispatchIntent } from "./dispatch-intent";
 import type { DispatchRateSnapshotPort } from "./dispatch-rate-snapshot-port";
 
 export class DispatchGateUseCase {
@@ -20,14 +22,26 @@ export class DispatchGateUseCase {
 		private readonly rateSnapshots: DispatchRateSnapshotPort,
 		private readonly conversations: ConversationRepository,
 		private readonly slaEvaluator: SLAEvaluator,
+		private readonly decisionRecorder?: DispatchGateDecisionRecorderPort,
+		private readonly planPolicy?: PlanPolicy,
 	) {}
 
 	async execute(intent: DispatchIntent): Promise<DispatchGateDecision> {
 		const now = intent.now ?? new Date();
+		const decide = async (decision: DispatchGateDecision): Promise<DispatchGateDecision> => {
+			if (this.decisionRecorder) {
+				await this.decisionRecorder.record({
+					intent,
+					decision,
+					occurredAt: now,
+				});
+			}
+			return decision;
+		};
 
 		const instance = await this.instances.findById(intent.instanceId);
 		if (!instance) {
-			return { allowed: false, reason: "INSTANCE_NOT_ACTIVE" };
+			return await decide({ allowed: false, reason: "INSTANCE_NOT_ACTIVE" });
 		}
 
 		const health = await this.evaluateInstanceHealth.execute({
@@ -39,20 +53,20 @@ export class DispatchGateUseCase {
 			health.actions.includes("ENTER_COOLDOWN") ||
 			!health.actions.includes("ALLOW_DISPATCH")
 		) {
-			return { allowed: false, reason: "COOLDOWN" };
+			return await decide({ allowed: false, reason: "COOLDOWN" });
 		}
 
 		if (intent.type === "FOLLOW_UP") {
 			if (!intent.conversationId) {
-				return { allowed: false, reason: "POLICY_BLOCKED" };
+				return await decide({ allowed: false, reason: "POLICY_BLOCKED" });
 			}
 			const conversation = await this.conversations.findById({ id: intent.conversationId });
 			if (!conversation) {
-				return { allowed: false, reason: "POLICY_BLOCKED" };
+				return await decide({ allowed: false, reason: "POLICY_BLOCKED" });
 			}
 			const slaStatus = this.slaEvaluator.evaluate(conversation, now);
 			if (slaStatus !== "BREACHED") {
-				return { allowed: false, reason: "POLICY_BLOCKED" };
+				return await decide({ allowed: false, reason: "POLICY_BLOCKED" });
 			}
 		}
 
@@ -64,7 +78,7 @@ export class DispatchGateUseCase {
 			now,
 		});
 		if (!policyDecision.allowed) {
-			return { allowed: false, reason: policyDecision.reason };
+			return await decide({ allowed: false, reason: policyDecision.reason });
 		}
 
 		const snapshot = await this.rateSnapshots.getSnapshot({
@@ -72,14 +86,19 @@ export class DispatchGateUseCase {
 			now,
 		});
 
+		const planLimits =
+			intent.tenantId && this.planPolicy
+				? await this.planPolicy.getLimits({ tenantId: intent.tenantId, intent, now })
+				: {};
+
 		if (intent.payload.type === "TEXT") {
 			const signature = `${intent.payload.to}:${intent.payload.text}`;
 			if (snapshot.recentTextSignatures.includes(signature)) {
-				return {
+				return await decide({
 					allowed: false,
 					reason: "RATE_LIMIT",
 					delayedUntil: new Date(now.getTime() + DispatchGateUseCase.DUPLICATE_TEXT_WINDOW_MS),
-				};
+				});
 			}
 		}
 
@@ -88,7 +107,7 @@ export class DispatchGateUseCase {
 			if (minIntervalMs > 0) {
 				const nextAllowedAt = new Date(snapshot.lastMessageAt.getTime() + minIntervalMs);
 				if (now.getTime() < nextAllowedAt.getTime()) {
-					return { allowed: false, reason: "RATE_LIMIT", delayedUntil: nextAllowedAt };
+					return await decide({ allowed: false, reason: "RATE_LIMIT", delayedUntil: nextAllowedAt });
 				}
 			}
 		}
@@ -97,14 +116,23 @@ export class DispatchGateUseCase {
 			const delayedUntil = snapshot.oldestMessageAtLastHour
 				? new Date(snapshot.oldestMessageAtLastHour.getTime() + 60 * 60 * 1000)
 				: undefined;
-			return { allowed: false, reason: "RATE_LIMIT", delayedUntil };
+			return await decide({ allowed: false, reason: "RATE_LIMIT", delayedUntil });
 		}
 
-		if (snapshot.sentLastMinute >= DispatchGateUseCase.MAX_MESSAGES_PER_MINUTE) {
-			return { allowed: false, reason: "RATE_LIMIT", delayedUntil: new Date(now.getTime() + 60 * 1000) };
+		const maxPerMinute = planLimits.maxMessagesPerMinute ?? DispatchGateUseCase.MAX_MESSAGES_PER_MINUTE;
+		if (snapshot.sentLastMinute >= maxPerMinute) {
+			return await decide({ allowed: false, reason: "RATE_LIMIT", delayedUntil: new Date(now.getTime() + 60 * 1000) });
 		}
 
-		return { allowed: true };
+		const maxPerHour = planLimits.maxMessagesPerHour;
+		if (typeof maxPerHour === "number" && snapshot.sentLastHour >= maxPerHour) {
+			const delayedUntil = snapshot.oldestMessageAtLastHour
+				? new Date(snapshot.oldestMessageAtLastHour.getTime() + 60 * 60 * 1000)
+				: undefined;
+			return await decide({ allowed: false, reason: "RATE_LIMIT", delayedUntil });
+		}
+
+		return await decide({ allowed: true });
 	}
 }
 

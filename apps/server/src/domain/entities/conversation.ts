@@ -13,6 +13,7 @@ export interface ConversationProps {
 	channel: ConversationChannel;
 	instanceId: string;
 	contactId: string;
+	leadId?: string | null;
 	status: ConversationStatus;
 	stage: ConversationStage;
 	assignedAgentId?: string | null;
@@ -35,6 +36,7 @@ export class Conversation {
 	private readonly _channel: ConversationChannel;
 	private readonly _instanceId: string;
 	private readonly _contactId: string;
+	private _leadId: string | null;
 
 	private _status: ConversationStatus;
 	private _stage: ConversationStage;
@@ -54,6 +56,7 @@ export class Conversation {
 		this._channel = props.channel;
 		this._instanceId = props.instanceId;
 		this._contactId = props.contactId;
+		this._leadId = props.leadId ?? null;
 		this._status = props.status;
 		this._stage = props.stage;
 		this._assignedAgentId = props.assignedAgentId ?? null;
@@ -81,6 +84,7 @@ export class Conversation {
 			channel: params.channel,
 			instanceId: params.instanceId,
 			contactId: params.contactId,
+			leadId: null,
 			status: "OPEN",
 			stage: "LEAD",
 			assignedAgentId: null,
@@ -117,6 +121,10 @@ export class Conversation {
 
 	get contactId(): string {
 		return this._contactId;
+	}
+
+	get leadId(): string | null {
+		return this._leadId;
 	}
 
 	get status(): ConversationStatus {
@@ -169,6 +177,13 @@ export class Conversation {
 		}
 		this._assignedAgentId = agentId;
 		this._status = "OPEN";
+	}
+
+	linkLead(leadId: string): void {
+		if (!leadId.trim()) {
+			return;
+		}
+		this._leadId = leadId.trim();
 	}
 
 	markAsWaiting(): void {

@@ -17,16 +17,19 @@ model Conversation {
   firstResponseDueAt DateTime?
   nextResponseDueAt  DateTime?
   slaBreachedAt      DateTime?
+  leadId         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   messages Message[]
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@unique([instanceId, contactId, isActive])
   @@index([tenantId, instanceId, contactId])
   @@index([isActive, firstResponseDueAt])
   @@index([isActive, nextResponseDueAt])
+  @@index([tenantId, leadId])
   @@map("conversation")
 }
 
