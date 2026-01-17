@@ -1,13 +1,11 @@
 import type { NormalizedWhatsAppEvent } from "../event-handlers/webhook-event-handler";
-import type { ReputationSignalRepository } from "../../domain/repositories/reputation-signal-repository";
-import type { EvaluateInstanceHealthUseCase } from "../../domain/use-cases/evaluate-instance-health";
 import type { EvaluateInstanceHealthUseCaseResponse } from "../../domain/use-cases/evaluate-instance-health";
 import { toReputationSignal } from "../signals/whatsapp-event-to-reputation-signal";
+import type { RecordReputationSignalUseCase } from "./record-reputation-signal.use-case";
 
 export class IngestReputationSignalUseCase {
 	constructor(
-		private readonly signalRepository: ReputationSignalRepository,
-		private readonly evaluateInstanceHealth: EvaluateInstanceHealthUseCase,
+		private readonly recordSignal: RecordReputationSignalUseCase,
 	) {}
 
 	async execute(
@@ -18,12 +16,7 @@ export class IngestReputationSignalUseCase {
 			return null;
 		}
 
-		await this.signalRepository.append(signal);
-		return await this.evaluateInstanceHealth.execute({
-			instanceId: signal.instanceId,
-			reason: "WEBHOOK",
-			now: signal.occurredAt,
-		});
+		return await this.recordSignal.execute({ signal, reason: "WEBHOOK" });
 	}
 
 	async executeMany(

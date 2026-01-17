@@ -11,26 +11,26 @@
  */
 
 import type {
-	WhatsAppProvider,
-	WhatsAppPresenceCapable,
-	WhatsAppReactionCapable,
-	WhatsAppAudioCapable,
-	WhatsAppGroupCapable,
-} from "../../../../application/providers/whatsapp-provider";
-import type {
-	ConnectionResult,
-	GroupInfo,
-	InstanceStatusInfo,
-	MarkAsReadParams,
-	MessageResult,
-	ProviderConfig,
-	QRCodeResult,
-	SendAudioParams,
-	SendMediaParams,
-	SendReactionParams,
-	SendTextParams,
-	SetPresenceParams,
+    ConnectionResult,
+    GroupInfo,
+    InstanceStatusInfo,
+    MarkAsReadParams,
+    MessageResult,
+    ProviderConfig,
+    QRCodeResult,
+    SendAudioParams,
+    SendMediaParams,
+    SendReactionParams,
+    SendTextParams,
+    SetPresenceParams,
 } from "../../../../application/providers/types";
+import type {
+    WhatsAppAudioCapable,
+    WhatsAppGroupCapable,
+    WhatsAppPresenceCapable,
+    WhatsAppProvider,
+    WhatsAppReactionCapable,
+} from "../../../../application/providers/whatsapp-provider";
 import type { InstanceConnectionStatus } from "../../../../domain/value-objects/instance-connection-status";
 import { TurboZapClient } from "./turbozap.client";
 
@@ -160,6 +160,7 @@ export class TurboZapProvider
 		if (!response.success) {
 			return {
 				success: false,
+				errorCode: response.error?.code,
 				error: response.error?.message ?? "Failed to send text",
 			};
 		}
@@ -187,6 +188,7 @@ export class TurboZapProvider
 		if (!response.success) {
 			return {
 				success: false,
+				errorCode: response.error?.code,
 				error: response.error?.message ?? "Failed to send media",
 			};
 		}
@@ -238,6 +240,7 @@ export class TurboZapProvider
 		if (!response.success) {
 			return {
 				success: false,
+				errorCode: response.error?.code,
 				error: response.error?.message ?? "Failed to send reaction",
 			};
 		}
@@ -268,6 +271,7 @@ export class TurboZapProvider
 		if (!response.success) {
 			return {
 				success: false,
+				errorCode: response.error?.code,
 				error: response.error?.message ?? "Failed to send audio",
 			};
 		}

@@ -47,7 +47,7 @@ describe("HeaterUseCase", () => {
 		expect(dispatchPort.send).not.toHaveBeenCalled();
 	});
 
-	it("dispatches plan actions and stops if mid-health blocks dispatch", async () => {
+	it("dispatches all plan actions when health allows dispatch", async () => {
 		const instance = {
 			id: "i-1",
 			reputation: {
@@ -61,24 +61,14 @@ describe("HeaterUseCase", () => {
 		};
 
 		const evaluateInstanceHealth = {
-			execute: vi
-				.fn()
-				.mockResolvedValueOnce({
-					status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-					reputationScore: 50,
-					temperatureLevel: "COLD",
-					riskLevel: "LOW",
-					alerts: [],
-					actions: ["ALLOW_DISPATCH"],
-				})
-				.mockResolvedValueOnce({
-					status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
-					reputationScore: 50,
-					temperatureLevel: "COLD",
-					riskLevel: "LOW",
-					alerts: [],
-					actions: ["BLOCK_DISPATCH"],
-				}),
+			execute: vi.fn().mockResolvedValueOnce({
+				status: { lifecycle: "ACTIVE", connection: "CONNECTED" },
+				reputationScore: 50,
+				temperatureLevel: "COLD",
+				riskLevel: "LOW",
+				alerts: [],
+				actions: ["ALLOW_DISPATCH"],
+			}),
 		};
 
 		const warmUpStrategy = {
@@ -92,6 +82,7 @@ describe("HeaterUseCase", () => {
 
 		const producedEvent = {
 			type: "MESSAGE_SENT",
+			source: "DISPATCH",
 			instanceId: "i-1",
 			occurredAt: new Date(),
 			isGroup: false,
@@ -124,7 +115,8 @@ describe("HeaterUseCase", () => {
 				phase: "OBSERVER",
 			}),
 		);
-		expect(dispatchPort.send).toHaveBeenCalledTimes(1);
+		expect(dispatchPort.send).toHaveBeenCalledTimes(2);
+		expect(metricIngestion.recordMany).toHaveBeenCalledTimes(2);
 		expect(metricIngestion.recordMany).toHaveBeenCalledWith([producedEvent]);
 	});
 });

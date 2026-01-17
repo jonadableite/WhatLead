@@ -19,6 +19,8 @@ export interface ReputationSignals {
 	readonly messagesRead: number;
 	/** Total replies received */
 	readonly messagesReplied: number;
+	/** Total reactions sent */
+	readonly reactionsSent: number;
 	/** Total blocks detected (critical signal) */
 	readonly messagesBlocked: number;
 	/** Human-initiated interactions (not automated) */
@@ -39,6 +41,12 @@ export interface ReputationSignals {
 	readonly reactionsReceived: number;
 	/** Connection disconnects observed */
 	readonly connectionDisconnects: number;
+	/** QR code regenerations observed */
+	readonly qrcodeRegenerations: number;
+	/** Presence set operations observed */
+	readonly presenceSets: number;
+	/** Rate limit hits observed */
+	readonly rateLimitHits: number;
 }
 
 /**
@@ -49,6 +57,7 @@ const DEFAULT_SIGNALS: ReputationSignals = {
 	messagesDelivered: 0,
 	messagesRead: 0,
 	messagesReplied: 0,
+	reactionsSent: 0,
 	messagesBlocked: 0,
 	humanInteractions: 0,
 	groupInteractions: 0,
@@ -59,6 +68,9 @@ const DEFAULT_SIGNALS: ReputationSignals = {
 	deliveryFailures: 0,
 	reactionsReceived: 0,
 	connectionDisconnects: 0,
+	qrcodeRegenerations: 0,
+	presenceSets: 0,
+	rateLimitHits: 0,
 };
 
 /**

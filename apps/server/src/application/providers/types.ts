@@ -7,8 +7,8 @@
  */
 
 // Re-export domain types for convenience
-export type { WhatsAppEngine } from "../../domain/value-objects/whatsapp-engine";
 export type { InstanceConnectionStatus } from "../../domain/value-objects/instance-connection-status";
+export type { WhatsAppEngine } from "../../domain/value-objects/whatsapp-engine";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -139,6 +139,8 @@ export interface MessageResult {
 	timestamp?: Date;
 	/** Error message if failed */
 	error?: string;
+	/** Provider error code if failed (e.g., HTTP_429) */
+	errorCode?: string;
 }
 
 /**

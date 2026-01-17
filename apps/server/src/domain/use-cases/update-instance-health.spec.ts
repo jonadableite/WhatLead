@@ -29,6 +29,7 @@ describe("UpdateInstanceHealthUseCase", () => {
 			messagesDelivered: 90,
 			messagesRead: 0,
 			messagesReplied: 0,
+			reactionsSent: 0,
 			messagesBlocked: 1,
 			humanInteractions: 0,
 			groupInteractions: 0,
@@ -39,6 +40,9 @@ describe("UpdateInstanceHealthUseCase", () => {
 			deliveryFailures: 0,
 			reactionsReceived: 0,
 			connectionDisconnects: 0,
+			qrcodeRegenerations: 0,
+			presenceSets: 0,
+			rateLimitHits: 0,
 		};
 
 		const metricRepository = {
@@ -105,6 +109,7 @@ describe("UpdateInstanceHealthUseCase", () => {
 			messagesDelivered: 10,
 			messagesRead: 0,
 			messagesReplied: 5,
+			reactionsSent: 0,
 			messagesBlocked: 0,
 			humanInteractions: 1,
 			groupInteractions: 0,
@@ -115,6 +120,9 @@ describe("UpdateInstanceHealthUseCase", () => {
 			deliveryFailures: 0,
 			reactionsReceived: 0,
 			connectionDisconnects: 0,
+			qrcodeRegenerations: 0,
+			presenceSets: 0,
+			rateLimitHits: 0,
 		};
 
 		const metricRepository = {

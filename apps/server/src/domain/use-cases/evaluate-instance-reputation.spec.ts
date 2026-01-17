@@ -14,6 +14,7 @@ describe("EvaluateInstanceReputationUseCase", () => {
 			messagesDelivered: 0,
 			messagesRead: 0,
 			messagesReplied: 0,
+			reactionsSent: 0,
 			messagesBlocked: 0,
 			humanInteractions: 0,
 			groupInteractions: 0,
@@ -24,6 +25,9 @@ describe("EvaluateInstanceReputationUseCase", () => {
 			deliveryFailures: 0,
 			reactionsReceived: 0,
 			connectionDisconnects: 0,
+			qrcodeRegenerations: 0,
+			presenceSets: 0,
+			rateLimitHits: 0,
 		} as const;
 
 		const metricRepository = {
@@ -67,6 +71,7 @@ describe("EvaluateInstanceReputationUseCase", () => {
 			messagesDelivered: 95,
 			messagesRead: 0,
 			messagesReplied: 20,
+			reactionsSent: 0,
 			messagesBlocked: 0,
 			humanInteractions: 1,
 			groupInteractions: 0,
@@ -77,6 +82,9 @@ describe("EvaluateInstanceReputationUseCase", () => {
 			deliveryFailures: 0,
 			reactionsReceived: 1,
 			connectionDisconnects: 0,
+			qrcodeRegenerations: 0,
+			presenceSets: 0,
+			rateLimitHits: 0,
 		} as const;
 
 		const metricRepository = {

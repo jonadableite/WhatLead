@@ -33,20 +33,15 @@ export class HeaterUseCase {
 		const plan = await this.warmUpStrategy.plan({ instance, phase, now });
 
 		for (const action of plan.actions) {
-			const result = await this.dispatchPort.send(action);
+			let result: Awaited<ReturnType<DispatchPort["send"]>>;
+			try {
+				result = await this.dispatchPort.send(action);
+			} catch {
+				return;
+			}
 
 			if (result.producedEvents && result.producedEvents.length > 0) {
 				await this.metricIngestion.recordMany(result.producedEvents);
-			}
-
-			const midHealth = await this.evaluateInstanceHealth.execute({
-				instanceId,
-				reason: "PRE_DISPATCH",
-				now,
-			});
-
-			if (midHealth.actions.includes("BLOCK_DISPATCH")) {
-				return;
 			}
 
 			if (!result.success) {

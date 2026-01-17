@@ -198,6 +198,7 @@ export class TurboZapWebhookTransformer
 		return [
 			{
 				type: eventType,
+				source: "WEBHOOK",
 				instanceId: raw.instance_id || raw.instance,
 				occurredAt: new Date(data.timestamp || raw.timestamp),
 				messageId: data.message_id,
@@ -218,6 +219,7 @@ export class TurboZapWebhookTransformer
 		return [
 			{
 				type: "MESSAGE_SENT",
+				source: "WEBHOOK",
 				instanceId: raw.instance_id || raw.instance,
 				occurredAt: new Date(data.timestamp || raw.timestamp),
 				messageId: data.message_id,
@@ -243,6 +245,7 @@ export class TurboZapWebhookTransformer
 		return [
 			{
 				type: eventType,
+				source: "WEBHOOK",
 				instanceId: raw.instance_id || raw.instance,
 				occurredAt: new Date(data.timestamp || raw.timestamp),
 				messageId: data.message_id,
@@ -266,6 +269,7 @@ export class TurboZapWebhookTransformer
 		return [
 			{
 				type: eventType,
+				source: "WEBHOOK",
 				instanceId: raw.instance_id || raw.instance,
 				occurredAt: new Date(raw.timestamp),
 				isGroup: false,
@@ -288,6 +292,7 @@ export class TurboZapWebhookTransformer
 	): NormalizedWhatsAppEvent {
 		return {
 			type,
+			source: "WEBHOOK",
 			instanceId: raw.instance_id || raw.instance,
 			occurredAt: new Date(raw.timestamp),
 			isGroup: false,

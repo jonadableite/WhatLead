@@ -13,6 +13,7 @@ describe("InstanceReputationEvaluator (window inference)", () => {
 			messagesDelivered: 0,
 			messagesRead: 0,
 			messagesReplied: 5,
+			reactionsSent: 0,
 			messagesBlocked: 0,
 			humanInteractions: 0,
 			groupInteractions: 0,
@@ -23,6 +24,9 @@ describe("InstanceReputationEvaluator (window inference)", () => {
 			deliveryFailures: 0,
 			reactionsReceived: 0,
 			connectionDisconnects: 0,
+			qrcodeRegenerations: 0,
+			presenceSets: 0,
+			rateLimitHits: 0,
 		});
 
 		expect(rep.cooldownReason).toBeNull();
@@ -40,6 +44,7 @@ describe("InstanceReputationEvaluator (window inference)", () => {
 			messagesDelivered: 5,
 			messagesRead: 0,
 			messagesReplied: 0,
+			reactionsSent: 0,
 			messagesBlocked: 0,
 			humanInteractions: 0,
 			groupInteractions: 0,
@@ -50,6 +55,9 @@ describe("InstanceReputationEvaluator (window inference)", () => {
 			deliveryFailures: 0,
 			reactionsReceived: 0,
 			connectionDisconnects: 0,
+			qrcodeRegenerations: 0,
+			presenceSets: 0,
+			rateLimitHits: 0,
 		});
 
 		expect(rep.temperatureLevel).toBe("COOLDOWN");

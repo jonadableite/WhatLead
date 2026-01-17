@@ -19,9 +19,13 @@ export class SignalBackedInstanceMetricRepository implements InstanceMetricRepos
 		let messagesDelivered = 0;
 		let messagesRead = 0;
 		let messagesReplied = 0;
+		let reactionsSent = 0;
 		let deliveryFailures = 0;
 		let connectionDisconnects = 0;
 		let groupInteractions = 0;
+		let qrcodeRegenerations = 0;
+		let presenceSets = 0;
+		let rateLimitHits = 0;
 
 		const deliveryLatencies: number[] = [];
 
@@ -48,6 +52,18 @@ export class SignalBackedInstanceMetricRepository implements InstanceMetricRepos
 				case "MESSAGE_FAILED":
 					deliveryFailures += 1;
 					break;
+				case "REACTION_SENT":
+					reactionsSent += 1;
+					break;
+				case "PRESENCE_SET":
+					presenceSets += 1;
+					break;
+				case "RATE_LIMIT_HIT":
+					rateLimitHits += 1;
+					break;
+				case "QRCODE_REGENERATED":
+					qrcodeRegenerations += 1;
+					break;
 				case "CONNECTION_DISCONNECTED":
 					connectionDisconnects += 1;
 					break;
@@ -66,6 +82,7 @@ export class SignalBackedInstanceMetricRepository implements InstanceMetricRepos
 			messagesDelivered,
 			messagesRead,
 			messagesReplied,
+			reactionsSent,
 			messagesBlocked: 0,
 			humanInteractions: messagesReplied,
 			groupInteractions,
@@ -76,7 +93,9 @@ export class SignalBackedInstanceMetricRepository implements InstanceMetricRepos
 			deliveryFailures,
 			reactionsReceived: 0,
 			connectionDisconnects,
+			qrcodeRegenerations,
+			presenceSets,
+			rateLimitHits,
 		};
 	}
 }
-

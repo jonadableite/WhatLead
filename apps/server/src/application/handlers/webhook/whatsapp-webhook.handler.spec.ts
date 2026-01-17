@@ -12,6 +12,7 @@ describe("WhatsAppWebhookApplicationHandler", () => {
 		const occurredAt = new Date("2026-01-16T00:00:00.000Z");
 		const event = {
 			type: "MESSAGE_RECEIVED",
+			source: "WEBHOOK",
 			instanceId: "i-1",
 			occurredAt,
 			isGroup: false,

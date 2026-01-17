@@ -70,7 +70,20 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 					presence: action.presence,
 				});
 
-				return { success: true, producedEvents: [] };
+				return {
+					success: true,
+					producedEvents: [
+						{
+							type: "PRESENCE_SET",
+							source: "DISPATCH",
+							instanceId: action.instanceId,
+							occurredAt: new Date(),
+							isGroup: false,
+							remoteJid: action.to,
+							metadata: { presence: action.presence },
+						},
+					],
+				};
 			}
 
 			case "MARK_AS_READ": {
@@ -91,6 +104,7 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 					producedEvents: [
 						{
 							type: "MESSAGE_READ",
+							source: "DISPATCH",
 							instanceId: action.instanceId,
 							occurredAt: new Date(),
 							isGroup: false,
@@ -104,27 +118,57 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 	}
 
 	private mapMessageResultToDispatchResult(
-		result: { success: boolean; error?: string; messageId?: string; timestamp?: Date },
+		result: {
+			success: boolean;
+			error?: string;
+			errorCode?: string;
+			messageId?: string;
+			timestamp?: Date;
+		},
 		instanceId: string,
 		type: NormalizedWhatsAppEvent["type"],
 		remoteJid: string,
 		metadata: Record<string, unknown>,
 	): DispatchResult {
 		if (!result.success) {
+			const now = new Date();
+			const producedEvents: NormalizedWhatsAppEvent[] = [
+				{
+					type: "MESSAGE_FAILED",
+					source: "DISPATCH",
+					instanceId,
+					occurredAt: now,
+					isGroup: false,
+					remoteJid,
+					messageId: result.messageId,
+					metadata: {
+						...metadata,
+						error: result.error,
+						errorCode: result.errorCode,
+					},
+				},
+			];
+
+			if (result.errorCode === "HTTP_429") {
+				producedEvents.push({
+					type: "RATE_LIMIT_HIT",
+					source: "DISPATCH",
+					instanceId,
+					occurredAt: now,
+					isGroup: false,
+					remoteJid,
+					messageId: result.messageId,
+					metadata: {
+						...metadata,
+						errorCode: result.errorCode,
+					},
+				});
+			}
+
 			return {
 				success: false,
 				error: result.error ?? "Dispatch failed",
-				producedEvents: [
-					{
-						type: "MESSAGE_FAILED",
-						instanceId,
-						occurredAt: new Date(),
-						isGroup: false,
-						remoteJid,
-						messageId: result.messageId,
-						metadata: { ...metadata, error: result.error },
-					},
-				],
+				producedEvents,
 			};
 		}
 
@@ -133,6 +177,7 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 			producedEvents: [
 				{
 					type,
+					source: "DISPATCH",
 					instanceId,
 					occurredAt: result.timestamp ?? new Date(),
 					isGroup: false,
@@ -144,4 +189,3 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 		};
 	}
 }
-

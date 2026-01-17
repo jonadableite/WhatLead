@@ -18,6 +18,7 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 		let messagesDelivered = 0;
 		let messagesRead = 0;
 		let messagesReplied = 0;
+		let reactionsSent = 0;
 		let messagesBlocked = 0;
 		let humanInteractions = 0;
 		let groupInteractions = 0;
@@ -26,6 +27,9 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 		let deliveryFailures = 0;
 		let reactionsReceived = 0;
 		let connectionDisconnects = 0;
+		let qrcodeRegenerations = 0;
+		let presenceSets = 0;
+		let rateLimitHits = 0;
 		const deliveryLatencies: number[] = [];
 
 		for (const event of events) {
@@ -72,6 +76,18 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 				case "REACTION_RECEIVED":
 					reactionsReceived += 1;
 					break;
+				case "REACTION_SENT":
+					reactionsSent += 1;
+					break;
+				case "PRESENCE_SET":
+					presenceSets += 1;
+					break;
+				case "RATE_LIMIT_HIT":
+					rateLimitHits += 1;
+					break;
+				case "CONNECTION_QRCODE":
+					qrcodeRegenerations += 1;
+					break;
 				case "CONNECTION_DISCONNECTED":
 					connectionDisconnects += 1;
 					break;
@@ -90,6 +106,7 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 			messagesDelivered,
 			messagesRead,
 			messagesReplied,
+			reactionsSent,
 			messagesBlocked,
 			humanInteractions,
 			groupInteractions,
@@ -100,6 +117,9 @@ export class InMemoryInstanceMetricRepository implements InstanceMetricRepositor
 			deliveryFailures,
 			reactionsReceived,
 			connectionDisconnects,
+			qrcodeRegenerations,
+			presenceSets,
+			rateLimitHits,
 		};
 	}
 }

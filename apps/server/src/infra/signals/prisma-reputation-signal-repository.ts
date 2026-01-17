@@ -13,6 +13,9 @@ export class PrismaReputationSignalRepository
 				instanceId: signal.instanceId,
 				occurredAt: signal.occurredAt,
 				type: signal.type,
+				severity: signal.severity,
+				source: signal.source,
+				context: signal.context as any,
 				messageId: signal.messageId,
 				remoteJid: signal.remoteJid,
 				isGroup: signal.isGroup ?? false,
@@ -42,12 +45,15 @@ export class PrismaReputationSignalRepository
 
 		return rows.map((row) => ({
 			type: row.type as ReputationSignal["type"],
+			severity: row.severity as ReputationSignal["severity"],
+			source: row.source as ReputationSignal["source"],
 			instanceId: row.instanceId,
 			occurredAt: row.occurredAt,
 			messageId: row.messageId ?? undefined,
 			remoteJid: row.remoteJid ?? undefined,
 			isGroup: row.isGroup,
 			latencyMs: row.latencyMs ?? undefined,
+			context: (row.context ?? {}) as ReputationSignal["context"],
 		}));
 	}
 
@@ -63,4 +69,3 @@ export class PrismaReputationSignalRepository
 		return result.count;
 	}
 }
-

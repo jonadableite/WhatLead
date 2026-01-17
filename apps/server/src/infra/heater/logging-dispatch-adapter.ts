@@ -13,6 +13,7 @@ export class LoggingDispatchAdapter implements DispatchPort {
 				producedEvents: [
 					{
 						type: "MESSAGE_SENT",
+						source: "DISPATCH",
 						instanceId: action.instanceId,
 						occurredAt: new Date(),
 						isGroup: false,
@@ -26,4 +27,3 @@ export class LoggingDispatchAdapter implements DispatchPort {
 		return { success: true, producedEvents: [] };
 	}
 }
-

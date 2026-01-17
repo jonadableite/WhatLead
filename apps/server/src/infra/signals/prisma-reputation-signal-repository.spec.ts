@@ -22,12 +22,15 @@ describe("PrismaReputationSignalRepository", () => {
 		const repo = new PrismaReputationSignalRepository(7);
 		const signal: ReputationSignal = {
 			type: "MESSAGE_SENT",
+			severity: "LOW",
+			source: "DISPATCH",
 			instanceId: "i-1",
 			occurredAt: new Date("2026-01-16T00:00:00.000Z"),
 			messageId: "m-1",
 			remoteJid: "t",
 			isGroup: false,
 			latencyMs: 123.4,
+			context: { messageType: "text" },
 		};
 
 		await repo.append(signal);
@@ -37,6 +40,9 @@ describe("PrismaReputationSignalRepository", () => {
 				data: expect.objectContaining({
 					instanceId: "i-1",
 					type: "MESSAGE_SENT",
+					severity: "LOW",
+					source: "DISPATCH",
+					context: { messageType: "text" },
 					messageId: "m-1",
 					remoteJid: "t",
 					isGroup: false,
@@ -52,6 +58,9 @@ describe("PrismaReputationSignalRepository", () => {
 				instanceId: "i-1",
 				occurredAt: new Date("2026-01-16T00:00:00.000Z"),
 				type: "MESSAGE_SENT",
+				severity: "LOW",
+				source: "WEBHOOK",
+				context: {},
 				messageId: null,
 				remoteJid: null,
 				isGroup: false,
@@ -76,4 +85,3 @@ describe("PrismaReputationSignalRepository", () => {
 		expect(result[0]?.type).toBe("MESSAGE_SENT");
 	});
 });
-

@@ -30,10 +30,12 @@ export const WHATSAPP_EVENT_TYPES = [
 	// Engagement
 	"REACTION_SENT",
 	"REACTION_RECEIVED",
+	"PRESENCE_SET",
 
 	// Risk signals
 	"BLOCK_DETECTED",
 	"DELIVERY_FAILURE",
+	"RATE_LIMIT_HIT",
 
 	// Connection
 	"CONNECTION_CONNECTED",
@@ -48,6 +50,9 @@ export const WHATSAPP_EVENT_TYPES = [
 ] as const;
 
 export type WhatsAppEventType = (typeof WHATSAPP_EVENT_TYPES)[number];
+
+export const WHATSAPP_EVENT_SOURCES = ["WEBHOOK", "DISPATCH", "PROVIDER"] as const;
+export type WhatsAppEventSource = (typeof WHATSAPP_EVENT_SOURCES)[number];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NORMALIZED EVENT STRUCTURE
@@ -64,6 +69,11 @@ export interface NormalizedWhatsAppEvent {
 	 * Event type (domain classification).
 	 */
 	type: WhatsAppEventType;
+
+	/**
+	 * Origin of the event (webhook vs runtime).
+	 */
+	source: WhatsAppEventSource;
 
 	/**
 	 * WhatsApp instance identifier.

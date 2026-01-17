@@ -22,6 +22,9 @@ model ReputationSignal {
   instanceId String
   occurredAt DateTime
   type       String
+  severity   String   @default("LOW")
+  source     String   @default("WEBHOOK")
+  context    Json?
   messageId  String?
   remoteJid  String?
   isGroup    Boolean  @default(false)

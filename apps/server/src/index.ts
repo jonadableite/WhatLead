@@ -18,11 +18,14 @@ import {
   wrapLanguageModel,
 } from "ai";
 import Fastify from "fastify";
+import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
+import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
 import { HeaterUseCase } from "./application/heater/heater.use-case";
 import { HumanLikeWarmUpStrategy } from "./application/heater/strategies/human-like.strategy";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
 import { IngestReputationSignalUseCase } from "./application/use-cases/ingest-reputation-signal.use-case";
+import { RecordReputationSignalUseCase } from "./application/use-cases/record-reputation-signal.use-case";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
@@ -170,10 +173,11 @@ const evaluateInstanceHealth = new EvaluateInstanceHealthUseCase(
 	evaluator,
 	eventBus,
 );
-const ingestSignal = new IngestReputationSignalUseCase(
+const recordSignal = new RecordReputationSignalUseCase(
 	signalRepository,
 	evaluateInstanceHealth,
 );
+const ingestSignal = new IngestReputationSignalUseCase(recordSignal);
 const ingestSignalWithLogging = new LoggingIngestReputationSignalUseCase(ingestSignal);
 const metricIngestion = new SignalMetricIngestionAdapter(ingestSignal);
 
@@ -184,6 +188,8 @@ const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 });
 
 const dispatchPort = new WhatsAppProviderDispatchAdapter(provider);
+const preDispatchGuard = new PreDispatchGuard(evaluateInstanceHealth);
+const guardedDispatchPort = new GuardedDispatchPort(dispatchPort, preDispatchGuard);
 const warmUpTargets = new StaticWarmUpTargetsProvider(env.WARMUP_TARGETS);
 const warmUpContent = new StaticWarmUpContentProvider();
 const warmUpStrategy = new HumanLikeWarmUpStrategy(warmUpTargets, warmUpContent);
@@ -192,7 +198,7 @@ const heater = new HeaterUseCase(
 	instanceRepository,
 	evaluateInstanceHealth,
 	warmUpStrategy,
-	dispatchPort,
+	guardedDispatchPort,
 	metricIngestion,
 );
 fastify.decorate("heater", heater);
