@@ -65,9 +65,13 @@ export default function ForgotPasswordPage() {
 	if (isSuccess) {
 		return (
 			<div className="relative">
-				<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+				<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 					<ShineBorder
-						shineColor={["#04d361", "#8257e5", "#04d361"]}
+						shineColor={[
+							"hsl(var(--success))",
+							"hsl(var(--primary))",
+							"hsl(var(--success))",
+						]}
 						borderWidth={1}
 						duration={10}
 					/>
@@ -77,27 +81,27 @@ export default function ForgotPasswordPage() {
 						animate={{ opacity: 1, scale: 1 }}
 						className="text-center"
 					>
-						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#04d361]/20">
-							<CheckCircle className="h-8 w-8 text-[#04d361]" />
+						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success/20">
+							<CheckCircle className="h-8 w-8 text-success" />
 						</div>
 
-						<h1 className="mb-2 text-2xl font-bold text-white">
+						<h1 className="mb-2 text-2xl font-bold text-foreground">
 							E-mail enviado!
 						</h1>
-						<p className="mb-6 text-[#a9a9b2]">
+						<p className="mb-6 text-muted-foreground">
 							Se existe uma conta com o e-mail{" "}
-							<span className="font-medium text-white">{email}</span>, você
+							<span className="font-medium text-foreground">{email}</span>, você
 							receberá um link para redefinir sua senha.
 						</p>
 
 						<div className="space-y-3">
-							<p className="text-sm text-[#7c7c8a]">
+							<p className="text-sm text-muted-foreground">
 								Não recebeu o e-mail? Verifique sua pasta de spam ou
 							</p>
 							<EnhancedButton
 								type="button"
 								variant="outline"
-								className="w-full border-[#29292e]"
+								className="w-full border-border"
 								onClick={() => {
 									setIsSuccess(false);
 									setEmail("");
@@ -109,7 +113,7 @@ export default function ForgotPasswordPage() {
 
 						<Link
 							href="/sign-in"
-							className="mt-6 inline-flex items-center gap-2 text-[#8257e5] transition-colors hover:text-[#996dff]"
+							className="mt-6 inline-flex items-center gap-2 text-primary transition-colors hover:text-primary/80"
 						>
 							<ArrowLeft className="h-4 w-4" />
 							Voltar para o login
@@ -123,9 +127,13 @@ export default function ForgotPasswordPage() {
 	// Form State
 	return (
 		<div className="relative">
-			<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+			<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 				<ShineBorder
-					shineColor={["#8257e5", "#04d361", "#8257e5"]}
+					shineColor={[
+						"hsl(var(--primary))",
+						"hsl(var(--success))",
+						"hsl(var(--primary))",
+					]}
 					borderWidth={1}
 					duration={10}
 				/>
@@ -138,7 +146,7 @@ export default function ForgotPasswordPage() {
 				>
 					<Link
 						href="/sign-in"
-						className="inline-flex items-center gap-2 text-[#a9a9b2] transition-colors hover:text-white"
+						className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
 					>
 						<ArrowLeft className="h-4 w-4" />
 						Voltar para o login
@@ -150,15 +158,15 @@ export default function ForgotPasswordPage() {
 					<motion.div
 						initial={{ opacity: 0, scale: 0.9 }}
 						animate={{ opacity: 1, scale: 1 }}
-						className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#8257e5]/20"
+						className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/20"
 					>
-						<Mail className="h-7 w-7 text-[#8257e5]" />
+						<Mail className="h-7 w-7 text-primary" />
 					</motion.div>
 
 					<motion.h1
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="mb-2 text-2xl font-bold text-white"
+						className="mb-2 text-2xl font-bold text-foreground"
 					>
 						Esqueceu sua senha?
 					</motion.h1>
@@ -166,7 +174,7 @@ export default function ForgotPasswordPage() {
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ delay: 0.1 }}
-						className="text-[#a9a9b2]"
+						className="text-muted-foreground"
 					>
 						Digite seu e-mail e enviaremos um link para redefinir sua senha
 					</motion.p>
@@ -177,9 +185,9 @@ export default function ForgotPasswordPage() {
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="mb-6 rounded-lg border border-[#f75a68]/20 bg-[#f75a68]/10 p-4"
+						className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 p-4"
 					>
-						<p className="text-sm text-[#f75a68]">{error}</p>
+						<p className="text-sm text-destructive">{error}</p>
 					</motion.div>
 				)}
 

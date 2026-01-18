@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 
 import { env } from "@WhatLead/env/web";
 
@@ -18,7 +18,7 @@ declare global {
 
 export function TurnstileWidget(props: {
   onToken: (token: string) => void;
-}): JSX.Element | null {
+}): ReactElement | null {
   const ref = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [isReady, setIsReady] = useState(false);

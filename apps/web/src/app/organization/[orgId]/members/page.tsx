@@ -19,7 +19,7 @@ export default async function MembersPage({ params }: Props) {
   });
 
   if (!session?.data?.user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   return <MembersManagement orgId={orgId} />;

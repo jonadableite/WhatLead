@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -95,7 +96,7 @@ export default function AcceptInvitePage() {
   const handleAccept = async () => {
     if (!session?.user) {
       // Redirecionar para login com redirect de volta
-      router.push(`/login?redirect=/invite/${token}`);
+      router.push(`/sign-in?redirect=/invite/${token}` as Route);
       return;
     }
 
@@ -129,42 +130,42 @@ export default function AcceptInvitePage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#1B1B1F] p-4">
-      <Card className="w-full max-w-md border-gray-800 bg-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
         {status === "loading" && (
           <CardContent className="py-12 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#1e1b4a]" />
-            <p className="mt-4 text-gray-400">Carregando convite...</p>
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Carregando convite...</p>
           </CardContent>
         )}
 
         {status === "valid" && invitation && (
           <>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-white">
-                Voce foi convidado!
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                <strong className="text-white">{invitation.inviterName}</strong>{" "}
+              <CardTitle className="text-2xl">Voce foi convidado!</CardTitle>
+              <CardDescription>
+                <strong className="text-card-foreground">
+                  {invitation.inviterName}
+                </strong>{" "}
                 convidou voce para fazer parte de{" "}
-                <strong className="text-white">
+                <strong className="text-card-foreground">
                   {invitation.organizationName}
                 </strong>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4 text-center">
-                <p className="text-gray-400 text-sm">
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
+                <p className="text-muted-foreground text-sm">
                   Seu papel na equipe sera:
                 </p>
-                <p className="mt-1 font-semibold text-[#1e1b4a] text-xl">
+                <p className="mt-1 font-semibold text-primary text-xl">
                   {roleLabels[invitation.role] || invitation.role}
                 </p>
               </div>
 
               {!session?.user && (
-                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
-                  <p className="text-sm text-yellow-400">
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                  <p className="text-sm text-warning">
                     Voce precisa estar logado para aceitar o convite.
                   </p>
                 </div>
@@ -173,7 +174,7 @@ export default function AcceptInvitePage() {
               <Button
                 onClick={handleAccept}
                 disabled={isAccepting}
-                className="w-full bg-[#1e1b4a] hover:bg-[#2d2a5e]"
+                className="w-full"
               >
                 {isAccepting ? (
                   <>
@@ -187,7 +188,7 @@ export default function AcceptInvitePage() {
                 )}
               </Button>
 
-              <p className="text-center text-gray-500 text-xs">
+              <p className="text-center text-muted-foreground text-xs">
                 Ao aceitar, voce entrara para a organizacao{" "}
                 {invitation.organizationName}
               </p>
@@ -199,23 +200,19 @@ export default function AcceptInvitePage() {
           <>
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
-                <CheckCircle className="h-16 w-16 text-green-500" />
+                <CheckCircle className="h-16 w-16 text-success" />
               </div>
-              <CardTitle className="text-2xl text-white">
-                Bem-vindo ao time!
-              </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-2xl">Bem-vindo ao time!</CardTitle>
+              <CardDescription>
                 Voce agora faz parte de{" "}
-                <strong className="text-white">
+                <strong className="text-card-foreground">
                   {invitation?.organizationName}
                 </strong>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/organization" className="block">
-                <Button className="w-full bg-[#1e1b4a] hover:bg-[#2d2a5e]">
-                  Ir para Organizacoes
-                </Button>
+                <Button className="w-full">Ir para Organizacoes</Button>
               </Link>
             </CardContent>
           </>
@@ -225,20 +222,16 @@ export default function AcceptInvitePage() {
           <>
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
-                <CheckCircle className="h-16 w-16 text-blue-500" />
+                <CheckCircle className="h-16 w-16 text-info" />
               </div>
-              <CardTitle className="text-2xl text-white">
-                Voce ja e membro!
-              </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-2xl">Voce ja e membro!</CardTitle>
+              <CardDescription>
                 Voce ja faz parte desta organizacao.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/organization" className="block">
-                <Button className="w-full bg-[#1e1b4a] hover:bg-[#2d2a5e]">
-                  Ir para Organizacoes
-                </Button>
+                <Button className="w-full">Ir para Organizacoes</Button>
               </Link>
             </CardContent>
           </>
@@ -248,12 +241,12 @@ export default function AcceptInvitePage() {
           <>
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
-                <XCircle className="h-16 w-16 text-red-500" />
+                <XCircle className="h-16 w-16 text-destructive" />
               </div>
-              <CardTitle className="text-2xl text-white">
+              <CardTitle className="text-2xl">
                 {status === "expired" ? "Convite expirado" : "Convite invalido"}
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription>
                 {status === "expired"
                   ? "Este convite expirou. Solicite um novo convite ao administrador da organizacao."
                   : errorMessage ||
@@ -262,10 +255,7 @@ export default function AcceptInvitePage() {
             </CardHeader>
             <CardContent>
               <Link href="/dashboard" className="block">
-                <Button
-                  variant="outline"
-                  className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
-                >
+                <Button variant="outline" className="w-full">
                   Voltar para o Dashboard
                 </Button>
               </Link>

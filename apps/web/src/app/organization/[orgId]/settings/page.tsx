@@ -19,7 +19,7 @@ export default async function SettingsPage({ params }: Props) {
   });
 
   if (!session?.data?.user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   return <OrganizationSettings orgId={orgId} />;

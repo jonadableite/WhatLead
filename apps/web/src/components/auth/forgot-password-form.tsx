@@ -55,34 +55,31 @@ export default function ForgotPasswordForm() {
 
   if (isSubmitted) {
     return (
-      <Card className="w-full max-w-md border-gray-800 bg-gray-900">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1e1b4a]/20">
-            <Mail className="h-8 w-8 text-[#1e1b4a]" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+            <Mail className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl text-white">
-            Verifique seu email
-          </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-2xl">Verifique seu email</CardTitle>
+          <CardDescription>
             Enviamos um link de recuperacao para{" "}
-            <span className="font-medium text-white">{submittedEmail}</span>
+            <span className="font-medium text-card-foreground">
+              {submittedEmail}
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-center text-gray-400 text-sm">
+          <p className="text-center text-muted-foreground text-sm">
             Nao recebeu o email? Verifique sua caixa de spam ou{" "}
             <button
               onClick={() => setIsSubmitted(false)}
-              className="text-[#1e1b4a] underline hover:text-[#2d2a5e]"
+              className="text-primary underline hover:text-primary/80"
             >
               tente novamente
             </button>
           </p>
-          <Link href="/login" className="block">
-            <Button
-              variant="outline"
-              className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
+          <Link href="/sign-in" className="block">
+            <Button variant="outline" className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para o Login
             </Button>
@@ -93,12 +90,10 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border-gray-800 bg-gray-900">
+    <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl text-white">
-          Esqueceu sua senha?
-        </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-2xl">Esqueceu sua senha?</CardTitle>
+        <CardDescription>
           Sem problemas! Digite seu email e enviaremos um link para voce criar
           uma nova senha.
         </CardDescription>
@@ -116,9 +111,7 @@ export default function ForgotPasswordForm() {
             <form.Field name="email">
               {(field) => (
                 <>
-                  <Label htmlFor={field.name} className="text-gray-300">
-                    Email
-                  </Label>
+                  <Label htmlFor={field.name}>Email</Label>
                   <Input
                     id={field.name}
                     name={field.name}
@@ -127,10 +120,12 @@ export default function ForgotPasswordForm() {
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
                   />
                   {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-red-500 text-sm">
+                    <p
+                      key={error?.message}
+                      className="text-destructive text-sm"
+                    >
                       {error?.message}
                     </p>
                   ))}
@@ -143,7 +138,7 @@ export default function ForgotPasswordForm() {
             {(state) => (
               <Button
                 type="submit"
-                className="w-full bg-[#1e1b4a] hover:bg-[#2d2a5e]"
+                className="w-full"
                 disabled={!state.canSubmit || state.isSubmitting}
               >
                 {state.isSubmitting ? (
@@ -160,11 +155,8 @@ export default function ForgotPasswordForm() {
         </form>
 
         <div className="mt-6">
-          <Link href="/login" className="block">
-            <Button
-              variant="ghost"
-              className="w-full text-gray-400 hover:text-white"
-            >
+          <Link href="/sign-in" className="block">
+            <Button variant="ghost" className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para o Login
             </Button>

@@ -123,30 +123,25 @@ export default function UsersManagement() {
   );
 
   return (
-    <div className="min-h-screen bg-[#1B1B1F] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6">
           <Link
             href="/admin"
-            className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
+            className="mb-4 inline-flex items-center text-muted-foreground text-sm hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar para Admin
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-bold text-2xl text-white">
-                Gerenciar Usuarios
-              </h1>
-              <p className="text-gray-400 text-sm">
-                {users.length} usuarios cadastrados
-              </p>
+              <h1 className="font-bold text-2xl text-foreground">Gerenciar Usuarios</h1>
+              <p className="text-muted-foreground text-sm">{users.length} usuarios cadastrados</p>
             </div>
             <Button
               onClick={fetchUsers}
               variant="outline"
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
               disabled={isLoading}
             >
               <RefreshCw
@@ -163,25 +158,23 @@ export default function UsersManagement() {
             placeholder="Buscar por nome ou email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
+            className="max-w-md"
           />
         </div>
 
         {/* Users List */}
-        <Card className="border-gray-800 bg-gray-900">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white">Usuarios</CardTitle>
-            <CardDescription className="text-gray-400">
-              Lista de todos os usuarios da plataforma
-            </CardDescription>
+            <CardTitle>Usuarios</CardTitle>
+            <CardDescription>Lista de todos os usuarios da plataforma</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-[#1e1b4a]" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div className="py-12 text-center text-gray-400">
+              <div className="py-12 text-center text-muted-foreground">
                 {searchQuery
                   ? "Nenhum usuario encontrado"
                   : "Nenhum usuario cadastrado"}
@@ -191,34 +184,32 @@ export default function UsersManagement() {
                 {filteredUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/50 p-4"
+                    className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1e1b4a] text-white">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-white">
-                            {user.name}
-                          </span>
+                          <span className="font-medium text-foreground">{user.name}</span>
                           {user.role === "admin" && (
-                            <span className="rounded bg-[#1e1b4a] px-2 py-0.5 text-white text-xs">
+                            <span className="rounded bg-primary px-2 py-0.5 text-primary-foreground text-xs">
                               Admin
                             </span>
                           )}
                           {user.banned && (
-                            <span className="rounded bg-red-500/20 px-2 py-0.5 text-red-400 text-xs">
+                            <span className="rounded bg-destructive/20 px-2 py-0.5 text-destructive text-xs">
                               Banido
                             </span>
                           )}
                           {!user.emailVerified && (
-                            <span className="rounded bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-400">
+                            <span className="rounded bg-warning/20 px-2 py-0.5 text-warning text-xs">
                               Email nao verificado
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-400 text-sm">{user.email}</p>
+                        <p className="text-muted-foreground text-sm">{user.email}</p>
                       </div>
                     </div>
 
@@ -228,7 +219,6 @@ export default function UsersManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-gray-400 hover:text-white"
                             disabled={actionLoading === user.id}
                           />
                         }
@@ -239,10 +229,7 @@ export default function UsersManagement() {
                           <MoreHorizontal className="h-4 w-4" />
                         )}
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="border-gray-700 bg-gray-800"
-                      >
+                      <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() =>
                             handleSetRole(
@@ -250,7 +237,6 @@ export default function UsersManagement() {
                               user.role === "admin" ? "user" : "admin"
                             )
                           }
-                          className="text-gray-300 focus:bg-gray-700 focus:text-white"
                         >
                           {user.role === "admin" ? (
                             <>
@@ -264,14 +250,11 @@ export default function UsersManagement() {
                             </>
                           )}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-gray-700" />
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => handleBanUser(user.id, !user.banned)}
-                          className={`focus:bg-gray-700 ${
-                            user.banned
-                              ? "text-green-400 focus:text-green-300"
-                              : "text-red-400 focus:text-red-300"
-                          }`}
+                          variant={user.banned ? "default" : "destructive"}
+                          className={user.banned ? "text-success focus:text-success" : undefined}
                         >
                           {user.banned ? (
                             <>

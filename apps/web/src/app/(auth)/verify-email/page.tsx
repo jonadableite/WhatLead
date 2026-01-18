@@ -84,9 +84,13 @@ function VerifyEmailContent() {
 	if (status === "loading") {
 		return (
 			<div className="relative">
-				<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+				<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 					<ShineBorder
-						shineColor={["#8257e5", "#04d361", "#8257e5"]}
+						shineColor={[
+							"hsl(var(--primary))",
+							"hsl(var(--success))",
+							"hsl(var(--primary))",
+						]}
 						borderWidth={1}
 						duration={10}
 					/>
@@ -96,7 +100,7 @@ function VerifyEmailContent() {
 						animate={{ opacity: 1 }}
 						className="text-center"
 					>
-						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#8257e5]/20">
+						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
 							<motion.div
 								animate={{ rotate: 360 }}
 								transition={{
@@ -105,14 +109,14 @@ function VerifyEmailContent() {
 									ease: "linear",
 								}}
 							>
-								<RefreshCw className="h-8 w-8 text-[#8257e5]" />
+								<RefreshCw className="h-8 w-8 text-primary" />
 							</motion.div>
 						</div>
 
-						<h1 className="mb-2 text-2xl font-bold text-white">
+						<h1 className="mb-2 text-2xl font-bold text-foreground">
 							Verificando e-mail...
 						</h1>
-						<p className="text-[#a9a9b2]">
+						<p className="text-muted-foreground">
 							Aguarde enquanto verificamos seu e-mail.
 						</p>
 					</motion.div>
@@ -125,9 +129,13 @@ function VerifyEmailContent() {
 	if (status === "success") {
 		return (
 			<div className="relative">
-				<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+				<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 					<ShineBorder
-						shineColor={["#04d361", "#8257e5", "#04d361"]}
+						shineColor={[
+							"hsl(var(--success))",
+							"hsl(var(--primary))",
+							"hsl(var(--success))",
+						]}
 						borderWidth={1}
 						duration={10}
 					/>
@@ -137,14 +145,14 @@ function VerifyEmailContent() {
 						animate={{ opacity: 1, scale: 1 }}
 						className="text-center"
 					>
-						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#04d361]/20">
-							<CheckCircle className="h-8 w-8 text-[#04d361]" />
+						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success/20">
+							<CheckCircle className="h-8 w-8 text-success" />
 						</div>
 
-						<h1 className="mb-2 text-2xl font-bold text-white">
+						<h1 className="mb-2 text-2xl font-bold text-foreground">
 							E-mail verificado!
 						</h1>
-						<p className="mb-6 text-[#a9a9b2]">
+						<p className="mb-6 text-muted-foreground">
 							Seu e-mail foi verificado com sucesso. Agora você tem acesso
 							completo à plataforma.
 						</p>
@@ -166,9 +174,13 @@ function VerifyEmailContent() {
 	if (status === "resent") {
 		return (
 			<div className="relative">
-				<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+				<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 					<ShineBorder
-						shineColor={["#04d361", "#8257e5", "#04d361"]}
+						shineColor={[
+							"hsl(var(--success))",
+							"hsl(var(--primary))",
+							"hsl(var(--success))",
+						]}
 						borderWidth={1}
 						duration={10}
 					/>
@@ -178,16 +190,16 @@ function VerifyEmailContent() {
 						animate={{ opacity: 1, scale: 1 }}
 						className="text-center"
 					>
-						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#04d361]/20">
-							<Mail className="h-8 w-8 text-[#04d361]" />
+						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success/20">
+							<Mail className="h-8 w-8 text-success" />
 						</div>
 
-						<h1 className="mb-2 text-2xl font-bold text-white">
+						<h1 className="mb-2 text-2xl font-bold text-foreground">
 							E-mail reenviado!
 						</h1>
-						<p className="mb-6 text-[#a9a9b2]">
+						<p className="mb-6 text-muted-foreground">
 							Um novo e-mail de verificação foi enviado para{" "}
-							<span className="font-medium text-white">{email}</span>. Verifique
+							<span className="font-medium text-foreground">{email}</span>. Verifique
 							sua caixa de entrada.
 						</p>
 
@@ -205,9 +217,13 @@ function VerifyEmailContent() {
 	// Error State
 	return (
 		<div className="relative">
-			<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+			<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 				<ShineBorder
-					shineColor={["#f75a68", "#8257e5", "#f75a68"]}
+					shineColor={[
+						"hsl(var(--destructive))",
+						"hsl(var(--primary))",
+						"hsl(var(--destructive))",
+					]}
 					borderWidth={1}
 					duration={10}
 				/>
@@ -217,14 +233,14 @@ function VerifyEmailContent() {
 					animate={{ opacity: 1, scale: 1 }}
 					className="text-center"
 				>
-					<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#f75a68]/20">
-						<XCircle className="h-8 w-8 text-[#f75a68]" />
+					<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/20">
+						<XCircle className="h-8 w-8 text-destructive" />
 					</div>
 
-					<h1 className="mb-2 text-2xl font-bold text-white">
+					<h1 className="mb-2 text-2xl font-bold text-foreground">
 						Falha na verificação
 					</h1>
-					<p className="mb-6 text-[#a9a9b2]">{errorMessage}</p>
+					<p className="mb-6 text-muted-foreground">{errorMessage}</p>
 
 					<div className="space-y-3">
 						{email && (
@@ -254,7 +270,7 @@ export default function VerifyEmailPage() {
 		<Suspense
 			fallback={
 				<div className="flex min-h-screen items-center justify-center">
-					<div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8257e5] border-t-transparent" />
+					<div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
 				</div>
 			}
 		>

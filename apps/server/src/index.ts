@@ -1,6 +1,7 @@
 import { createContext } from "@WhatLead/api/context";
 import { type AppRouter, appRouter } from "@WhatLead/api/routers/index";
 import { auth } from "@WhatLead/auth";
+import prisma from "@WhatLead/db";
 import { env } from "@WhatLead/env/server";
 import { createRequestLogger, generateTraceId } from "@WhatLead/logger";
 import { devToolsMiddleware } from "@ai-sdk/devtools";
@@ -469,6 +470,43 @@ fastify.get("/", async () => {
 
 fastify.get("/health", async () => {
 	return { status: "healthy", uptime: process.uptime() };
+});
+
+fastify.get("/api/tenants/me", async (request, reply) => {
+	const session = await auth.api.getSession({
+		headers: request.headers as any,
+	});
+
+	if (!session) {
+		return reply.status(401).send({ error: "UNAUTHORIZED" });
+	}
+
+	const userId = (session as any).user?.id as string | undefined;
+	const activeOrgId = (session as any).session?.activeOrganizationId as string | undefined;
+
+	const org =
+		activeOrgId
+			? await prisma.organization.findUnique({ where: { id: activeOrgId } })
+			: userId
+				? (
+						await prisma.member.findFirst({
+							where: { userId },
+							include: { organization: true },
+							orderBy: { createdAt: "asc" },
+						})
+					)?.organization ?? null
+				: null;
+
+	if (!org) {
+		return reply.status(404).send({ error: "NO_TENANT" });
+	}
+
+	return reply.send({
+		id: org.id,
+		name: org.name,
+		plan: "FREE",
+		limits: {},
+	});
 });
 
 // =============================================================================

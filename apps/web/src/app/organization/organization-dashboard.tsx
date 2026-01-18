@@ -1,6 +1,7 @@
 "use client";
 
 import { Building2, Loader2, Plus, Settings, Users } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -92,7 +93,7 @@ export default function OrganizationDashboard({
 
       // Redirecionar para a nova organização
       if (result.data?.id) {
-        router.push(`/organization/${result.data.id}`);
+        router.push(`/organization/${result.data.id}` as Route);
       }
     } catch {
       toast.error("Erro ao criar organizacao");
@@ -102,28 +103,25 @@ export default function OrganizationDashboard({
   };
 
   return (
-    <div className="min-h-screen bg-[#1B1B1F] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e1b4a]">
-                <Building2 className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Building2 className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-bold text-2xl text-white">
+                <h1 className="font-bold text-2xl text-foreground">
                   Minhas Organizacoes
                 </h1>
-                <p className="text-gray-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Gerencie seus times e colaboradores
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-            >
+            <Button onClick={() => setShowCreateForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Organizacao
             </Button>
@@ -132,18 +130,16 @@ export default function OrganizationDashboard({
 
         {/* Create Organization Form */}
         {showCreateForm && (
-          <Card className="mb-6 border-gray-800 bg-gray-900">
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-white">
-                Criar Nova Organizacao
-              </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle>Criar Nova Organizacao</CardTitle>
+              <CardDescription>
                 Configure sua organizacao para comecar a adicionar colaboradores
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Nome da Organizacao</Label>
+                <Label>Nome da Organizacao</Label>
                 <Input
                   placeholder="Minha Empresa"
                   value={newOrgName}
@@ -154,35 +150,29 @@ export default function OrganizationDashboard({
                         e.target.value
                           .toLowerCase()
                           .replace(/\s+/g, "-")
-                          .replace(/[^a-z0-9-]/g, "")
+                          .replace(/[^a-z0-9-]/g, ""),
                       );
                     }
                   }}
-                  className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Slug (URL amigavel)</Label>
+                <Label>Slug (URL amigavel)</Label>
                 <Input
                   placeholder="minha-empresa"
                   value={newOrgSlug}
                   onChange={(e) =>
                     setNewOrgSlug(
-                      e.target.value.toLowerCase().replace(/\s+/g, "-")
+                      e.target.value.toLowerCase().replace(/\s+/g, "-"),
                     )
                   }
-                  className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
                 />
-                <p className="text-gray-500 text-xs">
+                <p className="text-muted-foreground text-xs">
                   Sera usado na URL: whatlead.com.br/org/{newOrgSlug || "slug"}
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button
-                  onClick={handleCreateOrg}
-                  disabled={isCreating}
-                  className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-                >
+                <Button onClick={handleCreateOrg} disabled={isCreating}>
                   {isCreating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -199,7 +189,6 @@ export default function OrganizationDashboard({
                     setNewOrgName("");
                     setNewOrgSlug("");
                   }}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
@@ -211,23 +200,20 @@ export default function OrganizationDashboard({
         {/* Organizations List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1e1b4a]" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : organizations.length === 0 ? (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card>
             <CardContent className="py-12 text-center">
-              <Building2 className="mx-auto mb-4 h-12 w-12 text-gray-600" />
-              <h3 className="mb-2 font-medium text-lg text-white">
+              <Building2 className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 font-medium text-lg text-foreground">
                 Nenhuma organizacao
               </h3>
-              <p className="mb-6 text-gray-400">
+              <p className="mb-6 text-muted-foreground">
                 Crie sua primeira organizacao para comecar a colaborar com seu
                 time.
               </p>
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-              >
+              <Button onClick={() => setShowCreateForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Organizacao
               </Button>
@@ -238,12 +224,12 @@ export default function OrganizationDashboard({
             {organizations.map((org) => (
               <Card
                 key={org.id}
-                className="border-gray-800 bg-gray-900 transition-colors hover:border-[#1e1b4a]"
+                className="border border-border transition-colors hover:border-primary/50"
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#1e1b4a] text-white">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                         {org.logo ? (
                           <img
                             src={org.logo}
@@ -257,27 +243,23 @@ export default function OrganizationDashboard({
                         )}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">{org.name}</h3>
-                        <p className="text-gray-400 text-sm">/{org.slug}</p>
+                        <h3 className="font-semibold text-foreground">
+                          {org.name}
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          /{org.slug}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Link href={`/organization/${org.id}/members`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
-                        >
+                        <Button variant="outline" size="sm">
                           <Users className="mr-2 h-4 w-4" />
                           Membros
                         </Button>
                       </Link>
                       <Link href={`/organization/${org.id}/settings`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
-                        >
+                        <Button variant="outline" size="sm">
                           <Settings className="h-4 w-4" />
                         </Button>
                       </Link>
@@ -293,7 +275,7 @@ export default function OrganizationDashboard({
         <div className="mt-8">
           <Link
             href="/dashboard"
-            className="text-gray-400 text-sm hover:text-white"
+            className="text-muted-foreground text-sm hover:text-foreground"
           >
             &larr; Voltar para o Dashboard
           </Link>

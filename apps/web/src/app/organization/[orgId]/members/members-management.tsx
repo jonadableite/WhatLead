@@ -1,17 +1,17 @@
 "use client";
 
 import {
-  ArrowLeft,
-  Crown,
-  Loader2,
-  MoreHorizontal,
-  Plus,
-  Send,
-  Shield,
-  Trash2,
-  User,
-  UserMinus,
-  Users,
+    ArrowLeft,
+    Crown,
+    Loader2,
+    MoreHorizontal,
+    Plus,
+    Send,
+    Shield,
+    Trash2,
+    User,
+    UserMinus,
+    Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -19,18 +19,18 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,7 +101,7 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
         setOrganization(orgResult.data as unknown as Organization);
         setMembers((orgResult.data.members as unknown as Member[]) || []);
         setInvitations(
-          (orgResult.data.invitations as unknown as Invitation[]) || []
+          (orgResult.data.invitations as unknown as Invitation[]) || [],
         );
       }
     } catch (error) {
@@ -165,7 +165,7 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 
   const handleUpdateRole = async (
     memberId: string,
-    newRole: "admin" | "member"
+    newRole: "admin" | "member",
   ) => {
     setActionLoading(memberId);
     try {
@@ -200,30 +200,33 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#1B1B1F]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1e1b4a]" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
+  const formatDate = (iso: string) =>
+    new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(iso));
+
   return (
-    <div className="min-h-screen bg-[#1B1B1F] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-6">
           <Link
             href="/organization"
-            className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
+            className="mb-4 inline-flex items-center text-muted-foreground text-sm hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar para Organizacoes
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-bold text-2xl text-white">
+              <h1 className="font-bold text-2xl text-foreground">
                 {organization?.name || "Organizacao"}
               </h1>
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 {members.length} membro{members.length !== 1 ? "s" : ""} •{" "}
                 {invitations.filter((i) => i.status === "pending").length}{" "}
                 convite
@@ -236,10 +239,7 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                   : ""}
               </p>
             </div>
-            <Button
-              onClick={() => setShowInviteForm(true)}
-              className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-            >
+            <Button onClick={() => setShowInviteForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Convidar
             </Button>
@@ -248,36 +248,30 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 
         {/* Invite Form */}
         {showInviteForm && (
-          <Card className="mb-6 border-gray-800 bg-gray-900">
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-white">Convidar Colaborador</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle>Convidar Colaborador</CardTitle>
+              <CardDescription>
                 Envie um convite por email para adicionar um novo membro ao time
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Email</Label>
+                <Label>Email</Label>
                 <Input
                   type="email"
                   placeholder="colaborador@email.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Papel na equipe</Label>
+                <Label>Papel na equipe</Label>
                 <div className="flex gap-3">
                   <Button
                     type="button"
                     variant={inviteRole === "member" ? "default" : "outline"}
                     onClick={() => setInviteRole("member")}
-                    className={
-                      inviteRole === "member"
-                        ? "bg-[#1e1b4a]"
-                        : "border-gray-700 text-gray-300 hover:bg-gray-800"
-                    }
                   >
                     <User className="mr-2 h-4 w-4" />
                     Colaborador
@@ -286,28 +280,19 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                     type="button"
                     variant={inviteRole === "admin" ? "default" : "outline"}
                     onClick={() => setInviteRole("admin")}
-                    className={
-                      inviteRole === "admin"
-                        ? "bg-[#1e1b4a]"
-                        : "border-gray-700 text-gray-300 hover:bg-gray-800"
-                    }
                   >
                     <Shield className="mr-2 h-4 w-4" />
                     Gestor
                   </Button>
                 </div>
-                <p className="text-gray-500 text-xs">
+                <p className="text-muted-foreground text-xs">
                   {inviteRole === "admin"
                     ? "Gestores podem gerenciar membros e configuracoes"
                     : "Colaboradores podem usar as ferramentas da organizacao"}
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button
-                  onClick={handleInvite}
-                  disabled={isInviting}
-                  className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-                >
+                <Button onClick={handleInvite} disabled={isInviting}>
                   {isInviting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -327,7 +312,6 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                     setInviteEmail("");
                     setInviteRole("member");
                   }}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
@@ -337,16 +321,18 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
         )}
 
         {/* Members List */}
-        <Card className="mb-6 border-gray-800 bg-gray-900">
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
               Membros
             </CardTitle>
           </CardHeader>
           <CardContent>
             {members.length === 0 ? (
-              <p className="text-center text-gray-400">Nenhum membro ainda</p>
+              <p className="text-center text-muted-foreground">
+                Nenhum membro ainda
+              </p>
             ) : (
               <div className="space-y-3">
                 {members.map((member) => {
@@ -354,10 +340,10 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                   return (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/50 p-4"
+                      className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1e1b4a] text-white">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
                           {member.user.image ? (
                             <img
                               src={member.user.image}
@@ -370,15 +356,15 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-foreground">
                               {member.user.name}
                             </span>
-                            <span className="flex items-center gap-1 rounded bg-gray-700 px-2 py-0.5 text-gray-300 text-xs">
+                            <span className="flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-muted-foreground text-xs">
                               <RoleIcon className="h-3 w-3" />
                               {roleLabels[member.role] || member.role}
                             </span>
                           </div>
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             {member.user.email}
                           </p>
                         </div>
@@ -391,7 +377,6 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-gray-400 hover:text-white"
                                 disabled={actionLoading === member.id}
                               />
                             }
@@ -402,18 +387,14 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                               <MoreHorizontal className="h-4 w-4" />
                             )}
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="border-gray-700 bg-gray-800"
-                          >
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() =>
                                 handleUpdateRole(
                                   member.id,
-                                  member.role === "admin" ? "member" : "admin"
+                                  member.role === "admin" ? "member" : "admin",
                                 )
                               }
-                              className="text-gray-300 focus:bg-gray-700 focus:text-white"
                             >
                               {member.role === "admin" ? (
                                 <>
@@ -427,10 +408,10 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                                 </>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-gray-700" />
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleRemoveMember(member.id)}
-                              className="text-red-400 focus:bg-gray-700 focus:text-red-300"
+                              variant="destructive"
                             >
                               <UserMinus className="mr-2 h-4 w-4" />
                               Remover da Equipe
@@ -448,9 +429,9 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
 
         {/* Pending Invitations */}
         {invitations.filter((i) => i.status === "pending").length > 0 && (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2">
                 <Send className="h-5 w-5" />
                 Convites Pendentes
               </CardTitle>
@@ -462,18 +443,15 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                   .map((invitation) => (
                     <div
                       key={invitation.id}
-                      className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/50 p-4"
+                      className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4"
                     >
                       <div>
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-foreground">
                           {invitation.email}
                         </p>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-muted-foreground text-sm">
                           {roleLabels[invitation.role] || invitation.role} •
-                          Expira em{" "}
-                          {new Date(invitation.expiresAt).toLocaleDateString(
-                            "pt-BR"
-                          )}
+                          Expira em {formatDate(invitation.expiresAt)}
                         </p>
                       </div>
                       <Button
@@ -481,7 +459,7 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
                         size="sm"
                         onClick={() => handleCancelInvitation(invitation.id)}
                         disabled={actionLoading === invitation.id}
-                        className="text-gray-400 hover:text-red-400"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         {actionLoading === invitation.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -499,21 +477,13 @@ export default function MembersManagement({ orgId }: MembersManagementProps) {
         {/* Navigation */}
         <div className="mt-6 flex gap-4">
           <Link href={`/organization/${orgId}/teams`}>
-            <Button
-              variant="outline"
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
+            <Button variant="outline">
               <Users className="mr-2 h-4 w-4" />
               Ver Times
             </Button>
           </Link>
           <Link href={`/organization/${orgId}/settings`}>
-            <Button
-              variant="outline"
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
-              Configuracoes
-            </Button>
+            <Button variant="outline">Configuracoes</Button>
           </Link>
         </div>
       </div>

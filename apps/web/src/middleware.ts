@@ -23,7 +23,8 @@ const protectedRoutes = [
 // Rotas públicas (não requerem autenticação)
 const publicRoutes = [
 	"/",
-	"/login",
+	"/sign-in",
+	"/sign-up",
 	"/verify-email",
 	"/forgot-password",
 	"/reset-password",
@@ -61,14 +62,14 @@ export function middleware(request: NextRequest): NextResponse {
 
 	// Se é rota protegida e não tem sessão, redirecionar para login
 	if (isProtectedRoute && !hasSession) {
-		const loginUrl = new URL("/login", request.url);
+		const loginUrl = new URL("/sign-in", request.url);
 		// Adicionar redirect para voltar após login
 		loginUrl.searchParams.set("redirect", pathname);
 		return NextResponse.redirect(loginUrl);
 	}
 
-	// Se está na página de login e já tem sessão, redirecionar para dashboard
-	if (pathname === "/login" && hasSession) {
+	// Se está na página de auth e já tem sessão, redirecionar para dashboard
+	if ((pathname === "/sign-in" || pathname === "/sign-up") && hasSession) {
 		// Verificar se há um redirect pendente
 		const redirect = request.nextUrl.searchParams.get("redirect");
 		if (redirect && !publicRoutes.some((route) => redirect.startsWith(route))) {

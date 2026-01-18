@@ -40,9 +40,13 @@ function ResetPasswordContent() {
 	if (!token) {
 		return (
 			<div className="relative">
-				<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+				<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 					<ShineBorder
-						shineColor={["#f75a68", "#8257e5", "#f75a68"]}
+						shineColor={[
+							"hsl(var(--destructive))",
+							"hsl(var(--primary))",
+							"hsl(var(--destructive))",
+						]}
 						borderWidth={1}
 						duration={10}
 					/>
@@ -52,14 +56,14 @@ function ResetPasswordContent() {
 						animate={{ opacity: 1, scale: 1 }}
 						className="text-center"
 					>
-						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#f75a68]/20">
-							<XCircle className="h-8 w-8 text-[#f75a68]" />
+						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/20">
+							<XCircle className="h-8 w-8 text-destructive" />
 						</div>
 
-						<h1 className="mb-2 text-2xl font-bold text-white">
+						<h1 className="mb-2 text-2xl font-bold text-foreground">
 							Link inválido
 						</h1>
-						<p className="mb-6 text-[#a9a9b2]">
+						<p className="mb-6 text-muted-foreground">
 							O link de redefinição de senha é inválido ou expirou. Por favor,
 							solicite um novo link.
 						</p>
@@ -152,9 +156,13 @@ function ResetPasswordContent() {
 	if (isSuccess) {
 		return (
 			<div className="relative">
-				<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+				<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 					<ShineBorder
-						shineColor={["#04d361", "#8257e5", "#04d361"]}
+						shineColor={[
+							"hsl(var(--success))",
+							"hsl(var(--primary))",
+							"hsl(var(--success))",
+						]}
 						borderWidth={1}
 						duration={10}
 					/>
@@ -164,14 +172,14 @@ function ResetPasswordContent() {
 						animate={{ opacity: 1, scale: 1 }}
 						className="text-center"
 					>
-						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#04d361]/20">
-							<CheckCircle className="h-8 w-8 text-[#04d361]" />
+						<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success/20">
+							<CheckCircle className="h-8 w-8 text-success" />
 						</div>
 
-						<h1 className="mb-2 text-2xl font-bold text-white">
+						<h1 className="mb-2 text-2xl font-bold text-foreground">
 							Senha redefinida!
 						</h1>
-						<p className="mb-6 text-[#a9a9b2]">
+						<p className="mb-6 text-muted-foreground">
 							Sua senha foi alterada com sucesso. Você já pode fazer login com
 							sua nova senha.
 						</p>
@@ -192,9 +200,13 @@ function ResetPasswordContent() {
 	// Form State
 	return (
 		<div className="relative">
-			<div className="relative overflow-hidden rounded-2xl border border-[#29292e] bg-[#121214] p-8">
+			<div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8">
 				<ShineBorder
-					shineColor={["#8257e5", "#04d361", "#8257e5"]}
+					shineColor={[
+						"hsl(var(--primary))",
+						"hsl(var(--success))",
+						"hsl(var(--primary))",
+					]}
 					borderWidth={1}
 					duration={10}
 				/>
@@ -204,15 +216,15 @@ function ResetPasswordContent() {
 					<motion.div
 						initial={{ opacity: 0, scale: 0.9 }}
 						animate={{ opacity: 1, scale: 1 }}
-						className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#8257e5]/20"
+						className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/20"
 					>
-						<Lock className="h-7 w-7 text-[#8257e5]" />
+						<Lock className="h-7 w-7 text-primary" />
 					</motion.div>
 
 					<motion.h1
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="mb-2 text-2xl font-bold text-white"
+						className="mb-2 text-2xl font-bold text-foreground"
 					>
 						Criar nova senha
 					</motion.h1>
@@ -220,7 +232,7 @@ function ResetPasswordContent() {
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ delay: 0.1 }}
-						className="text-[#a9a9b2]"
+						className="text-muted-foreground"
 					>
 						Digite sua nova senha abaixo
 					</motion.p>
@@ -231,9 +243,9 @@ function ResetPasswordContent() {
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="mb-6 rounded-lg border border-[#f75a68]/20 bg-[#f75a68]/10 p-4"
+						className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 p-4"
 					>
-						<p className="text-sm text-[#f75a68]">{errors.general}</p>
+						<p className="text-sm text-destructive">{errors.general}</p>
 					</motion.div>
 				)}
 
@@ -258,7 +270,7 @@ function ResetPasswordContent() {
 								<button
 									type="button"
 									onClick={() => setShowPassword(!showPassword)}
-									className="transition-colors hover:text-[#8257e5]"
+									className="transition-colors hover:text-primary"
 									tabIndex={-1}
 								>
 									{showPassword ? (
@@ -293,7 +305,7 @@ function ResetPasswordContent() {
 								<button
 									type="button"
 									onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-									className="transition-colors hover:text-[#8257e5]"
+									className="transition-colors hover:text-primary"
 									tabIndex={-1}
 								>
 									{showConfirmPassword ? (
@@ -313,20 +325,20 @@ function ResetPasswordContent() {
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ delay: 0.2 }}
-						className="space-y-1 text-xs text-[#7c7c8a]"
+						className="space-y-1 text-xs text-muted-foreground"
 					>
 						<p>A senha deve conter:</p>
 						<ul className="ml-1 list-inside list-disc space-y-0.5">
-							<li className={passwordChecks.length ? "text-[#04d361]" : ""}>
+							<li className={passwordChecks.length ? "text-success" : ""}>
 								Pelo menos 8 caracteres
 							</li>
-							<li className={passwordChecks.uppercase ? "text-[#04d361]" : ""}>
+							<li className={passwordChecks.uppercase ? "text-success" : ""}>
 								Uma letra maiúscula
 							</li>
-							<li className={passwordChecks.lowercase ? "text-[#04d361]" : ""}>
+							<li className={passwordChecks.lowercase ? "text-success" : ""}>
 								Uma letra minúscula
 							</li>
-							<li className={passwordChecks.number ? "text-[#04d361]" : ""}>
+							<li className={passwordChecks.number ? "text-success" : ""}>
 								Um número
 							</li>
 						</ul>
@@ -354,12 +366,12 @@ function ResetPasswordContent() {
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ delay: 0.3 }}
-					className="mt-8 text-center text-[#a9a9b2]"
+					className="mt-8 text-center text-muted-foreground"
 				>
 					Lembrou sua senha?{" "}
 					<Link
 						href="/sign-in"
-						className="font-medium text-[#8257e5] transition-colors hover:text-[#996dff]"
+						className="font-medium text-primary transition-colors hover:text-primary/80"
 					>
 						Voltar para o login
 					</Link>
@@ -374,7 +386,7 @@ export default function ResetPasswordPage() {
 		<Suspense
 			fallback={
 				<div className="flex min-h-screen items-center justify-center">
-					<div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8257e5] border-t-transparent" />
+					<div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
 				</div>
 			}
 		>

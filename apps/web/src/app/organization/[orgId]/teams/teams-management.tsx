@@ -122,7 +122,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
         toast.error(
           typeof (error as { message?: unknown }).message === "string"
             ? (error as { message: string }).message
-            : "Erro ao criar time"
+            : "Erro ao criar time",
         );
         return;
       }
@@ -153,7 +153,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
         toast.error(
           typeof (error as { message?: unknown }).message === "string"
             ? (error as { message: string }).message
-            : "Erro ao remover time"
+            : "Erro ao remover time",
         );
         return;
       }
@@ -167,35 +167,32 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#1B1B1F]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1e1b4a]" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1B1B1F] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-6">
           <Link
             href={`/organization/${orgId}/members`}
-            className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
+            className="mb-4 inline-flex items-center text-muted-foreground text-sm hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar para Membros
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-bold text-2xl text-white">Times</h1>
-              <p className="text-gray-400 text-sm">
+              <h1 className="font-bold text-2xl text-foreground">Times</h1>
+              <p className="text-muted-foreground text-sm">
                 Organize seus colaboradores em times especializados
               </p>
             </div>
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-            >
+            <Button onClick={() => setShowCreateForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Novo Time
             </Button>
@@ -204,35 +201,32 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 
         {/* Create Team Form */}
         {showCreateForm && (
-          <Card className="mb-6 border-gray-800 bg-gray-900">
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-white">Criar Novo Time</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle>Criar Novo Time</CardTitle>
+              <CardDescription>
                 Crie um time para organizar seus colaboradores
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Nome do Time</Label>
+                <Label>Nome do Time</Label>
                 <Input
                   placeholder="Ex: Vendas, Suporte, Marketing..."
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
                 />
               </div>
 
               {/* Suggested Teams */}
               <div className="space-y-2">
-                <Label className="text-gray-300">
-                  Ou escolha um time sugerido:
-                </Label>
+                <Label>Ou escolha um time sugerido:</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {suggestedTeams.map((suggested) => {
                     const Icon = suggested.icon;
                     const alreadyExists = teams.some(
                       (t) =>
-                        t.name.toLowerCase() === suggested.name.toLowerCase()
+                        t.name.toLowerCase() === suggested.name.toLowerCase(),
                     );
                     return (
                       <Button
@@ -241,14 +235,12 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
                         variant="outline"
                         disabled={alreadyExists || isCreating}
                         onClick={() => handleCreateTeam(suggested.name)}
-                        className={`justify-start border-gray-700 text-gray-300 hover:bg-gray-800 ${
-                          alreadyExists ? "opacity-50" : ""
-                        }`}
+                        className={`justify-start ${alreadyExists ? "opacity-50" : ""}`}
                       >
                         <Icon className="mr-2 h-4 w-4" />
                         {suggested.name}
                         {alreadyExists && (
-                          <span className="ml-auto text-gray-500 text-xs">
+                          <span className="ml-auto text-muted-foreground text-xs">
                             ja existe
                           </span>
                         )}
@@ -262,7 +254,6 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
                 <Button
                   onClick={() => handleCreateTeam()}
                   disabled={isCreating || !newTeamName.trim()}
-                  className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
                 >
                   {isCreating ? (
                     <>
@@ -279,7 +270,6 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
                     setShowCreateForm(false);
                     setNewTeamName("");
                   }}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Cancelar
                 </Button>
@@ -290,20 +280,17 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
 
         {/* Teams List */}
         {teams.length === 0 ? (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card>
             <CardContent className="py-12 text-center">
-              <Users className="mx-auto mb-4 h-12 w-12 text-gray-600" />
-              <h3 className="mb-2 font-medium text-lg text-white">
+              <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 font-medium text-lg text-foreground">
                 Nenhum time criado
               </h3>
-              <p className="mb-6 text-gray-400">
+              <p className="mb-6 text-muted-foreground">
                 Crie times para organizar seus colaboradores por area de
                 atuacao.
               </p>
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
-              >
+              <Button onClick={() => setShowCreateForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Primeiro Time
               </Button>
@@ -315,18 +302,18 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
               const iconKey = team.name.toLowerCase();
               const Icon = teamIcons[iconKey] || Users;
               return (
-                <Card key={team.id} className="border-gray-800 bg-gray-900">
+                <Card key={team.id} className="border border-border">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e1b4a] text-white">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                           <Icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-foreground">
                             {team.name}
                           </h3>
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             {team.members?.length || 0} membros
                           </p>
                         </div>
@@ -335,7 +322,7 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteTeam(team.id)}
-                        className="text-gray-400 hover:text-red-400"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         Remover
                       </Button>
@@ -348,9 +335,9 @@ export default function TeamsManagement({ orgId }: TeamsManagementProps) {
         )}
 
         {/* Info */}
-        <div className="mt-6 rounded-lg border border-gray-800 bg-gray-800/50 p-4">
-          <p className="text-gray-400 text-sm">
-            <strong className="text-gray-300">Dica:</strong> Times ajudam a
+        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
+          <p className="text-muted-foreground text-sm">
+            <strong className="text-foreground">Dica:</strong> Times ajudam a
             organizar seus colaboradores por area. Voce pode adicionar membros a
             times na pagina de gerenciamento de membros.
           </p>

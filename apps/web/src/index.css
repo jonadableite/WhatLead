@@ -34,7 +34,7 @@
   --color-warning-foreground: hsl(var(--warning-foreground));
   --color-info: hsl(var(--info));
   --color-info-foreground: hsl(var(--info-foreground));
-  
+
   /* Sidebar colors */
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
@@ -44,27 +44,34 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
-  
+
   /* Chart colors */
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
-  
+
   /* Radius mapping */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  
+
   /* Shine animation for ShineBorder */
   @keyframes shine {
     0% { background-position: 0% 0%; }
     50% { background-position: 100% 100%; }
     100% { background-position: 0% 0%; }
   }
+
+  --shadow-input:
+    0px 2px 3px -1px rgba(0, 0, 0, 0.12),
+    0px 1px 0px 0px rgba(25, 28, 33, 0.04),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.12);
 }
+
+.shadow-input { box-shadow: var(--shadow-input); }
 
 /* =============================================================================
    PREMIUM DARK THEME - Standard Naming Convention
@@ -75,32 +82,32 @@
   /* =========== BASE COLORS =========== */
 
   /* Background: Deep dark with subtle blue undertone */
-  --background: 240 15% 6%;
-  --foreground: 240 5% 90%;
+  --background: 0 0% 5%;
+  --foreground: 0 0% 95%;
 
   /* Card: Elevated surfaces */
-  --card: 240 12% 8%;
-  --card-foreground: 240 5% 90%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 95%;
 
   /* Popover: Floating elements */
-  --popover: 240 12% 10%;
-  --popover-foreground: 240 5% 90%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 95%;
 
-  /* Primary: Brand purple */
-  --primary: 258 71% 62%;
+  /* Primary: Brand #1e1b4a */
+  --primary: 244 46% 20%;
   --primary-foreground: 0 0% 100%;
 
   /* Secondary: Muted surfaces */
-  --secondary: 240 8% 14%;
-  --secondary-foreground: 240 5% 90%;
+  --secondary: 240 6% 12%;
+  --secondary-foreground: 0 0% 95%;
 
   /* Muted: Disabled and secondary text */
-  --muted: 240 8% 14%;
-  --muted-foreground: 240 5% 65%;
+  --muted: 240 6% 12%;
+  --muted-foreground: 0 0% 70%;
 
   /* Accent: Interactive highlights */
-  --accent: 258 50% 20%;
-  --accent-foreground: 240 5% 90%;
+  --accent: 244 30% 16%;
+  --accent-foreground: 0 0% 95%;
 
   /* Destructive: Error and danger states */
   --destructive: 355 89% 66%;
@@ -119,29 +126,29 @@
   --info-foreground: 0 0% 0%;
 
   /* Borders and inputs */
-  --border: 240 8% 18%;
-  --input: 240 8% 12%;
-  --ring: 258 71% 62%;
+  --border: 240 5% 16%;
+  --input: 240 5% 12%;
+  --ring: 244 46% 20%;
 
   /* Radius - Smooth corners */
   --radius: 0.625rem;
 
   /* Chart colors - Purple gradient palette */
-  --chart-1: 258 80% 70%;
-  --chart-2: 258 71% 62%;
-  --chart-3: 258 60% 50%;
-  --chart-4: 258 50% 40%;
-  --chart-5: 258 40% 30%;
+  --chart-1: 244 46% 40%;
+  --chart-2: 244 46% 32%;
+  --chart-3: 244 46% 24%;
+  --chart-4: 244 46% 20%;
+  --chart-5: 244 46% 16%;
 
   /* Sidebar */
-  --sidebar: 240 12% 7%;
-  --sidebar-foreground: 240 5% 90%;
-  --sidebar-primary: 258 71% 62%;
+  --sidebar: 0 0% 6%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 244 46% 20%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 240 8% 14%;
-  --sidebar-accent-foreground: 240 5% 90%;
-  --sidebar-border: 240 8% 18%;
-  --sidebar-ring: 258 71% 62%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-border: 240 5% 16%;
+  --sidebar-ring: 244 46% 20%;
 
   /* =========== BRAND COLOR PALETTE =========== */
   /* Primary color variations */
@@ -205,19 +212,19 @@
   --card-foreground: 240 10% 10%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 10%;
-  --primary: 258 71% 55%;
+  --primary: 244 46% 20%;
   --primary-foreground: 0 0% 100%;
   --secondary: 240 5% 96%;
   --secondary-foreground: 240 10% 10%;
   --muted: 240 5% 96%;
   --muted-foreground: 240 5% 45%;
-  --accent: 258 50% 95%;
-  --accent-foreground: 258 71% 55%;
+  --accent: 244 30% 96%;
+  --accent-foreground: 244 46% 20%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   --border: 240 5% 90%;
   --input: 240 5% 90%;
-  --ring: 258 71% 55%;
+  --ring: 244 46% 20%;
 }
 
 /* =============================================================================

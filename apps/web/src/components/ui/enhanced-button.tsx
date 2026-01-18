@@ -12,18 +12,18 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				default:
-					"bg-[var(--rocket-purple)] text-white hover:bg-[var(--rocket-purple-light)] shadow-lg shadow-[var(--rocket-purple)]/20",
+					"bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20",
 				destructive:
-					"bg-[var(--rocket-danger)] text-white hover:bg-[var(--rocket-danger)]/90 shadow-lg shadow-[var(--rocket-danger)]/20",
+					"bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20",
 				outline:
-					"border border-[var(--rocket-gray-600)] bg-transparent text-[var(--rocket-gray-100)] hover:border-[var(--rocket-purple)]/50 hover:bg-[var(--rocket-purple)]/5",
+					"border border-border bg-transparent text-foreground hover:border-primary/50 hover:bg-primary/5",
 				secondary:
-					"bg-[var(--rocket-gray-700)] text-[var(--rocket-gray-100)] hover:bg-[var(--rocket-gray-600)]",
+					"bg-secondary text-secondary-foreground hover:bg-secondary/80",
 				ghost:
-					"text-[var(--rocket-gray-100)] hover:bg-[var(--rocket-gray-700)]",
-				link: "text-[var(--rocket-purple)] underline-offset-4 hover:underline",
+					"text-foreground hover:bg-muted",
+				link: "text-primary underline-offset-4 hover:underline",
 				success:
-					"bg-[var(--rocket-green)] text-white hover:bg-[var(--rocket-green-dark)] shadow-lg shadow-[var(--rocket-green)]/20",
+					"bg-success text-success-foreground hover:bg-success/90 shadow-lg shadow-success/20",
 			},
 			size: {
 				default: "h-10 px-4 py-2",

@@ -13,7 +13,7 @@ export default async function AdminUsersPage() {
   });
 
   if (!session?.data?.user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   // Verificar se é admin

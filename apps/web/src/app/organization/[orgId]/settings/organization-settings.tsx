@@ -124,64 +124,61 @@ export default function OrganizationSettings({
 
 	if (isLoading) {
 		return (
-			<div className="flex min-h-screen items-center justify-center bg-[#1B1B1F]">
-				<Loader2 className="h-8 w-8 animate-spin text-[#1e1b4a]" />
+			<div className="flex min-h-screen items-center justify-center bg-background">
+				<Loader2 className="h-8 w-8 animate-spin text-primary" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="min-h-screen bg-[#1B1B1F] p-6">
+		<div className="min-h-screen bg-background p-6">
 			<div className="mx-auto max-w-2xl">
 				{/* Header */}
 				<div className="mb-6">
 					<Link
 						href={`/organization/${orgId}/members`}
-						className="mb-4 inline-flex items-center text-gray-400 text-sm hover:text-white"
+						className="mb-4 inline-flex items-center text-muted-foreground text-sm hover:text-foreground"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Voltar
 					</Link>
-					<h1 className="font-bold text-2xl text-white">Configuracoes</h1>
-					<p className="text-gray-400 text-sm">
+					<h1 className="font-bold text-2xl text-foreground">Configuracoes</h1>
+					<p className="text-muted-foreground text-sm">
 						Gerencie as configuracoes da sua organizacao
 					</p>
 				</div>
 
 				{/* General Settings */}
-				<Card className="mb-6 border-gray-800 bg-gray-900">
+				<Card className="mb-6">
 					<CardHeader>
-						<CardTitle className="text-white">Informacoes Gerais</CardTitle>
-						<CardDescription className="text-gray-400">
+						<CardTitle>Informacoes Gerais</CardTitle>
+						<CardDescription>
 							Atualize os dados da sua organizacao
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="space-y-2">
-							<Label className="text-gray-300">Nome da Organizacao</Label>
+							<Label>Nome da Organizacao</Label>
 							<Input
 								value={name}
 								onChange={(e) => setName(e.target.value)}
-								className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label className="text-gray-300">Slug (URL)</Label>
+							<Label>Slug (URL)</Label>
 							<Input
 								value={slug}
 								onChange={(e) =>
 									setSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"))
 								}
-								className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
 							/>
-							<p className="text-gray-500 text-xs">
+							<p className="text-muted-foreground text-xs">
 								Sera usado na URL: whatlead.com.br/org/{slug || "slug"}
 							</p>
 						</div>
 						<Button
 							onClick={handleSave}
 							disabled={isSaving}
-							className="bg-[#1e1b4a] hover:bg-[#2d2a5e]"
 						>
 							{isSaving ? (
 								<>
@@ -199,54 +196,53 @@ export default function OrganizationSettings({
 				</Card>
 
 				{/* Danger Zone */}
-				<Card className="border-red-500/30 bg-gray-900">
+				<Card className="border border-destructive/30">
 					<CardHeader>
-						<CardTitle className="flex items-center gap-2 text-red-400">
+						<CardTitle className="flex items-center gap-2 text-destructive">
 							<AlertTriangle className="h-5 w-5" />
 							Zona de Perigo
 						</CardTitle>
-						<CardDescription className="text-gray-400">
+						<CardDescription>
 							Acoes irreversiveis. Tenha cuidado.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						{!showDeleteConfirm ? (
-							<div className="flex items-center justify-between rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+							<div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-4">
 								<div>
-									<p className="font-medium text-white">Excluir Organizacao</p>
-									<p className="text-gray-400 text-sm">
+									<p className="font-medium text-foreground">Excluir Organizacao</p>
+									<p className="text-muted-foreground text-sm">
 										Esta acao e permanente e nao pode ser desfeita.
 									</p>
 								</div>
 								<Button
 									variant="outline"
 									onClick={() => setShowDeleteConfirm(true)}
-									className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+									className="border-destructive/50 text-destructive hover:bg-destructive/10"
 								>
 									Excluir
 								</Button>
 							</div>
 						) : (
-							<div className="space-y-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+							<div className="space-y-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
 								<div>
-									<p className="font-medium text-red-400">Tem certeza?</p>
-									<p className="text-gray-400 text-sm">
+									<p className="font-medium text-destructive">Tem certeza?</p>
+									<p className="text-muted-foreground text-sm">
 										Esta acao ira excluir permanentemente a organizacao{" "}
-										<strong className="text-white">{organization?.name}</strong>
+										<strong className="text-foreground">{organization?.name}</strong>
 										, todos os membros e times associados.
 									</p>
 								</div>
 								<div className="space-y-2">
-									<Label className="text-gray-300">
+									<Label>
 										Digite{" "}
-										<strong className="text-white">{organization?.name}</strong>{" "}
+										<strong className="text-foreground">{organization?.name}</strong>{" "}
 										para confirmar:
 									</Label>
 									<Input
 										value={deleteConfirmText}
 										onChange={(e) => setDeleteConfirmText(e.target.value)}
 										placeholder={organization?.name}
-										className="border-red-500/30 bg-gray-800 text-white placeholder:text-gray-500"
 									/>
 								</div>
 								<div className="flex gap-3">
@@ -256,7 +252,7 @@ export default function OrganizationSettings({
 										disabled={
 											isDeleting || deleteConfirmText !== organization?.name
 										}
-										className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+										className="border-destructive/50 text-destructive hover:bg-destructive/10"
 									>
 										{isDeleting ? (
 											<>
@@ -273,7 +269,6 @@ export default function OrganizationSettings({
 											setShowDeleteConfirm(false);
 											setDeleteConfirmText("");
 										}}
-										className="text-gray-400 hover:text-white"
 									>
 										Cancelar
 									</Button>

@@ -18,61 +18,61 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ user }: AdminDashboardProps) {
 	return (
-		<div className="min-h-screen bg-[#1B1B1F] p-6">
+		<div className="min-h-screen bg-background p-6">
 			<div className="mx-auto max-w-7xl">
 				{/* Header */}
 				<div className="mb-8">
 					<div className="flex items-center gap-3">
-						<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e1b4a]">
-							<Shield className="h-5 w-5 text-white" />
+						<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+							<Shield className="h-5 w-5 text-primary-foreground" />
 						</div>
 						<div>
-							<h1 className="font-bold text-2xl text-white">
+							<h1 className="font-bold text-2xl text-foreground">
 								Painel Administrativo
 							</h1>
-							<p className="text-gray-400 text-sm">Bem-vindo, {user.name}</p>
+							<p className="text-muted-foreground text-sm">Bem-vindo, {user.name}</p>
 						</div>
 					</div>
 				</div>
 
 				{/* Stats Cards */}
 				<div className="mb-8 grid gap-6 md:grid-cols-3">
-					<Card className="border-gray-800 bg-gray-900">
+					<Card>
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
-							<CardTitle className="font-medium text-gray-400 text-sm">
+							<CardTitle className="font-medium text-muted-foreground text-sm">
 								Total de Usuarios
 							</CardTitle>
-							<Users className="h-4 w-4 text-gray-400" />
+							<Users className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="font-bold text-2xl text-white">--</div>
-							<p className="text-gray-500 text-xs">Carregando...</p>
+							<div className="font-bold text-2xl text-foreground">--</div>
+							<p className="text-muted-foreground text-xs">Carregando...</p>
 						</CardContent>
 					</Card>
 
-					<Card className="border-gray-800 bg-gray-900">
+					<Card>
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
-							<CardTitle className="font-medium text-gray-400 text-sm">
+							<CardTitle className="font-medium text-muted-foreground text-sm">
 								Organizacoes
 							</CardTitle>
-							<BarChart3 className="h-4 w-4 text-gray-400" />
+							<BarChart3 className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="font-bold text-2xl text-white">--</div>
-							<p className="text-gray-500 text-xs">Carregando...</p>
+							<div className="font-bold text-2xl text-foreground">--</div>
+							<p className="text-muted-foreground text-xs">Carregando...</p>
 						</CardContent>
 					</Card>
 
-					<Card className="border-gray-800 bg-gray-900">
+					<Card>
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
-							<CardTitle className="font-medium text-gray-400 text-sm">
+							<CardTitle className="font-medium text-muted-foreground text-sm">
 								Usuarios Banidos
 							</CardTitle>
-							<Shield className="h-4 w-4 text-gray-400" />
+							<Shield className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="font-bold text-2xl text-white">--</div>
-							<p className="text-gray-500 text-xs">Carregando...</p>
+							<div className="font-bold text-2xl text-foreground">--</div>
+							<p className="text-muted-foreground text-xs">Carregando...</p>
 						</CardContent>
 					</Card>
 				</div>
@@ -80,18 +80,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 				{/* Quick Actions */}
 				<div className="grid gap-6 md:grid-cols-2">
 					<Link href="/admin/users">
-						<Card className="cursor-pointer border-gray-800 bg-gray-900 transition-colors hover:border-[#1e1b4a]">
+						<Card className="cursor-pointer border border-border transition-colors hover:border-primary/50">
 							<CardHeader>
-								<CardTitle className="flex items-center gap-2 text-white">
+								<CardTitle className="flex items-center gap-2">
 									<Users className="h-5 w-5" />
 									Gerenciar Usuarios
 								</CardTitle>
-								<CardDescription className="text-gray-400">
+								<CardDescription>
 									Visualize, edite e gerencie todos os usuarios da plataforma
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<ul className="space-y-2 text-gray-500 text-sm">
+								<ul className="space-y-2 text-muted-foreground text-sm">
 									<li>• Listar todos os usuarios</li>
 									<li>• Banir/Desbanir usuarios</li>
 									<li>• Alterar roles (admin/user)</li>
@@ -101,21 +101,21 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 						</Card>
 					</Link>
 
-					<Card className="border-gray-800 bg-gray-900 opacity-50">
+					<Card className="border border-border opacity-50">
 						<CardHeader>
-							<CardTitle className="flex items-center gap-2 text-white">
+							<CardTitle className="flex items-center gap-2">
 								<BarChart3 className="h-5 w-5" />
 								Analytics
-								<span className="rounded bg-gray-700 px-2 py-0.5 text-gray-400 text-xs">
+								<span className="rounded bg-muted px-2 py-0.5 text-muted-foreground text-xs">
 									Em breve
 								</span>
 							</CardTitle>
-							<CardDescription className="text-gray-400">
+							<CardDescription>
 								Metricas e relatorios da plataforma
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<ul className="space-y-2 text-gray-500 text-sm">
+							<ul className="space-y-2 text-muted-foreground text-sm">
 								<li>• Usuarios ativos</li>
 								<li>• Organizacoes criadas</li>
 								<li>• Metricas de uso</li>
@@ -129,7 +129,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 				<div className="mt-8">
 					<Link
 						href="/dashboard"
-						className="text-gray-400 text-sm hover:text-white"
+						className="text-muted-foreground text-sm hover:text-foreground"
 					>
 						&larr; Voltar para o Dashboard
 					</Link>

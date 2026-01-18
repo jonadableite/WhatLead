@@ -19,7 +19,7 @@ export default async function TeamsPage({ params }: Props) {
   });
 
   if (!session?.data?.user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   return <TeamsManagement orgId={orgId} />;

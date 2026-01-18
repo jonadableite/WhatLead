@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 
 import { Geist, Geist_Mono } from "next/font/google";
 
-import Header from "@/components/header";
 import Providers from "@/components/providers";
 import "../index.css";
 
@@ -71,7 +70,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className="dark">
+    <html
+      lang="pt-BR"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+      className="dark"
+    >
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-dvh bg-background text-foreground`}
       >
@@ -83,7 +87,6 @@ export default function RootLayout({
               <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-primary/3 via-transparent to-transparent opacity-30" />
             </div>
 
-            <Header />
             <main className="flex-1 safe-bottom">{children}</main>
           </div>
         </Providers>
