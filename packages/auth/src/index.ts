@@ -1,9 +1,9 @@
 import prisma from "@WhatLead/db";
 import { sendEmail } from "@WhatLead/email";
 import {
-    invitationTemplate,
-    resetPasswordTemplate,
-    verifyEmailTemplate,
+  invitationTemplate,
+  resetPasswordTemplate,
+  verifyEmailTemplate,
 } from "@WhatLead/email/templates";
 import { env } from "@WhatLead/env/server";
 import { betterAuth } from "better-auth";
@@ -63,12 +63,20 @@ export const auth = betterAuth({
 	// ==========================================================================
 	emailVerification: {
 		sendVerificationEmail: async ({ user, url }) => {
+			const verificationUrl = new URL(url);
+			const token = verificationUrl.searchParams.get("token") ?? "";
+			const callbackURL = verificationUrl.searchParams.get("callbackURL");
+			const webUrl = new URL("/verify-email", env.CORS_ORIGIN);
+			if (token) webUrl.searchParams.set("token", token);
+			if (callbackURL) webUrl.searchParams.set("callbackURL", callbackURL);
+			webUrl.searchParams.set("email", user.email);
+
 			await sendEmail({
 				to: user.email,
 				subject: "Confirme seu email - WhatLead",
 				html: verifyEmailTemplate({
 					name: user.name,
-					url,
+					url: webUrl.toString(),
 				}),
 			});
 		},

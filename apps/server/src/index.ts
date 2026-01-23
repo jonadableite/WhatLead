@@ -28,10 +28,16 @@ import { ConversationRouter } from "./application/conversation/conversation-rout
 import { ReplyIntentDispatcher } from "./application/conversation/reply-intent-dispatcher";
 import { DispatchGateUseCase } from "./application/dispatch-gate/dispatch-gate.use-case";
 import { DispatchUseCase } from "./application/dispatch/dispatch.use-case";
+import { InstanceHealthCronJob } from "./application/handlers/cron/instance-health.cron";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
 import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port";
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
+import { CreateInstanceUseCase } from "./application/instances/create-instance.use-case";
+import { EvaluateInstanceHealthOnDemandUseCase } from "./application/instances/evaluate-instance-health-on-demand.use-case";
+import { GetInstanceUseCase } from "./application/instances/get-instance.use-case";
+import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
+import { RequestInstanceConnectionUseCase } from "./application/instances/request-instance-connection.use-case";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
 import { CreateLeadUseCase } from "./application/sdr/create-lead.use-case";
 import { OpenConversationForLeadUseCase } from "./application/sdr/open-conversation-for-lead.use-case";
@@ -48,6 +54,7 @@ import { DispatchPolicy } from "./domain/services/dispatch-policy";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { SLAEvaluator } from "./domain/services/sla-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { PrismaActiveInstanceIdsProvider } from "./infra/cron/prisma-active-instance-ids-provider";
 import { InMemoryDispatchGateDecisionRecorder } from "./infra/dispatch-gate/in-memory-dispatch-gate-decision-recorder";
 import { TimelineDispatchRateSnapshotAdapter } from "./infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
 import { WhatsAppMessageDispatchAdapter } from "./infra/dispatch/whatsapp-message-dispatch-adapter";
@@ -58,9 +65,9 @@ import { WhatsAppProviderDispatchAdapter } from "./infra/heater/whatsapp-dispatc
 import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-backed-instance-metric-repository";
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
 import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-repository";
-import { InMemoryInstanceRepository } from "./infra/repositories/in-memory-instance-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
 import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
+import { PrismaInstanceRepository } from "./infra/repositories/prisma-instance-repository";
 import { PrismaLeadRepository } from "./infra/repositories/prisma-lead-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
 import {
@@ -73,6 +80,7 @@ import { InMemoryReputationSignalRepository } from "./infra/signals/in-memory-re
 import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-ingest-reputation-signal-use-case";
 import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
 import { SignalMetricIngestionAdapter } from "./infra/signals/signal-metric-ingestion-adapter";
+import { registerInstanceRoutes } from "./infra/web/instances.routes";
 import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
@@ -302,8 +310,8 @@ const signalRepository =
 		? new PrismaReputationSignalRepository(env.REPUTATION_SIGNAL_RETENTION_DAYS)
 		: new InMemoryReputationSignalRepository();
 const metricRepository = new SignalBackedInstanceMetricRepository(signalRepository);
-const instanceRepository = new InMemoryInstanceRepository("system", "TURBOZAP");
 const reputationRepository = new InMemoryInstanceReputationRepository();
+const instanceRepository = new PrismaInstanceRepository(reputationRepository);
 const evaluator = new InstanceReputationEvaluator();
 const eventBus = new LoggingDomainEventBus();
 const evaluateInstanceHealth = new EvaluateInstanceHealthUseCase(
@@ -320,6 +328,13 @@ const recordSignal = new RecordReputationSignalUseCase(
 const ingestSignal = new IngestReputationSignalUseCase(recordSignal);
 const ingestSignalWithLogging = new LoggingIngestReputationSignalUseCase(ingestSignal);
 const metricIngestion = new SignalMetricIngestionAdapter(ingestSignal);
+const activeInstanceIdsProvider = new PrismaActiveInstanceIdsProvider();
+const instanceHealthCronJob = new InstanceHealthCronJob(
+	activeInstanceIdsProvider,
+	evaluateInstanceHealth,
+);
+let instanceHealthCronTimer: NodeJS.Timeout | null = null;
+const INSTANCE_HEALTH_CRON_INTERVAL_MS = 60_000;
 
 const conversationRepository = new PrismaConversationRepository();
 const messageRepository = new PrismaMessageRepository();
@@ -454,6 +469,27 @@ const startSdrFlow = new StartSdrFlowUseCase(
 await registerSdrFlowRoutes(fastify, {
 	startSdrFlow,
 	gateDecisions: gateDecisionRecorder,
+});
+
+const listInstances = new ListInstancesUseCase(instanceRepository);
+const createInstance = new CreateInstanceUseCase(
+	instanceRepository,
+	reputationRepository,
+	idFactory,
+);
+const getInstance = new GetInstanceUseCase(instanceRepository);
+const requestConnection = new RequestInstanceConnectionUseCase(instanceRepository);
+const evaluateHealthOnDemand = new EvaluateInstanceHealthOnDemandUseCase(
+	instanceRepository,
+	evaluateInstanceHealth,
+);
+
+await registerInstanceRoutes(fastify, {
+	listInstances,
+	createInstance,
+	getInstance,
+	requestConnection,
+	evaluateHealthOnDemand,
 });
 
 // =============================================================================
@@ -669,6 +705,15 @@ const start = async (): Promise<void> => {
 
 		await fastify.listen({ port, host });
 
+		instanceHealthCronJob.run().catch((err) => {
+			serverLogger.error({ err, event: "instance_health_cron" }, "Instance health cron failed");
+		});
+		instanceHealthCronTimer = setInterval(() => {
+			instanceHealthCronJob.run().catch((err) => {
+				serverLogger.error({ err, event: "instance_health_cron" }, "Instance health cron failed");
+			});
+		}, INSTANCE_HEALTH_CRON_INTERVAL_MS);
+
 		serverLogger.info({
 			port,
 			host,
@@ -691,6 +736,10 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 	}, "Received shutdown signal, shutting down gracefully...");
 
 	try {
+		if (instanceHealthCronTimer) {
+			clearInterval(instanceHealthCronTimer);
+			instanceHealthCronTimer = null;
+		}
 		await fastify.close();
 		serverLogger.info({
 			icon: "✅",

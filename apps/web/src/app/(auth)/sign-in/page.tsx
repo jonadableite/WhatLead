@@ -1,5 +1,6 @@
 "use client";
 
+import Loader from "@/components/loader";
 import { EnhancedButton } from "@/components/ui/enhanced-button";
 import { EnhancedInput } from "@/components/ui/enhanced-input";
 import { ShineBorder } from "@/components/ui/shine-border";
@@ -9,7 +10,7 @@ import { motion } from "motion/react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { Suspense, useState, type ChangeEvent, type FormEvent } from "react";
 
 interface FormErrors {
   email?: string;
@@ -24,6 +25,14 @@ interface FormData {
 }
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={<Loader />}>
+      <SignInContent />
+    </Suspense>
+  );
+}
+
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = (() => {

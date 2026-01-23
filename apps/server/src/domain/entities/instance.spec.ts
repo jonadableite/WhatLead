@@ -125,19 +125,31 @@ describe("Instance", () => {
 			purpose: "MIXED",
 		});
 
-		expect(instance.allowedActions(new Date())).toEqual(["BLOCK_DISPATCH"]);
+		expect(instance.allowedActions(new Date())).toEqual([
+			"VIEW_HEALTH",
+			"CONNECT",
+			"BLOCK_DISPATCH",
+		]);
 
 		instance.markConnected();
-		expect(instance.allowedActions(new Date())).toEqual(["ALLOW_DISPATCH"]);
+		expect(instance.allowedActions(new Date())).toEqual([
+			"VIEW_HEALTH",
+			"ALLOW_DISPATCH",
+		]);
 
 		instance.enterCooldown();
 		expect(instance.allowedActions(new Date())).toEqual([
+			"VIEW_HEALTH",
 			"ENTER_COOLDOWN",
 			"BLOCK_DISPATCH",
 			"ALERT",
 		]);
 
 		instance.markBanned();
-		expect(instance.allowedActions(new Date())).toEqual(["BLOCK_DISPATCH", "ALERT"]);
+		expect(instance.allowedActions(new Date())).toEqual([
+			"VIEW_HEALTH",
+			"BLOCK_DISPATCH",
+			"ALERT",
+		]);
 	});
 });

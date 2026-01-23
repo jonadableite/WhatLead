@@ -12,6 +12,8 @@ export interface InstanceProps {
 	companyId: string;
 	engine: WhatsAppEngine;
 	purpose: InstancePurpose;
+	displayName: string;
+	phoneNumber: string;
 	lifecycleStatus: InstanceLifecycleStatus;
 	connectionStatus: InstanceConnectionStatus;
 	reputation: InstanceReputation;
@@ -26,6 +28,8 @@ export class Instance {
 	private readonly _engine: WhatsAppEngine;
 
 	private _purpose: InstancePurpose;
+	private _displayName: string;
+	private _phoneNumber: string;
 	private _lifecycleStatus: InstanceLifecycleStatus;
 	private _connectionStatus: InstanceConnectionStatus;
 	private _reputation: InstanceReputation;
@@ -38,6 +42,8 @@ export class Instance {
 		this._companyId = props.companyId;
 		this._engine = props.engine;
 		this._purpose = props.purpose;
+		this._displayName = props.displayName;
+		this._phoneNumber = props.phoneNumber;
 		this._lifecycleStatus = props.lifecycleStatus;
 		this._connectionStatus = props.connectionStatus;
 		this._reputation = props.reputation;
@@ -52,12 +58,16 @@ export class Instance {
 		engine: WhatsAppEngine;
 		reputation: InstanceReputation;
 		purpose?: InstancePurpose;
+		displayName?: string;
+		phoneNumber?: string;
 	}): Instance {
 		return new Instance({
 			id: params.id,
 			companyId: params.companyId,
 			engine: params.engine,
 			purpose: params.purpose ?? "WARMUP",
+			displayName: params.displayName ?? "Nova instância",
+			phoneNumber: params.phoneNumber ?? "",
 			lifecycleStatus: "CREATED",
 			connectionStatus: "DISCONNECTED",
 			reputation: params.reputation,
@@ -93,6 +103,18 @@ export class Instance {
 
 	get purpose(): InstancePurpose {
 		return this._purpose;
+	}
+
+	get displayName(): string {
+		return this._displayName;
+	}
+
+	get phoneNumber(): string {
+		return this._phoneNumber;
+	}
+
+	get maskedPhoneNumber(): string {
+		return maskPhoneNumber(this._phoneNumber);
 	}
 
 	get reputation(): InstanceReputation {
@@ -203,12 +225,21 @@ export class Instance {
 	allowedActions(now: Date = new Date()): readonly InstanceHealthAction[] {
 		const actions: InstanceHealthAction[] = [];
 
+		actions.push("VIEW_HEALTH");
+
 		if (this._lifecycleStatus === "BANNED") {
-			return ["BLOCK_DISPATCH", "ALERT"];
+			return ["VIEW_HEALTH", "BLOCK_DISPATCH", "ALERT"];
+		}
+
+		if (this._connectionStatus === "DISCONNECTED") {
+			actions.push("CONNECT");
+		}
+		if (this._connectionStatus === "ERROR") {
+			actions.push("RECONNECT");
 		}
 
 		if (this._lifecycleStatus === "COOLDOWN") {
-			return ["ENTER_COOLDOWN", "BLOCK_DISPATCH", "ALERT"];
+			return [...actions, "ENTER_COOLDOWN", "BLOCK_DISPATCH", "ALERT"];
 		}
 
 		if (this.isAtRisk()) {
@@ -274,3 +305,10 @@ export class Instance {
 		return { actions: this.allowedActions(now), events };
 	}
 }
+
+const maskPhoneNumber = (phoneNumber: string): string => {
+	const digits = phoneNumber.replace(/[^\d]/g, "");
+	if (!digits) return "—";
+	const last4 = digits.slice(-4);
+	return `•••• •••• ${last4}`;
+};
