@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 
 import Loader from "@/components/loader";
+import { Button } from "@/components/ui/button";
 import { authClient, type Session } from "@/lib/auth-client";
 
 export function RequireSession({
@@ -31,13 +32,9 @@ export function RequireSession({
         <p className="text-sm text-muted-foreground">
           Não foi possível validar sua sessão (servidor indisponível).
         </p>
-        <button
-          type="button"
-          className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
-          onClick={() => window.location.reload()}
-        >
+        <Button type="button" variant="outline" onClick={() => window.location.reload()}>
           Tentar novamente
-        </button>
+        </Button>
       </div>
     );
   }
@@ -71,13 +68,9 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
         <p className="text-sm text-muted-foreground">
           Não foi possível validar sua sessão (servidor indisponível).
         </p>
-        <button
-          type="button"
-          className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
-          onClick={() => window.location.reload()}
-        >
+        <Button type="button" variant="outline" onClick={() => window.location.reload()}>
           Tentar novamente
-        </button>
+        </Button>
       </div>
     );
   }

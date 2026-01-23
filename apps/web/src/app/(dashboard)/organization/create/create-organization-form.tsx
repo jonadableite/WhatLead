@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { organization } from "@/lib/auth-client";
 
 function slugify(input: string) {
@@ -293,13 +294,14 @@ export default function CreateOrganizationForm() {
             Logo (opcional)
           </label>
           {(logoDataUrl || logoUrl.trim()) && (
-            <button
+            <Button
               type="button"
               onClick={clearLogo}
-              className="text-xs text-white/60 hover:text-white"
+              variant="ghost"
+              size="xs"
             >
               Remover
-            </button>
+            </Button>
           )}
         </div>
 
@@ -331,13 +333,14 @@ export default function CreateOrganizationForm() {
                   handleLogoFile(file);
                 }}
               />
-              <button
+              <Button
                 type="button"
                 onClick={openFilePicker}
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                variant="outline"
+                size="sm"
               >
                 Enviar imagem
-              </button>
+              </Button>
               <div className="text-xs text-white/40">
                 PNG/JPG/WEBP/SVG • até 512KB
               </div>
@@ -376,20 +379,18 @@ export default function CreateOrganizationForm() {
       )}
 
       <div className="pt-4 flex items-center justify-end gap-3">
-        <button
+        <Button
           type="button"
           onClick={() => router.back()}
-          className="px-4 py-2.5 rounded-lg border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+          variant="outline"
         >
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           disabled={submitting || !name || !slug || slugAvailable === false}
-          className="relative group px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-indigo-500/25 overflow-hidden font-medium text-sm"
         >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-          <div className="relative flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -399,7 +400,7 @@ export default function CreateOrganizationForm() {
               <span>Criar Organização</span>
             )}
           </div>
-        </button>
+        </Button>
       </div>
     </form>
   );

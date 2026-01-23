@@ -90,11 +90,7 @@ export default function InstancesDashboard() {
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button
-              variant="outline"
-              onClick={() => mutate()}
-              className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
-            >
+            <Button variant="outline" onClick={() => mutate()}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Atualizar
             </Button>
@@ -108,8 +104,7 @@ export default function InstancesDashboard() {
         </div>
 
         {error && (
-          <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-red-500/10 backdrop-blur-xl">
-            <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-red-400 via-rose-500 to-orange-400" />
+          <Card className="border border-red-500/30 bg-red-500/10">
             <CardContent className="p-6 text-sm text-red-100">
               Não foi possível carregar suas instâncias.
             </CardContent>
@@ -117,15 +112,13 @@ export default function InstancesDashboard() {
         )}
 
         {isLoading ? (
-          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl">
-            <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-cyan-400 via-violet-500 to-blue-400" />
+          <Card>
             <CardContent className="p-10 text-center text-white/60">
               Carregando...
             </CardContent>
           </Card>
         ) : (data?.items?.length ?? 0) === 0 ? (
-          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl">
-            <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-cyan-400 via-violet-500 to-blue-400" />
+          <Card>
             <CardContent className="p-10 text-center">
               <Building2 className="mx-auto mb-4 h-10 w-10 text-white/60" />
               <h2 className="text-lg font-semibold text-white">
@@ -150,9 +143,8 @@ export default function InstancesDashboard() {
             {data?.items.map((item) => (
               <Card
                 key={item.id}
-                className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl transition-all hover:border-white/20 hover:shadow-2xl"
+                className="transition-all hover:brightness-110"
               >
-                <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-cyan-400 via-violet-500 to-blue-400" />
                 <CardContent className="p-6">
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start justify-between gap-3">
@@ -200,7 +192,6 @@ export default function InstancesDashboard() {
                             size="sm"
                             disabled={actionInstanceId === item.id}
                             onClick={() => onConnect(item.id)}
-                            className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                           >
                             Conectar
                           </Button>
@@ -211,7 +202,6 @@ export default function InstancesDashboard() {
                             size="sm"
                             disabled={actionInstanceId === item.id}
                             onClick={() => onReconnect(item.id)}
-                            className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                           >
                             Reconectar
                           </Button>

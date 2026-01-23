@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import CreateOrganizationForm from "./create-organization-form";
 
 export default function CreateOrganizationPage() {
@@ -19,11 +20,8 @@ export default function CreateOrganizationPage() {
             &larr; Voltar
           </Link>
 
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-            <div className="pointer-events-none absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-cyan-400 via-violet-500 to-blue-400" />
-            <div className="pointer-events-none absolute -top-10 left-1/2 h-20 w-[120%] -translate-x-1/2 bg-gradient-to-r from-cyan-400/0 via-violet-400/35 to-blue-400/0 blur-2xl" />
-
-            <div className="border-white/5 border-b px-8 pt-8 pb-4">
+          <Card>
+            <CardHeader className="border-white/5 border-b px-8 pt-8 pb-4">
               <h1 className="text-2xl font-semibold tracking-tight text-white">
                 Criar nova organização
               </h1>
@@ -31,11 +29,11 @@ export default function CreateOrganizationPage() {
                 Configure seu espaço de trabalho. Você poderá convidar membros e
                 alterar configurações depois.
               </p>
-            </div>
-            <div className="bg-black/20 p-8">
+            </CardHeader>
+            <CardContent className="bg-black/20 p-8">
               <CreateOrganizationForm />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
