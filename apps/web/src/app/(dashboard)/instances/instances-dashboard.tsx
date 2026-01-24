@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	AlertTriangle,
 	Building2,
 	Link2,
 	Pause,
@@ -14,6 +13,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApiSWR } from "@/lib/api/swr";
@@ -230,15 +230,19 @@ export default function InstancesDashboard() {
                       <span className="truncate">{item.healthLabel}</span>
                     </div>
 
-				{(item.riskLevel === "HIGH" || item.lifecycleStatus === "COOLDOWN") && (
-											<div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-												<AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
-						<span>
-							{item.lifecycleStatus === "COOLDOWN"
-								? "Instância em cooldown. Evite disparos até a retomada."
-								: "Risco elevado detectado. Reduza volume e priorize qualidade."}
-						</span>
-					</div>
+				{item.lifecycleStatus === "COOLDOWN" && (
+					<AlertBanner
+						variant="cooldown"
+						title="Instância em cooldown"
+						description="Evite disparos até a retomada para reduzir risco operacional."
+					/>
+				)}
+				{item.riskLevel === "HIGH" && (
+					<AlertBanner
+						variant="risk"
+						title="Risco elevado detectado"
+						description="Reduza volume e priorize qualidade antes de continuar."
+					/>
 				)}
 
 										<div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground">

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApiSWR } from "@/lib/api/swr";
@@ -332,6 +333,20 @@ export default function InstanceDetailsPageClient({
 						{tab === "overview" && (
 							<Card>
 								<CardContent className="space-y-4 p-6">
+									{item.lifecycleStatus === "COOLDOWN" && (
+										<AlertBanner
+											variant="cooldown"
+											title="Instância em cooldown"
+											description="Aguarde antes de retomar envios para evitar bloqueios."
+										/>
+									)}
+									{item.riskLevel === "HIGH" && (
+										<AlertBanner
+											variant="risk"
+											title="Risco elevado detectado"
+											description="Reduza volume e reavalie a saúde da instância."
+										/>
+									)}
 									<div className="flex items-center gap-2 text-muted-foreground">
 										<ShieldAlert className="h-5 w-5 text-primary" />
 										<div className="text-sm">{item.healthLabel}</div>

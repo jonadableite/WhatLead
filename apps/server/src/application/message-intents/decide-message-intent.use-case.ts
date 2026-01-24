@@ -2,6 +2,7 @@ import type { DispatchMessageIntentGateUseCase } from "../message-dispatch/dispa
 import type { MessageIntentRepository } from "../../domain/repositories/message-intent-repository";
 import type { MessageIntentStatus } from "../../domain/value-objects/message-intent-status";
 import type { MessageGateDecisionReason } from "../../domain/value-objects/message-gate-decision-reason";
+import type { CreateExecutionJobUseCase } from "../execution/use-cases/create-execution-job.use-case";
 
 export interface DecideMessageIntentUseCaseRequest {
 	intentId: string;
@@ -22,6 +23,7 @@ export class DecideMessageIntentUseCase {
 	constructor(
 		private readonly intents: MessageIntentRepository,
 		private readonly gate: DispatchMessageIntentGateUseCase,
+		private readonly createExecutionJob?: CreateExecutionJobUseCase,
 	) {}
 
 	async execute(
@@ -37,6 +39,17 @@ export class DecideMessageIntentUseCase {
 		if (!intent) throw new Error("MESSAGE_INTENT_NOT_FOUND");
 
 		if (decision.decision === "APPROVED") {
+			if (this.createExecutionJob) {
+				try {
+					await this.createExecutionJob.execute({
+						intentId: intent.id,
+						organizationId: request.organizationId,
+						now: request.now,
+					});
+				} catch {
+					// Não bloqueia decisão caso o job falhe ao enfileirar.
+				}
+			}
 			return {
 				intentId: intent.id,
 				status: intent.status,

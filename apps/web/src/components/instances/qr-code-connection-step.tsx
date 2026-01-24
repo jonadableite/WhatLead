@@ -25,6 +25,8 @@ interface QRCodeConnectionStepProps {
 }
 
 const STATUS_REFRESH_INTERVAL_MS = 3_000;
+const STATUS_CONNECTED_INTERVAL_MS = 15_000;
+const STATUS_IDLE_INTERVAL_MS = 8_000;
 const QRCODE_REFRESH_INTERVAL_MS = 12_000;
 
 const statusMessage = (status: InstanceConnectionStatus): string => {
@@ -54,9 +56,18 @@ export const QRCodeConnectionStep = ({
 
 	const { data: statusData, mutate: refreshStatus } =
 		useApiSWR<InstanceConnectionStatusResponse>(
-			instanceId ? `/api/instances/${encodeURIComponent(instanceId)}/connection-status` : null,
+			instanceId
+				? `/api/instances/${encodeURIComponent(instanceId)}/connection-status`
+				: null,
 			{
-				refreshInterval: STATUS_REFRESH_INTERVAL_MS,
+				refreshInterval: (data) => {
+					const status = data?.connection.status ?? "DISCONNECTED";
+					if (status === "CONNECTED") return STATUS_CONNECTED_INTERVAL_MS;
+					if (status === "QRCODE" || status === "CONNECTING") {
+						return STATUS_REFRESH_INTERVAL_MS;
+					}
+					return STATUS_IDLE_INTERVAL_MS;
+				},
 				revalidateOnFocus: true,
 			},
 		);
@@ -67,7 +78,9 @@ export const QRCodeConnectionStep = ({
 				? `/api/instances/${encodeURIComponent(instanceId)}/qrcode`
 				: null,
 			{
-				refreshInterval: QRCODE_REFRESH_INTERVAL_MS,
+				refreshInterval: statusData?.connection.status === "QRCODE"
+					? QRCODE_REFRESH_INTERVAL_MS
+					: 0,
 				revalidateOnFocus: false,
 			},
 		);

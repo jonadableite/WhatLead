@@ -16,6 +16,11 @@ export const env = createEnv({
 		TURBOZAP_BASE_URL: z.string().min(1).default("http://localhost:3001"),
 		TURBOZAP_API_KEY: z.string().min(1).default("dev"),
 		TURBOZAP_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+		REDIS_URL: z.string().default("redis://localhost:6379"),
+		EXECUTION_QUEUE_ENABLED: z
+			.string()
+			.default("false")
+			.transform((value) => value === "true"),
 		REPUTATION_SIGNAL_REPOSITORY: z
 			.enum(["memory", "prisma"])
 			.default("memory"),

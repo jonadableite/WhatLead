@@ -41,6 +41,7 @@ import { GetInstanceConnectionStatusUseCase } from "./application/instances/get-
 import { GetInstanceQRCodeUseCase } from "./application/instances/get-instance-qrcode.use-case";
 import { GetInstanceUseCase } from "./application/instances/get-instance.use-case";
 import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
+import { CreateExecutionJobUseCase as EnqueueExecutionJobUseCase } from "./application/execution/use-cases/create-execution-job.use-case";
 import { DispatchMessageIntentGateUseCase } from "./application/message-dispatch/dispatch-message-intent-gate.use-case";
 import { CreateExecutionJobUseCase } from "./application/message-execution/create-execution-job.use-case";
 import { ExecuteMessageIntentUseCase } from "./application/message-execution/execute-message-intent.use-case";
@@ -88,6 +89,7 @@ import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-bac
 import { PrismaExecutionMetricsQuery } from "./infra/ops/prisma-execution-metrics-query";
 import { PersistingMessageExecutionEventBus } from "./infra/ops/persisting-message-execution-event-bus";
 import { PersistingMessageIntentEventBus } from "./infra/ops/persisting-message-intent-event-bus";
+import { BullMQExecutionQueue } from "./infra/queue/bullmq-execution.queue";
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
 import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
@@ -99,6 +101,7 @@ import { PrismaMessageExecutionJobRepository } from "./infra/repositories/prisma
 import { PrismaMessageIntentRepository } from "./infra/repositories/prisma-message-intent-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
 import { PrismaOperationalEventRepository } from "./infra/repositories/prisma-operational-event-repository";
+import { ExecutionWorker } from "./infra/workers/execution.worker";
 import {
     isCrossSiteMutationWithoutOrigin,
     isProbablyAutomation,
@@ -407,10 +410,6 @@ const createMessageIntent = new CreateMessageIntentUseCase(
 	messageIntentRepository,
 	idFactory,
 );
-const decideMessageIntent = new DecideMessageIntentUseCase(
-	messageIntentRepository,
-	messageIntentGate,
-);
 const listMessageIntents = new ListMessageIntentsUseCase(messageIntentRepository);
 const slaEvaluator = new SLAEvaluator();
 const gateDecisionRecorder = new InMemoryDispatchGateDecisionRecorder();
@@ -443,6 +442,10 @@ const createExecutionJob = new CreateExecutionJobUseCase(
 	instanceRepository,
 	idFactory,
 );
+const executionQueue = env.EXECUTION_QUEUE_ENABLED ? new BullMQExecutionQueue() : null;
+const enqueueExecutionJob = executionQueue
+	? new EnqueueExecutionJobUseCase(createExecutionJob, executionQueue)
+	: null;
 const executeMessageIntent = new ExecuteMessageIntentUseCase(
 	messageExecutionJobRepository,
 	messageIntentRepository,
@@ -451,6 +454,9 @@ const executeMessageIntent = new ExecuteMessageIntentUseCase(
 	executionControlPolicy,
 );
 const retryFailedExecution = new RetryFailedExecutionUseCase(messageExecutionJobRepository);
+const executionWorker = executionQueue
+	? new ExecutionWorker(executeMessageIntent, retryFailedExecution, executionQueue)
+	: null;
 const messageExecutorWorker = new MessageExecutorWorker(
 	messageIntentRepository,
 	messageExecutionJobRepository,
@@ -462,6 +468,12 @@ const messageExecutorWorker = new MessageExecutorWorker(
 		jobScanLimit: 50,
 		maxAttempts: ExecuteMessageIntentUseCase.DEFAULT_MAX_ATTEMPTS,
 	},
+);
+
+const decideMessageIntent = new DecideMessageIntentUseCase(
+	messageIntentRepository,
+	messageIntentGate,
+	enqueueExecutionJob ?? undefined,
 );
 
 const getExecutionMetrics = new GetExecutionMetricsUseCase(
@@ -850,14 +862,24 @@ const start = async (): Promise<void> => {
 			});
 		}, INSTANCE_HEALTH_CRON_INTERVAL_MS);
 
-		messageExecutorWorker.run().catch((err) => {
-			serverLogger.error({ err, event: "message_executor_cron" }, "Message executor cron failed");
-		});
-		messageExecutorCronTimer = setInterval(() => {
+		if (executionWorker) {
+			executionWorker.start();
+		} else {
 			messageExecutorWorker.run().catch((err) => {
-				serverLogger.error({ err, event: "message_executor_cron" }, "Message executor cron failed");
+				serverLogger.error(
+					{ err, event: "message_executor_cron" },
+					"Message executor cron failed",
+				);
 			});
-		}, MESSAGE_EXECUTOR_CRON_INTERVAL_MS);
+			messageExecutorCronTimer = setInterval(() => {
+				messageExecutorWorker.run().catch((err) => {
+					serverLogger.error(
+						{ err, event: "message_executor_cron" },
+						"Message executor cron failed",
+					);
+				});
+			}, MESSAGE_EXECUTOR_CRON_INTERVAL_MS);
+		}
 
 		serverLogger.info({
 			port,
@@ -888,6 +910,9 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 		if (messageExecutorCronTimer) {
 			clearInterval(messageExecutorCronTimer);
 			messageExecutorCronTimer = null;
+		}
+		if (executionWorker) {
+			await executionWorker.stop();
 		}
 		await fastify.close();
 		serverLogger.info({
