@@ -4,6 +4,7 @@ import type { FastifyInstance } from "fastify";
 import { auth } from "@WhatLead/auth";
 import type { CreateMessageIntentUseCase } from "../../application/message-intents/create-message-intent.use-case";
 import type { DecideMessageIntentUseCase } from "../../application/message-intents/decide-message-intent.use-case";
+import type { GetMessageIntentUseCase } from "../../application/message-intents/get-message-intent.use-case";
 import type { ListMessageIntentsUseCase } from "../../application/message-intents/list-message-intents.use-case";
 import type { MessageIntentPayload } from "../../domain/value-objects/message-intent-payload";
 import {
@@ -48,6 +49,7 @@ export const registerMessageIntentRoutes = async (
 	options: {
 		createMessageIntent: CreateMessageIntentUseCase;
 		decideMessageIntent: DecideMessageIntentUseCase;
+		getMessageIntent: GetMessageIntentUseCase;
 		listMessageIntents: ListMessageIntentsUseCase;
 	},
 ): Promise<void> => {
@@ -109,6 +111,22 @@ export const registerMessageIntentRoutes = async (
 		});
 
 		return reply.status(201).send(result);
+	});
+
+	fastify.get("/api/message-intents/:id", async (request, reply) => {
+		const tenantId = await resolveTenantId(request.headers as any);
+		if (!tenantId) return reply.status(401).send({ error: "UNAUTHORIZED" });
+
+		const params = request.params as { id: string };
+		try {
+			const result = await options.getMessageIntent.execute({
+				organizationId: tenantId,
+				intentId: params.id,
+			});
+			return reply.send(result);
+		} catch {
+			return reply.status(404).send({ error: "MESSAGE_INTENT_NOT_FOUND" });
+		}
 	});
 
 	fastify.post("/api/message-intents/:id/decide", async (request, reply) => {

@@ -66,3 +66,22 @@ export interface MessageIntentTimelineResponse {
 	job: MessageIntentTimelineJob | null;
 	events: OperationalEventRecord[];
 }
+
+export type ExecutionJobStatus = "PENDING" | "PROCESSING" | "SENT" | "FAILED" | "RETRY";
+
+export interface ExecutionJobListItem {
+	id: string;
+	intentId: string;
+	instanceId: string;
+	provider: string;
+	status: ExecutionJobStatus;
+	attempts: number;
+	lastError: string | null;
+	createdAt: string;
+	executedAt: string | null;
+	nextAttemptAt: string | null;
+}
+
+export interface ExecutionJobsResponse {
+	items: ExecutionJobListItem[];
+}

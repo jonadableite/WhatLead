@@ -197,6 +197,75 @@ This document serves as the central repository for documentation on all API endp
 
 ---
 
+### Message Intents (Operacional)
+
+#### `GET /api/message-intents/:id`
+
+* **Purpose:** Retorna detalhes do Message Intent para auditoria e UX operacional.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `id` (string, UUID): ID do intent.
+* **Success Response (200 OK):**
+ ```json
+ {
+   "intent": {
+     "id": "intent-uuid",
+     "organizationId": "org-uuid",
+     "status": "APPROVED",
+     "purpose": "DISPATCH",
+     "type": "TEXT",
+     "target": { "kind": "PHONE", "value": "5511999999999" },
+     "decidedByInstanceId": "instance-uuid",
+     "blockedReason": null,
+     "queuedUntil": null,
+     "createdAt": "2025-01-24T10:00:00.000Z",
+     "payloadSummary": {
+       "type": "TEXT",
+       "textPreview": "Olá, sua mensagem..."
+     }
+   }
+ }
+ ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `404 NOT_FOUND`: Intent não encontrado.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `GET /api/execution-jobs?intentId=`
+
+* **Purpose:** Lista execution jobs de um intent específico (control plane).
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `intentId` (string, UUID): ID do intent.
+  * `status` (string, optional): PENDING | PROCESSING | SENT | FAILED | RETRY.
+  * `limit` (number, optional): Máximo de itens (default 50).
+* **Success Response (200 OK):**
+ ```json
+ {
+   "items": [
+     {
+       "id": "job-uuid",
+       "intentId": "intent-uuid",
+       "instanceId": "instance-uuid",
+       "provider": "whatsmeow",
+       "status": "PROCESSING",
+       "attempts": 1,
+       "lastError": null,
+       "createdAt": "2025-01-24T10:00:00.000Z",
+       "executedAt": null,
+       "nextAttemptAt": null
+     }
+   ]
+ }
+ ```
+* **Error Responses:**
+  * `400 BAD_REQUEST`: intentId ou status inválido.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `404 NOT_FOUND`: Intent não encontrado.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+---
+
 ### Message Intents
 
 #### `GET /api/message-intents`

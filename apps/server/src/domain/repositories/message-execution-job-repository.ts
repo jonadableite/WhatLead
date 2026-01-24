@@ -1,9 +1,15 @@
 import type { MessageExecutionJob } from "../entities/message-execution-job";
+import type { MessageExecutionStatus } from "../value-objects/message-execution-status";
 
 export interface MessageExecutionJobRepository {
 	create(job: MessageExecutionJob): Promise<void>;
 	findById(jobId: string): Promise<MessageExecutionJob | null>;
 	findByIntentId(intentId: string): Promise<MessageExecutionJob | null>;
+	listByIntentId(
+		intentId: string,
+		limit: number,
+		status?: MessageExecutionStatus,
+	): Promise<MessageExecutionJob[]>;
 	save(job: MessageExecutionJob): Promise<void>;
 
 	listRunnable(now: Date, limit: number): Promise<MessageExecutionJob[]>;

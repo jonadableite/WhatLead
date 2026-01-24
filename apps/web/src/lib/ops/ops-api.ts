@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api/api-fetch";
 import type {
 	ExecutionMetricsSnapshot,
+	ExecutionJobsResponse,
 	MessageIntentTimelineResponse,
 } from "./ops-types";
 
@@ -44,4 +45,15 @@ export const getMessageIntentTimeline = async (
 	return apiFetch<MessageIntentTimelineResponse>(
 		`/api/ops/message-intents/${encodeURIComponent(intentId)}/timeline${query}`,
 	);
+};
+
+export const listExecutionJobs = async (params: {
+	intentId: string;
+	status?: string;
+	limit?: number;
+}): Promise<ExecutionJobsResponse> => {
+	const query = new URLSearchParams({ intentId: params.intentId });
+	if (params.status) query.set("status", params.status);
+	if (params.limit) query.set("limit", String(params.limit));
+	return apiFetch<ExecutionJobsResponse>(`/api/execution-jobs?${query.toString()}`);
 };

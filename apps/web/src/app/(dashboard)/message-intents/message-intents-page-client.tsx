@@ -1,18 +1,25 @@
 "use client";
 
 import { ListFilter, RefreshCw } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ExecutionStateChip } from "@/components/ui/execution-state-chip";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { useApiSWR } from "@/lib/api/swr";
 import type { ListInstancesResponse } from "@/lib/instances/instance-types";
 import type {
+	GetMessageIntentResponse,
 	ListMessageIntentsResponse,
 	MessageIntentPurpose,
 	MessageIntentStatus,
 } from "@/lib/message-intents/message-intents-types";
-import type { MessageIntentTimelineResponse } from "@/lib/ops/ops-types";
+import type {
+	ExecutionJobsResponse,
+	MessageIntentTimelineResponse,
+} from "@/lib/ops/ops-types";
 
 const STATUS_OPTIONS: Array<{ value: MessageIntentStatus; label: string }> = [
 	{ value: "PENDING", label: "Pendente" },
@@ -48,12 +55,17 @@ const timelineEventLabel = (eventType: string): string => {
 };
 
 export default function MessageIntentsPageClient() {
+	const searchParams = useSearchParams();
+	const showJobs = searchParams.get("showJobs") === "1";
 	const [status, setStatus] = useState<MessageIntentStatus | "">("");
 	const [purpose, setPurpose] = useState<MessageIntentPurpose | "">("");
 	const [instanceId, setInstanceId] = useState("");
 	const [selectedIntentId, setSelectedIntentId] = useState<string | null>(null);
 
 	const instances = useApiSWR<ListInstancesResponse>("/api/instances");
+	const instanceMap = useMemo(() => {
+		return new Map(instances.data?.items.map((instance) => [instance.id, instance.name]));
+	}, [instances.data?.items]);
 
 	const queryString = useMemo(() => {
 		const params = new URLSearchParams();
@@ -75,6 +87,16 @@ export default function MessageIntentsPageClient() {
 	const timeline = useApiSWR<MessageIntentTimelineResponse>(
 		selectedIntentId
 			? `/api/ops/message-intents/${encodeURIComponent(selectedIntentId)}/timeline?limit=200`
+			: null,
+	);
+
+	const intentDetail = useApiSWR<GetMessageIntentResponse>(
+		selectedIntentId ? `/api/message-intents/${encodeURIComponent(selectedIntentId)}` : null,
+	);
+
+	const executionJobs = useApiSWR<ExecutionJobsResponse>(
+		selectedIntentId && showJobs
+			? `/api/execution-jobs?intentId=${encodeURIComponent(selectedIntentId)}`
 			: null,
 	);
 
@@ -207,22 +229,100 @@ export default function MessageIntentsPageClient() {
 					</Card>
 
 					<Card>
-						<CardContent className="p-6">
+						<CardContent className="space-y-4 p-6">
 							<h2 className="text-sm font-semibold text-foreground">
-								Timeline do intent
+								Detalhes do intent
 							</h2>
 							{!selectedIntentId && (
-								<p className="mt-3 text-sm text-muted-foreground">
+								<p className="text-sm text-muted-foreground">
 									Selecione um intent para ver detalhes.
 								</p>
 							)}
+							{selectedIntentId && intentDetail.isLoading && (
+								<p className="text-sm text-muted-foreground">
+									Carregando detalhes...
+								</p>
+							)}
+							{intentDetail.data?.intent && (
+								<div className="space-y-3 text-xs text-muted-foreground">
+									<div className="flex flex-wrap items-center gap-2">
+										<StatusBadge
+											label={
+												STATUS_OPTIONS.find(
+													(option) =>
+														option.value === intentDetail.data?.intent.status,
+												)?.label ?? intentDetail.data.intent.status
+											}
+											variant="primary"
+										/>
+										<StatusBadge
+											label={
+												PURPOSE_OPTIONS.find(
+													(option) =>
+														option.value === intentDetail.data?.intent.purpose,
+												)?.label ?? intentDetail.data.intent.purpose
+											}
+										/>
+										<StatusBadge label={intentDetail.data.intent.type} variant="neutral" />
+									</div>
+									<div className="grid gap-2 sm:grid-cols-2">
+										<div>
+											<p className="font-semibold text-foreground">Instância escolhida</p>
+											<p>
+												{intentDetail.data.intent.decidedByInstanceId
+													? instanceMap.get(intentDetail.data.intent.decidedByInstanceId) ??
+														intentDetail.data.intent.decidedByInstanceId
+													: "Não definida"}
+											</p>
+										</div>
+										<div>
+											<p className="font-semibold text-foreground">Origem</p>
+											<p>
+												{PURPOSE_OPTIONS.find(
+													(option) =>
+														option.value === intentDetail.data?.intent.purpose,
+												)?.label ?? intentDetail.data.intent.purpose}
+											</p>
+										</div>
+										<div>
+											<p className="font-semibold text-foreground">Motivo do Gate</p>
+											<p>{intentDetail.data.intent.blockedReason ?? "Sem bloqueio"}</p>
+										</div>
+										<div>
+											<p className="font-semibold text-foreground">Em fila até</p>
+											<p>
+												{intentDetail.data.intent.queuedUntil
+													? new Date(
+															intentDetail.data.intent.queuedUntil,
+													  ).toLocaleString("pt-BR")
+													: "Sem fila"}
+											</p>
+										</div>
+									</div>
+									<div>
+										<p className="font-semibold text-foreground">Payload resumido</p>
+										<p>
+											{intentDetail.data.intent.payloadSummary.textPreview ??
+												intentDetail.data.intent.payloadSummary.caption ??
+												intentDetail.data.intent.payloadSummary.emoji ??
+												intentDetail.data.intent.payloadSummary.mediaUrl ??
+												intentDetail.data.intent.payloadSummary.audioUrl ??
+												"Sem detalhes"}
+										</p>
+									</div>
+								</div>
+							)}
+
+							<h2 className="text-sm font-semibold text-foreground">
+								Timeline do intent
+							</h2>
 							{selectedIntentId && timeline.isLoading && (
-								<p className="mt-3 text-sm text-muted-foreground">
+								<p className="text-sm text-muted-foreground">
 									Carregando timeline...
 								</p>
 							)}
 							{timeline.data && (
-								<div className="mt-4 space-y-3">
+								<div className="space-y-3">
 									{timeline.data.events.map((event) => (
 										<div
 											key={event.id}
@@ -237,6 +337,50 @@ export default function MessageIntentsPageClient() {
 										</div>
 									))}
 								</div>
+							)}
+
+							{showJobs && (
+								<>
+									<h2 className="text-sm font-semibold text-foreground">
+										Execution Jobs (admin)
+									</h2>
+									{selectedIntentId && executionJobs.isLoading && (
+										<p className="text-sm text-muted-foreground">
+											Carregando execution jobs...
+										</p>
+									)}
+									{executionJobs.data && (
+										<div className="space-y-2">
+											{executionJobs.data.items.length === 0 ? (
+												<p className="text-xs text-muted-foreground">
+													Nenhum job encontrado.
+												</p>
+											) : (
+												executionJobs.data.items.map((job) => (
+													<div
+														key={job.id}
+														className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground"
+													>
+														<div className="flex items-center justify-between gap-2">
+															<p className="font-semibold text-foreground">
+																{job.provider}
+															</p>
+															<ExecutionStateChip status={job.status} />
+														</div>
+														<p className="mt-1">
+															Tentativas: {job.attempts}
+														</p>
+														{job.lastError && (
+															<p className="mt-1 text-destructive">
+																{job.lastError}
+															</p>
+														)}
+													</div>
+												))
+											)}
+										</div>
+									)}
+								</>
 							)}
 						</CardContent>
 					</Card>

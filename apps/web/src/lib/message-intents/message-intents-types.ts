@@ -7,6 +7,7 @@ export type MessageIntentStatus =
 	| "SENT";
 
 export type MessageIntentPurpose = "WARMUP" | "DISPATCH" | "SCHEDULE";
+export type MessageIntentType = "TEXT" | "AUDIO" | "MEDIA" | "REACTION";
 
 export type MessageTargetKind = "PHONE" | "GROUP";
 
@@ -26,4 +27,33 @@ export interface MessageIntentListItem {
 
 export interface ListMessageIntentsResponse {
 	items: MessageIntentListItem[];
+}
+
+export interface MessageIntentPayloadSummary {
+	type: MessageIntentType;
+	textPreview?: string;
+	mediaUrl?: string;
+	mimeType?: string;
+	caption?: string;
+	audioUrl?: string;
+	emoji?: string;
+	messageRef?: string;
+}
+
+export interface MessageIntentDetail {
+	id: string;
+	organizationId: string;
+	status: MessageIntentStatus;
+	purpose: MessageIntentPurpose;
+	type: MessageIntentType;
+	target: MessageTarget;
+	decidedByInstanceId: string | null;
+	blockedReason: string | null;
+	queuedUntil: string | null;
+	createdAt: string;
+	payloadSummary: MessageIntentPayloadSummary;
+}
+
+export interface GetMessageIntentResponse {
+	intent: MessageIntentDetail;
 }

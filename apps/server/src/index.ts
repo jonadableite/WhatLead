@@ -42,6 +42,7 @@ import { GetInstanceQRCodeUseCase } from "./application/instances/get-instance-q
 import { GetInstanceUseCase } from "./application/instances/get-instance.use-case";
 import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
 import { CreateExecutionJobUseCase as EnqueueExecutionJobUseCase } from "./application/execution/use-cases/create-execution-job.use-case";
+import { ListExecutionJobsUseCase } from "./application/execution/list-execution-jobs.use-case";
 import { DispatchMessageIntentGateUseCase } from "./application/message-dispatch/dispatch-message-intent-gate.use-case";
 import { CreateExecutionJobUseCase } from "./application/message-execution/create-execution-job.use-case";
 import { ExecuteMessageIntentUseCase } from "./application/message-execution/execute-message-intent.use-case";
@@ -49,6 +50,7 @@ import { MessageIntentExecutorService } from "./application/message-execution/me
 import { RetryFailedExecutionUseCase } from "./application/message-execution/retry-failed-execution.use-case";
 import { CreateMessageIntentUseCase } from "./application/message-intents/create-message-intent.use-case";
 import { DecideMessageIntentUseCase } from "./application/message-intents/decide-message-intent.use-case";
+import { GetMessageIntentUseCase } from "./application/message-intents/get-message-intent.use-case";
 import { ListMessageIntentsUseCase } from "./application/message-intents/list-message-intents.use-case";
 import { ExecutionControlPolicy } from "./application/ops/execution-control-policy";
 import { GetExecutionMetricsUseCase } from "./application/ops/get-execution-metrics.use-case";
@@ -116,6 +118,7 @@ import { registerInstanceRoutes } from "./infra/web/instances.routes";
 import { registerMessageIntentRoutes } from "./infra/web/message-intents.routes";
 import { registerOpsRoutes } from "./infra/web/ops.routes";
 import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
+import { registerExecutionJobsRoutes } from "./infra/web/execution-jobs.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
 // =============================================================================
@@ -411,6 +414,7 @@ const createMessageIntent = new CreateMessageIntentUseCase(
 	idFactory,
 );
 const listMessageIntents = new ListMessageIntentsUseCase(messageIntentRepository);
+const getMessageIntent = new GetMessageIntentUseCase(messageIntentRepository);
 const slaEvaluator = new SLAEvaluator();
 const gateDecisionRecorder = new InMemoryDispatchGateDecisionRecorder();
 const dispatchGate = new DispatchGateUseCase(
@@ -478,6 +482,10 @@ const decideMessageIntent = new DecideMessageIntentUseCase(
 
 const getExecutionMetrics = new GetExecutionMetricsUseCase(
 	new PrismaExecutionMetricsQuery(),
+);
+const listExecutionJobs = new ListExecutionJobsUseCase(
+	messageIntentRepository,
+	messageExecutionJobRepository,
 );
 
 const pauseInstance = new PauseInstanceUseCase(executionControlRepository, idFactory);
@@ -573,7 +581,12 @@ await registerWebhookRoutes(fastify, {
 await registerMessageIntentRoutes(fastify, {
 	createMessageIntent,
 	decideMessageIntent,
+	getMessageIntent,
 	listMessageIntents,
+});
+
+await registerExecutionJobsRoutes(fastify, {
+	listExecutionJobs,
 });
 
 await registerOpsRoutes(fastify, {
@@ -862,6 +875,10 @@ const start = async (): Promise<void> => {
 			});
 		}, INSTANCE_HEALTH_CRON_INTERVAL_MS);
 
+		// Execution modes:
+		// - Queue (BullMQ) is the production path when EXECUTION_QUEUE_ENABLED=true.
+		// - Cron worker is fallback for local/dev until the queue is fully adopted.
+		// TODO(Fase 6): Remover o cron e manter apenas o worker via fila.
 		if (executionWorker) {
 			executionWorker.start();
 		} else {

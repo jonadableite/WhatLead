@@ -1,5 +1,6 @@
 import type { MessageExecutionJob } from "../../domain/entities/message-execution-job";
 import type { MessageExecutionJobRepository } from "../../domain/repositories/message-execution-job-repository";
+import type { MessageExecutionStatus } from "../../domain/value-objects/message-execution-status";
 
 export class InMemoryMessageExecutionJobRepository implements MessageExecutionJobRepository {
 	private readonly store = new Map<string, MessageExecutionJob>();
@@ -17,6 +18,17 @@ export class InMemoryMessageExecutionJobRepository implements MessageExecutionJo
 			if (job.intentId === intentId) return job;
 		}
 		return null;
+	}
+
+	async listByIntentId(
+		intentId: string,
+		limit: number,
+		status?: MessageExecutionStatus,
+	): Promise<MessageExecutionJob[]> {
+		const jobs = Array.from(this.store.values()).filter(
+			(job) => job.intentId === intentId && (!status || job.status === status),
+		);
+		return jobs.slice(0, limit);
 	}
 
 	async save(job: MessageExecutionJob): Promise<void> {

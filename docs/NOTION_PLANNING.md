@@ -60,8 +60,10 @@
 - Execution Engine iniciado via fila (BullMQ) com flag `EXECUTION_QUEUE_ENABLED`
 - Sem duplicar regra de negócio: Gate continua o único decisor
 - Worker executa apenas jobs aprovados e re-enfileira em retry controlado
+- Cron permanece como fallback em dev até a fila estabilizar
 
 ### Próximos passos - Fase 5
 
 - [ ] Validar Redis em ambiente local/staging
 - [ ] Ajustar métricas de execução para observabilidade
+- [ ] Remover cron de execução quando a fila estiver madura

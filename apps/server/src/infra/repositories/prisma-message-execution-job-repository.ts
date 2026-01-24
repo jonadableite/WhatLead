@@ -2,6 +2,7 @@ import prisma from "@WhatLead/db";
 
 import { MessageExecutionJob } from "../../domain/entities/message-execution-job";
 import type { MessageExecutionJobRepository } from "../../domain/repositories/message-execution-job-repository";
+import type { MessageExecutionStatus } from "../../domain/value-objects/message-execution-status";
 
 export class PrismaMessageExecutionJobRepository implements MessageExecutionJobRepository {
 	async create(job: MessageExecutionJob): Promise<void> {
@@ -29,12 +30,12 @@ export class PrismaMessageExecutionJobRepository implements MessageExecutionJobR
 			intentId: row.intentId,
 			instanceId: row.instanceId,
 			provider: row.provider,
-			status: row.status as any,
+			status: row.status as MessageExecutionStatus,
 			attempts: row.attempts,
 			lastError: row.lastError,
 			createdAt: row.createdAt,
 			executedAt: row.executedAt,
-			nextAttemptAt: (row as any).nextAttemptAt ?? null,
+			nextAttemptAt: row.nextAttemptAt,
 		});
 	}
 
@@ -46,13 +47,43 @@ export class PrismaMessageExecutionJobRepository implements MessageExecutionJobR
 			intentId: row.intentId,
 			instanceId: row.instanceId,
 			provider: row.provider,
-			status: row.status as any,
+			status: row.status as MessageExecutionStatus,
 			attempts: row.attempts,
 			lastError: row.lastError,
 			createdAt: row.createdAt,
 			executedAt: row.executedAt,
-			nextAttemptAt: (row as any).nextAttemptAt ?? null,
+			nextAttemptAt: row.nextAttemptAt,
 		});
+	}
+
+	async listByIntentId(
+		intentId: string,
+		limit: number,
+		status?: MessageExecutionStatus,
+	): Promise<MessageExecutionJob[]> {
+		const rows = await prisma.messageExecutionJob.findMany({
+			where: {
+				intentId,
+				status,
+			},
+			orderBy: { createdAt: "desc" },
+			take: limit,
+		});
+
+		return rows.map((row) =>
+			MessageExecutionJob.reconstitute({
+				id: row.id,
+				intentId: row.intentId,
+				instanceId: row.instanceId,
+				provider: row.provider,
+				status: row.status as MessageExecutionStatus,
+				attempts: row.attempts,
+				lastError: row.lastError,
+				createdAt: row.createdAt,
+				executedAt: row.executedAt,
+				nextAttemptAt: row.nextAttemptAt,
+			}),
+		);
 	}
 
 	async save(job: MessageExecutionJob): Promise<void> {
@@ -84,12 +115,12 @@ export class PrismaMessageExecutionJobRepository implements MessageExecutionJobR
 				intentId: row.intentId,
 				instanceId: row.instanceId,
 				provider: row.provider,
-				status: row.status as any,
+				status: row.status as MessageExecutionStatus,
 				attempts: row.attempts,
 				lastError: row.lastError,
 				createdAt: row.createdAt,
 				executedAt: row.executedAt,
-				nextAttemptAt: (row as any).nextAttemptAt ?? null,
+				nextAttemptAt: row.nextAttemptAt,
 			}),
 		);
 	}
