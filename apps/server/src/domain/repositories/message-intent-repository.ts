@@ -5,5 +5,5 @@ export interface MessageIntentRepository {
 	findById(intentId: string): Promise<MessageIntent | null>;
 	save(intent: MessageIntent): Promise<void>;
 	listPendingByOrg(organizationId: string, limit: number): Promise<MessageIntent[]>;
+	listApproved(limit: number): Promise<MessageIntent[]>;
 }
-

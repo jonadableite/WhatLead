@@ -4,10 +4,10 @@ export const MESSAGE_GATE_DECISION_REASONS = [
 	"PLAN_LIMIT",
 	"INSTANCE_UNHEALTHY",
 	"NO_ELIGIBLE_INSTANCE",
+	"OPS_PAUSED",
 	"POLICY_BLOCKED",
 	"UNSUPPORTED_MESSAGE_TYPE",
 ] as const;
 
 export type MessageGateDecisionReason =
 	(typeof MESSAGE_GATE_DECISION_REASONS)[number];
-

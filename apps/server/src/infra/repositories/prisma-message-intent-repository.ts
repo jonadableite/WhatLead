@@ -90,5 +90,28 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 			}),
 		);
 	}
-}
 
+	async listApproved(limit: number): Promise<MessageIntent[]> {
+		const rows = await prisma.messageIntent.findMany({
+			where: { status: "APPROVED" },
+			orderBy: { createdAt: "asc" },
+			take: limit,
+		});
+
+		return rows.map((row) =>
+			MessageIntent.reconstitute({
+				id: row.id,
+				organizationId: row.organizationId,
+				target: { kind: row.targetKind as any, value: row.targetValue },
+				type: row.intentType as any,
+				purpose: row.purpose as any,
+				payload: row.payload as any,
+				status: row.status as any,
+				decidedByInstanceId: row.decidedByInstanceId,
+				blockedReason: row.blockedReason as any,
+				queuedUntil: row.queuedUntil,
+				createdAt: row.createdAt,
+			}),
+		);
+	}
+}

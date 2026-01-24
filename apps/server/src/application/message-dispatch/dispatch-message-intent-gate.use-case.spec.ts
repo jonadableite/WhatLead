@@ -6,6 +6,9 @@ import { InstanceReputation } from "../../domain/entities/instance-reputation";
 import { DispatchPolicy } from "../../domain/services/dispatch-policy";
 import { InstanceDispatchScoreService } from "../../domain/services/instance-dispatch-score-service";
 import { InMemoryMessageIntentRepository } from "../../infra/repositories/in-memory-message-intent-repository";
+import { ExecutionControlPolicy } from "../ops/execution-control-policy";
+import { InMemoryExecutionControlRepository } from "../../infra/repositories/in-memory-execution-control-repository";
+import { ExecutionControl } from "../../domain/entities/execution-control";
 
 describe("DispatchMessageIntentGateUseCase", () => {
 	it("approves a pending intent by choosing an eligible instance", async () => {
@@ -48,6 +51,7 @@ describe("DispatchMessageIntentGateUseCase", () => {
 				})),
 			} as any,
 			{ getLimits: vi.fn(async () => ({})) } as any,
+			null,
 			new InstanceDispatchScoreService(),
 			{ publishMany: vi.fn(), publish: vi.fn() } as any,
 		);
@@ -103,6 +107,7 @@ describe("DispatchMessageIntentGateUseCase", () => {
 				})),
 			} as any,
 			{ getLimits: vi.fn(async () => ({})) } as any,
+			null,
 			new InstanceDispatchScoreService(),
 			{ publishMany: vi.fn(), publish: vi.fn() } as any,
 		);
@@ -136,6 +141,7 @@ describe("DispatchMessageIntentGateUseCase", () => {
 			new DispatchPolicy(),
 			{ getSnapshot: vi.fn() } as any,
 			{ getLimits: vi.fn(async () => ({})) } as any,
+			null,
 			new InstanceDispatchScoreService(),
 			{ publishMany: vi.fn(), publish: vi.fn() } as any,
 		);
@@ -143,5 +149,47 @@ describe("DispatchMessageIntentGateUseCase", () => {
 		const out = await gate.execute({ intentId: "mi-1", organizationId: "t-1", now });
 		expect(out.decision).toBe("BLOCKED");
 	});
-});
 
+	it("blocks when organization is paused", async () => {
+		const now = new Date("2026-01-24T00:00:00.000Z");
+
+		const intent = MessageIntent.create({
+			id: "mi-1",
+			organizationId: "t-1",
+			target: { kind: "PHONE", value: "+5511999999999" },
+			type: "TEXT",
+			purpose: "WARMUP",
+			payload: { type: "TEXT", text: "oi" },
+			now,
+		});
+
+		const intents = new InMemoryMessageIntentRepository();
+		await intents.create(intent);
+
+		const controls = new InMemoryExecutionControlRepository();
+		const control = ExecutionControl.create({
+			id: "c-1",
+			scope: "ORGANIZATION",
+			scopeId: "t-1",
+			now,
+		});
+		control.pause({ reason: "manual", until: null, now });
+		await controls.upsert(control);
+
+		const gate = new DispatchMessageIntentGateUseCase(
+			intents,
+			{ listByCompanyId: vi.fn(async () => []) } as any,
+			{ execute: vi.fn(async () => ({ actions: ["ALLOW_DISPATCH"], status: { lifecycle: "ACTIVE" } })) } as any,
+			new DispatchPolicy(),
+			{ getSnapshot: vi.fn() } as any,
+			{ getLimits: vi.fn(async () => ({})) } as any,
+			new ExecutionControlPolicy(controls),
+			new InstanceDispatchScoreService(),
+			{ publishMany: vi.fn(), publish: vi.fn() } as any,
+		);
+
+		const out = await gate.execute({ intentId: "mi-1", organizationId: "t-1", now });
+		expect(out.decision).toBe("BLOCKED");
+		expect((out as any).reason).toBe("OPS_PAUSED");
+	});
+});

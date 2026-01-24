@@ -1,0 +1,16 @@
+model MessageExecutionJob {
+  id            String    @id @default(uuid())
+  intentId      String    @unique
+  instanceId    String
+  provider      String
+  status        String
+  attempts      Int       @default(0)
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  executedAt    DateTime?
+  nextAttemptAt DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt, createdAt])
+  @@map("message_execution_job")
+}

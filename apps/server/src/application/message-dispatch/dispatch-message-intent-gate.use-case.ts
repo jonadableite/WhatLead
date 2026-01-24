@@ -14,6 +14,7 @@ import type { PlanPolicy } from "../billing/plan-policy";
 import type { DispatchIntent } from "../dispatch-gate/dispatch-intent";
 import type { DispatchRateSnapshotPort } from "../dispatch-gate/dispatch-rate-snapshot-port";
 import type { DispatchPayload } from "../dispatch/dispatch-types";
+import type { ExecutionControlPolicy } from "../ops/execution-control-policy";
 
 export interface DispatchMessageIntentGateUseCaseRequest {
 	intentId: string;
@@ -39,6 +40,7 @@ export class DispatchMessageIntentGateUseCase {
 		private readonly dispatchPolicy: DispatchPolicy,
 		private readonly rateSnapshots: DispatchRateSnapshotPort,
 		private readonly planPolicy: PlanPolicy | null,
+		private readonly executionControl: ExecutionControlPolicy | null,
 		private readonly scorer: InstanceDispatchScoreService,
 		private readonly eventBus: DomainEventBus<MessageIntentDomainEvent>,
 	) {}
@@ -61,6 +63,19 @@ export class DispatchMessageIntentGateUseCase {
 				return { decision: "QUEUED", queuedUntil: intent.queuedUntil, reason: intent.blockedReason };
 			}
 			return { decision: "BLOCKED", reason: intent.blockedReason ?? "POLICY_BLOCKED" };
+		}
+
+		if (this.executionControl) {
+			const org = await this.executionControl.isOrganizationPaused({
+				organizationId: request.organizationId,
+				now,
+			});
+			if (!org.allowed) {
+				const events = intent.block({ reason: "OPS_PAUSED", now });
+				await this.intents.save(intent);
+				await this.eventBus.publishMany(events);
+				return { decision: "BLOCKED", reason: "OPS_PAUSED" };
+			}
 		}
 
 		const orgInstances = await this.instances.listByCompanyId(request.organizationId);
@@ -145,6 +160,11 @@ export class DispatchMessageIntentGateUseCase {
 		now: Date;
 	}): Promise<CandidateDecision> {
 		const { intent, instance, now } = params;
+
+		if (this.executionControl) {
+			const inst = await this.executionControl.isInstancePaused({ instanceId: instance.id, now });
+			if (!inst.allowed) return { kind: "BLOCK", reason: "OPS_PAUSED" };
+		}
 
 		if (intent.purpose === "WARMUP") {
 			if (!instance.canWarmUp()) return { kind: "BLOCK", reason: "INSTANCE_UNHEALTHY" };

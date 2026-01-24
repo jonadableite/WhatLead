@@ -186,5 +186,11 @@ export class MessageIntent {
 			},
 		];
 	}
-}
 
+	markSent(): void {
+		if (this._status === "SENT" || this._status === "DROPPED") return;
+		this._status = "SENT";
+		this._blockedReason = null;
+		this._queuedUntil = null;
+	}
+}

@@ -1,0 +1,15 @@
+model OperationalEvent {
+  id            String   @id @default(uuid())
+  organizationId String?
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  occurredAt    DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([aggregateType, aggregateId, occurredAt])
+  @@index([organizationId, occurredAt])
+  @@map("operational_event")
+}
+

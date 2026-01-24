@@ -20,5 +20,9 @@ export class InMemoryMessageIntentRepository implements MessageIntentRepository 
 		const pending = [...this.store.values()].filter((i) => i.organizationId === organizationId);
 		return pending.slice(0, limit);
 	}
-}
 
+	async listApproved(limit: number): Promise<MessageIntent[]> {
+		const approved = [...this.store.values()].filter((i) => i.status === "APPROVED");
+		return approved.slice(0, limit);
+	}
+}

@@ -29,6 +29,7 @@ import { ReplyIntentDispatcher } from "./application/conversation/reply-intent-d
 import { DispatchGateUseCase } from "./application/dispatch-gate/dispatch-gate.use-case";
 import { DispatchUseCase } from "./application/dispatch/dispatch.use-case";
 import { InstanceHealthCronJob } from "./application/handlers/cron/instance-health.cron";
+import { MessageExecutorWorker } from "./application/handlers/cron/message-executor.worker";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
 import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port";
@@ -39,8 +40,19 @@ import { GetInstanceUseCase } from "./application/instances/get-instance.use-cas
 import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
 import { RequestInstanceConnectionUseCase } from "./application/instances/request-instance-connection.use-case";
 import { DispatchMessageIntentGateUseCase } from "./application/message-dispatch/dispatch-message-intent-gate.use-case";
+import { CreateExecutionJobUseCase } from "./application/message-execution/create-execution-job.use-case";
+import { ExecuteMessageIntentUseCase } from "./application/message-execution/execute-message-intent.use-case";
+import { MessageIntentExecutorService } from "./application/message-execution/message-intent-executor.service";
+import { RetryFailedExecutionUseCase } from "./application/message-execution/retry-failed-execution.use-case";
 import { CreateMessageIntentUseCase } from "./application/message-intents/create-message-intent.use-case";
 import { DecideMessageIntentUseCase } from "./application/message-intents/decide-message-intent.use-case";
+import { ExecutionControlPolicy } from "./application/ops/execution-control-policy";
+import { GetExecutionMetricsUseCase } from "./application/ops/get-execution-metrics.use-case";
+import { GetMessageIntentTimelineUseCase } from "./application/ops/get-message-intent-timeline.use-case";
+import { PauseInstanceUseCase } from "./application/ops/pause-instance.use-case";
+import { PauseOrganizationUseCase } from "./application/ops/pause-organization.use-case";
+import { ResumeInstanceUseCase } from "./application/ops/resume-instance.use-case";
+import { ResumeOrganizationUseCase } from "./application/ops/resume-organization.use-case";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
 import { CreateLeadUseCase } from "./application/sdr/create-lead.use-case";
 import { OpenConversationForLeadUseCase } from "./application/sdr/open-conversation-for-lead.use-case";
@@ -63,19 +75,27 @@ import { PrismaActiveInstanceIdsProvider } from "./infra/cron/prisma-active-inst
 import { InMemoryDispatchGateDecisionRecorder } from "./infra/dispatch-gate/in-memory-dispatch-gate-decision-recorder";
 import { TimelineDispatchRateSnapshotAdapter } from "./infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
 import { WhatsAppMessageDispatchAdapter } from "./infra/dispatch/whatsapp-message-dispatch-adapter";
+import { CompositeDomainEventBus } from "./infra/event-bus/composite-domain-event-bus";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
 import { StaticWarmUpContentProvider } from "./infra/heater/static-warmup-content-provider";
 import { StaticWarmUpTargetsProvider } from "./infra/heater/static-warmup-targets-provider";
 import { WhatsAppProviderDispatchAdapter } from "./infra/heater/whatsapp-dispatch-adapter";
+import { WhatsMeowProviderAdapter } from "./infra/message-execution/whatsmeow-provider-adapter";
 import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-backed-instance-metric-repository";
+import { PersistingMessageExecutionEventBus } from "./infra/ops/persisting-message-execution-event-bus";
+import { PersistingMessageIntentEventBus } from "./infra/ops/persisting-message-intent-event-bus";
+import { PrismaExecutionMetricsQuery } from "./infra/ops/prisma-execution-metrics-query";
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
 import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
 import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
+import { PrismaExecutionControlRepository } from "./infra/repositories/prisma-execution-control-repository";
 import { PrismaInstanceRepository } from "./infra/repositories/prisma-instance-repository";
 import { PrismaLeadRepository } from "./infra/repositories/prisma-lead-repository";
+import { PrismaMessageExecutionJobRepository } from "./infra/repositories/prisma-message-execution-job-repository";
 import { PrismaMessageIntentRepository } from "./infra/repositories/prisma-message-intent-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
+import { PrismaOperationalEventRepository } from "./infra/repositories/prisma-operational-event-repository";
 import {
     isCrossSiteMutationWithoutOrigin,
     isProbablyAutomation,
@@ -88,6 +108,7 @@ import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputat
 import { SignalMetricIngestionAdapter } from "./infra/signals/signal-metric-ingestion-adapter";
 import { registerInstanceRoutes } from "./infra/web/instances.routes";
 import { registerMessageIntentRoutes } from "./infra/web/message-intents.routes";
+import { registerOpsRoutes } from "./infra/web/ops.routes";
 import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
@@ -342,6 +363,8 @@ const instanceHealthCronJob = new InstanceHealthCronJob(
 );
 let instanceHealthCronTimer: NodeJS.Timeout | null = null;
 const INSTANCE_HEALTH_CRON_INTERVAL_MS = 60_000;
+let messageExecutorCronTimer: NodeJS.Timeout | null = null;
+const MESSAGE_EXECUTOR_CRON_INTERVAL_MS = 5_000;
 
 const conversationRepository = new PrismaConversationRepository();
 const messageRepository = new PrismaMessageRepository();
@@ -357,8 +380,14 @@ const timeline = new GetReputationTimelineUseCase(signalRepository);
 const dispatchPolicy = new DispatchPolicy();
 const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
 const planPolicy = new StaticPlanPolicy();
+const executionControlRepository = new PrismaExecutionControlRepository();
+const executionControlPolicy = new ExecutionControlPolicy(executionControlRepository);
 const messageIntentRepository = new PrismaMessageIntentRepository();
-const messageIntentEventBus = new LoggingDomainEventBus();
+const operationalEvents = new PrismaOperationalEventRepository();
+const messageIntentEventBus = new CompositeDomainEventBus([
+	new LoggingDomainEventBus(),
+	new PersistingMessageIntentEventBus(operationalEvents, idFactory),
+]);
 const instanceDispatchScorer = new InstanceDispatchScoreService();
 const messageIntentGate = new DispatchMessageIntentGateUseCase(
 	messageIntentRepository,
@@ -367,6 +396,7 @@ const messageIntentGate = new DispatchMessageIntentGateUseCase(
 	dispatchPolicy,
 	rateSnapshots,
 	planPolicy,
+	executionControlPolicy,
 	instanceDispatchScorer,
 	messageIntentEventBus,
 );
@@ -395,6 +425,54 @@ const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 	apiKey: env.TURBOZAP_API_KEY,
 	timeoutMs: env.TURBOZAP_TIMEOUT_MS,
 });
+
+const messageExecutionJobRepository = new PrismaMessageExecutionJobRepository();
+const messageExecutionEventBus = new CompositeDomainEventBus([
+	new LoggingDomainEventBus(),
+	new PersistingMessageExecutionEventBus(operationalEvents, idFactory),
+]);
+const whatsMeowProviderPort = new WhatsMeowProviderAdapter(provider);
+const messageIntentExecutor = new MessageIntentExecutorService(whatsMeowProviderPort);
+const createExecutionJob = new CreateExecutionJobUseCase(
+	messageExecutionJobRepository,
+	messageIntentRepository,
+	instanceRepository,
+	idFactory,
+);
+const executeMessageIntent = new ExecuteMessageIntentUseCase(
+	messageExecutionJobRepository,
+	messageIntentRepository,
+	messageIntentExecutor,
+	messageExecutionEventBus,
+	executionControlPolicy,
+);
+const retryFailedExecution = new RetryFailedExecutionUseCase(messageExecutionJobRepository);
+const messageExecutorWorker = new MessageExecutorWorker(
+	messageIntentRepository,
+	messageExecutionJobRepository,
+	createExecutionJob,
+	executeMessageIntent,
+	retryFailedExecution,
+	{
+		approvedScanLimit: 100,
+		jobScanLimit: 50,
+		maxAttempts: ExecuteMessageIntentUseCase.DEFAULT_MAX_ATTEMPTS,
+	},
+);
+
+const getExecutionMetrics = new GetExecutionMetricsUseCase(
+	new PrismaExecutionMetricsQuery(),
+);
+
+const pauseInstance = new PauseInstanceUseCase(executionControlRepository, idFactory);
+const resumeInstance = new ResumeInstanceUseCase(executionControlRepository, idFactory);
+const pauseOrganization = new PauseOrganizationUseCase(executionControlRepository, idFactory);
+const resumeOrganization = new ResumeOrganizationUseCase(executionControlRepository, idFactory);
+const getMessageIntentTimeline = new GetMessageIntentTimelineUseCase(
+	messageIntentRepository,
+	messageExecutionJobRepository,
+	operationalEvents,
+);
 
 const dispatchPort = new WhatsAppProviderDispatchAdapter(provider);
 const preDispatchGuard = new PreDispatchGuard(dispatchGate);
@@ -479,6 +557,15 @@ await registerWebhookRoutes(fastify, {
 await registerMessageIntentRoutes(fastify, {
 	createMessageIntent,
 	decideMessageIntent,
+});
+
+await registerOpsRoutes(fastify, {
+	getExecutionMetrics,
+	pauseInstance,
+	resumeInstance,
+	pauseOrganization,
+	resumeOrganization,
+	getMessageIntentTimeline,
 });
 
 const playbook = new DefaultAgentPlaybook();
@@ -751,6 +838,15 @@ const start = async (): Promise<void> => {
 			});
 		}, INSTANCE_HEALTH_CRON_INTERVAL_MS);
 
+		messageExecutorWorker.run().catch((err) => {
+			serverLogger.error({ err, event: "message_executor_cron" }, "Message executor cron failed");
+		});
+		messageExecutorCronTimer = setInterval(() => {
+			messageExecutorWorker.run().catch((err) => {
+				serverLogger.error({ err, event: "message_executor_cron" }, "Message executor cron failed");
+			});
+		}, MESSAGE_EXECUTOR_CRON_INTERVAL_MS);
+
 		serverLogger.info({
 			port,
 			host,
@@ -776,6 +872,10 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 		if (instanceHealthCronTimer) {
 			clearInterval(instanceHealthCronTimer);
 			instanceHealthCronTimer = null;
+		}
+		if (messageExecutorCronTimer) {
+			clearInterval(messageExecutorCronTimer);
+			messageExecutorCronTimer = null;
 		}
 		await fastify.close();
 		serverLogger.info({
