@@ -1,7 +1,33 @@
 import prisma from "@WhatLead/db";
 
 import { MessageIntent } from "../../domain/entities/message-intent";
-import type { MessageIntentRepository } from "../../domain/repositories/message-intent-repository";
+import type {
+	MessageIntentListFilters,
+	MessageIntentRepository,
+} from "../../domain/repositories/message-intent-repository";
+import type { MessageGateDecisionReason } from "../../domain/value-objects/message-gate-decision-reason";
+import type { MessageIntentPayload } from "../../domain/value-objects/message-intent-payload";
+import type { MessageIntentPurpose } from "../../domain/value-objects/message-intent-purpose";
+import type { MessageIntentStatus } from "../../domain/value-objects/message-intent-status";
+import type { MessageIntentType } from "../../domain/value-objects/message-intent-type";
+import type { MessageTarget } from "../../domain/value-objects/message-target";
+
+type MessageIntentRow = NonNullable<Awaited<ReturnType<typeof prisma.messageIntent.findUnique>>>;
+
+const mapRowToIntent = (row: MessageIntentRow): MessageIntent =>
+	MessageIntent.reconstitute({
+		id: row.id,
+		organizationId: row.organizationId,
+		target: { kind: row.targetKind as MessageTarget["kind"], value: row.targetValue },
+		type: row.intentType as MessageIntentType,
+		purpose: row.purpose as MessageIntentPurpose,
+		payload: row.payload as unknown as MessageIntentPayload,
+		status: row.status as MessageIntentStatus,
+		decidedByInstanceId: row.decidedByInstanceId,
+		blockedReason: row.blockedReason as MessageGateDecisionReason | null,
+		queuedUntil: row.queuedUntil,
+		createdAt: row.createdAt,
+	});
 
 export class PrismaMessageIntentRepository implements MessageIntentRepository {
 	async create(intent: MessageIntent): Promise<void> {
@@ -26,19 +52,7 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 	async findById(intentId: string): Promise<MessageIntent | null> {
 		const row = await prisma.messageIntent.findUnique({ where: { id: intentId } });
 		if (!row) return null;
-		return MessageIntent.reconstitute({
-			id: row.id,
-			organizationId: row.organizationId,
-			target: { kind: row.targetKind as any, value: row.targetValue },
-			type: row.intentType as any,
-			purpose: row.purpose as any,
-			payload: row.payload as any,
-			status: row.status as any,
-			decidedByInstanceId: row.decidedByInstanceId,
-			blockedReason: row.blockedReason as any,
-			queuedUntil: row.queuedUntil,
-			createdAt: row.createdAt,
-		});
+		return mapRowToIntent(row);
 	}
 
 	async save(intent: MessageIntent): Promise<void> {
@@ -74,21 +88,7 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 			take: limit,
 		});
 
-		return rows.map((row) =>
-			MessageIntent.reconstitute({
-				id: row.id,
-				organizationId: row.organizationId,
-				target: { kind: row.targetKind as any, value: row.targetValue },
-				type: row.intentType as any,
-				purpose: row.purpose as any,
-				payload: row.payload as any,
-				status: row.status as any,
-				decidedByInstanceId: row.decidedByInstanceId,
-				blockedReason: row.blockedReason as any,
-				queuedUntil: row.queuedUntil,
-				createdAt: row.createdAt,
-			}),
-		);
+		return rows.map(mapRowToIntent);
 	}
 
 	async listApproved(limit: number): Promise<MessageIntent[]> {
@@ -98,20 +98,21 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 			take: limit,
 		});
 
-		return rows.map((row) =>
-			MessageIntent.reconstitute({
-				id: row.id,
-				organizationId: row.organizationId,
-				target: { kind: row.targetKind as any, value: row.targetValue },
-				type: row.intentType as any,
-				purpose: row.purpose as any,
-				payload: row.payload as any,
-				status: row.status as any,
-				decidedByInstanceId: row.decidedByInstanceId,
-				blockedReason: row.blockedReason as any,
-				queuedUntil: row.queuedUntil,
-				createdAt: row.createdAt,
-			}),
-		);
+		return rows.map(mapRowToIntent);
+	}
+
+	async listByFilters(filters: MessageIntentListFilters): Promise<MessageIntent[]> {
+		const rows = await prisma.messageIntent.findMany({
+			where: {
+				organizationId: filters.organizationId,
+				status: filters.status,
+				purpose: filters.purpose,
+				decidedByInstanceId: filters.instanceId,
+			},
+			orderBy: { createdAt: "desc" },
+			take: filters.limit,
+		});
+
+		return rows.map(mapRowToIntent);
 	}
 }

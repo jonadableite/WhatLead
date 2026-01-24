@@ -34,11 +34,13 @@ import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.g
 import { WhatsAppWebhookApplicationHandler } from "./application/handlers/webhook/whatsapp-webhook.handler";
 import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port";
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
+import { ConnectInstanceUseCase } from "./application/instances/connect-instance.use-case";
 import { CreateInstanceUseCase } from "./application/instances/create-instance.use-case";
 import { EvaluateInstanceHealthOnDemandUseCase } from "./application/instances/evaluate-instance-health-on-demand.use-case";
+import { GetInstanceConnectionStatusUseCase } from "./application/instances/get-instance-connection-status.use-case";
+import { GetInstanceQRCodeUseCase } from "./application/instances/get-instance-qrcode.use-case";
 import { GetInstanceUseCase } from "./application/instances/get-instance.use-case";
 import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
-import { RequestInstanceConnectionUseCase } from "./application/instances/request-instance-connection.use-case";
 import { DispatchMessageIntentGateUseCase } from "./application/message-dispatch/dispatch-message-intent-gate.use-case";
 import { CreateExecutionJobUseCase } from "./application/message-execution/create-execution-job.use-case";
 import { ExecuteMessageIntentUseCase } from "./application/message-execution/execute-message-intent.use-case";
@@ -46,6 +48,7 @@ import { MessageIntentExecutorService } from "./application/message-execution/me
 import { RetryFailedExecutionUseCase } from "./application/message-execution/retry-failed-execution.use-case";
 import { CreateMessageIntentUseCase } from "./application/message-intents/create-message-intent.use-case";
 import { DecideMessageIntentUseCase } from "./application/message-intents/decide-message-intent.use-case";
+import { ListMessageIntentsUseCase } from "./application/message-intents/list-message-intents.use-case";
 import { ExecutionControlPolicy } from "./application/ops/execution-control-policy";
 import { GetExecutionMetricsUseCase } from "./application/ops/get-execution-metrics.use-case";
 import { GetMessageIntentTimelineUseCase } from "./application/ops/get-message-intent-timeline.use-case";
@@ -82,9 +85,9 @@ import { StaticWarmUpTargetsProvider } from "./infra/heater/static-warmup-target
 import { WhatsAppProviderDispatchAdapter } from "./infra/heater/whatsapp-dispatch-adapter";
 import { WhatsMeowProviderAdapter } from "./infra/message-execution/whatsmeow-provider-adapter";
 import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-backed-instance-metric-repository";
+import { PrismaExecutionMetricsQuery } from "./infra/ops/prisma-execution-metrics-query";
 import { PersistingMessageExecutionEventBus } from "./infra/ops/persisting-message-execution-event-bus";
 import { PersistingMessageIntentEventBus } from "./infra/ops/persisting-message-intent-event-bus";
-import { PrismaExecutionMetricsQuery } from "./infra/ops/prisma-execution-metrics-query";
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
 import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
@@ -408,6 +411,7 @@ const decideMessageIntent = new DecideMessageIntentUseCase(
 	messageIntentRepository,
 	messageIntentGate,
 );
+const listMessageIntents = new ListMessageIntentsUseCase(messageIntentRepository);
 const slaEvaluator = new SLAEvaluator();
 const gateDecisionRecorder = new InMemoryDispatchGateDecisionRecorder();
 const dispatchGate = new DispatchGateUseCase(
@@ -557,6 +561,7 @@ await registerWebhookRoutes(fastify, {
 await registerMessageIntentRoutes(fastify, {
 	createMessageIntent,
 	decideMessageIntent,
+	listMessageIntents,
 });
 
 await registerOpsRoutes(fastify, {
@@ -602,7 +607,12 @@ const createInstance = new CreateInstanceUseCase(
 	idFactory,
 );
 const getInstance = new GetInstanceUseCase(instanceRepository);
-const requestConnection = new RequestInstanceConnectionUseCase(instanceRepository);
+const connectInstance = new ConnectInstanceUseCase(instanceRepository, provider);
+const getConnectionStatus = new GetInstanceConnectionStatusUseCase(
+	instanceRepository,
+	provider,
+);
+const getQRCode = new GetInstanceQRCodeUseCase(instanceRepository, provider);
 const evaluateHealthOnDemand = new EvaluateInstanceHealthOnDemandUseCase(
 	instanceRepository,
 	evaluateInstanceHealth,
@@ -612,7 +622,9 @@ await registerInstanceRoutes(fastify, {
 	listInstances,
 	createInstance,
 	getInstance,
-	requestConnection,
+	connectInstance,
+	getConnectionStatus,
+	getQRCode,
 	evaluateHealthOnDemand,
 });
 

@@ -64,3 +64,29 @@ export interface InstanceHealthResponse {
 		signalsSnapshot: Record<string, unknown>;
 	};
 }
+
+export interface InstanceConnectionInfo {
+	status: InstanceConnectionStatus;
+	phoneNumber?: string;
+	profileName?: string;
+	profilePicUrl?: string;
+}
+
+export interface InstanceConnectionStatusResponse {
+	instance: InstanceListItem;
+	connection: InstanceConnectionInfo;
+}
+
+export interface InstanceQRCodeResponse {
+	qrCode: string;
+}
+
+export interface ConnectInstanceResponse {
+	instance: InstanceListItem;
+	connection: {
+		success: boolean;
+		status: InstanceConnectionStatus;
+		qrCode: string | null;
+		error: string | null;
+	};
+}

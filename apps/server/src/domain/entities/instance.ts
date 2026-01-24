@@ -159,6 +159,20 @@ export class Instance {
 		this._connectionStatus = "DISCONNECTED";
 	}
 
+	markQRCode(): void {
+		if (this._lifecycleStatus === "BANNED") {
+			return;
+		}
+		this._connectionStatus = "QRCODE";
+	}
+
+	markError(): void {
+		if (this._lifecycleStatus === "BANNED") {
+			return;
+		}
+		this._connectionStatus = "ERROR";
+	}
+
 	markBanned(): void {
 		this._lifecycleStatus = "BANNED";
 		this._connectionStatus = "DISCONNECTED";

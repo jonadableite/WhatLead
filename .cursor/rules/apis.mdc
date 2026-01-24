@@ -197,6 +197,39 @@ This document serves as the central repository for documentation on all API endp
 
 ---
 
+### Message Intents
+
+#### `GET /api/message-intents`
+
+* **Purpose:** Lista Message Intents da organização com filtros simples.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `status` (string, optional): `PENDING | APPROVED | QUEUED | BLOCKED | DROPPED | SENT`.
+  * `purpose` (string, optional): `WARMUP | DISPATCH | SCHEDULE`.
+  * `instanceId` (string, optional): Filtra por instância que decidiu o intent.
+  * `limit` (number, optional): Máximo de itens (1-200).
+* **Success Response (200 OK):**
+  ```json
+  {
+    "items": [
+      {
+        "id": "intent-uuid",
+        "target": { "kind": "PHONE", "value": "5511999999999" },
+        "purpose": "DISPATCH",
+        "status": "APPROVED",
+        "decidedByInstanceId": "instance-uuid",
+        "createdAt": "2026-01-24T10:00:00.000Z"
+      }
+    ]
+  }
+  ```
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Parâmetros inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+---
+
 ### Contas WhatsApp (WhatsApp Accounts)
 
 #### `whatsapp.account.list` (tRPC Query)

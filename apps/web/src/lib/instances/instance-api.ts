@@ -1,7 +1,11 @@
 import { apiFetch } from "@/lib/api/api-fetch";
 import type {
+	ConnectInstanceResponse,
 	CreateInstanceResponse,
+	GetInstanceResponse,
 	InstanceHealthResponse,
+	InstanceConnectionStatusResponse,
+	InstanceQRCodeResponse,
 	ListInstancesResponse,
 } from "./instance-types";
 import type { InstancePurpose, WhatsAppEngine } from "./instance-types";
@@ -20,22 +24,44 @@ export const createInstance = async (params: {
 		body: JSON.stringify(params),
 	});
 
-export const connectInstance = async (instanceId: string): Promise<void> => {
-	await apiFetch(`/api/instances/${encodeURIComponent(instanceId)}/connect`, {
-		method: "POST",
-		body: JSON.stringify({}),
-	});
-};
+export const connectInstance = async (
+	instanceId: string,
+): Promise<ConnectInstanceResponse> =>
+	apiFetch<ConnectInstanceResponse>(
+		`/api/instances/${encodeURIComponent(instanceId)}/connect`,
+		{
+			method: "POST",
+			body: JSON.stringify({}),
+		},
+	);
 
-export const reconnectInstance = async (instanceId: string): Promise<void> => {
-	await apiFetch(`/api/instances/${encodeURIComponent(instanceId)}/reconnect`, {
-		method: "POST",
-		body: JSON.stringify({}),
-	});
-};
+export const reconnectInstance = async (
+	instanceId: string,
+): Promise<ConnectInstanceResponse> =>
+	apiFetch<ConnectInstanceResponse>(
+		`/api/instances/${encodeURIComponent(instanceId)}/reconnect`,
+		{
+			method: "POST",
+			body: JSON.stringify({}),
+		},
+	);
 
-export const getInstance = async (instanceId: string) =>
-	apiFetch(`/api/instances/${encodeURIComponent(instanceId)}`);
+export const getInstance = async (instanceId: string): Promise<GetInstanceResponse> =>
+	apiFetch<GetInstanceResponse>(`/api/instances/${encodeURIComponent(instanceId)}`);
+
+export const getConnectionStatus = async (
+	instanceId: string,
+): Promise<InstanceConnectionStatusResponse> =>
+	apiFetch<InstanceConnectionStatusResponse>(
+		`/api/instances/${encodeURIComponent(instanceId)}/connection-status`,
+	);
+
+export const getQRCode = async (
+	instanceId: string,
+): Promise<InstanceQRCodeResponse> =>
+	apiFetch<InstanceQRCodeResponse>(
+		`/api/instances/${encodeURIComponent(instanceId)}/qrcode`,
+	);
 
 export const getInstanceHealth = async (
 	instanceId: string,

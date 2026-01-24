@@ -1,9 +1,9 @@
 import prisma from "@WhatLead/db";
 
 import type {
-    ExecutionMetricsQueryPort,
-    ExecutionMetricsSnapshot,
-    InstanceExecutionMetrics,
+	ExecutionMetricsQueryPort,
+	ExecutionMetricsSnapshot,
+	InstanceExecutionMetrics,
 } from "../../application/ops/execution-metrics-query-port";
 
 export class PrismaExecutionMetricsQuery implements ExecutionMetricsQueryPort {

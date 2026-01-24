@@ -2,11 +2,13 @@ import prisma from "@WhatLead/db";
 import type { FastifyInstance } from "fastify";
 
 import { auth } from "@WhatLead/auth";
+import type { ConnectInstanceUseCase } from "../../application/instances/connect-instance.use-case";
 import type { CreateInstanceUseCase } from "../../application/instances/create-instance.use-case";
 import type { EvaluateInstanceHealthOnDemandUseCase } from "../../application/instances/evaluate-instance-health-on-demand.use-case";
+import type { GetInstanceConnectionStatusUseCase } from "../../application/instances/get-instance-connection-status.use-case";
+import type { GetInstanceQRCodeUseCase } from "../../application/instances/get-instance-qrcode.use-case";
 import type { GetInstanceUseCase } from "../../application/instances/get-instance.use-case";
 import type { ListInstancesUseCase } from "../../application/instances/list-instances.use-case";
-import type { RequestInstanceConnectionUseCase } from "../../application/instances/request-instance-connection.use-case";
 import type { InstancePurpose } from "../../domain/value-objects/instance-purpose";
 import type { WhatsAppEngine } from "../../domain/value-objects/whatsapp-engine";
 
@@ -43,7 +45,9 @@ export const registerInstanceRoutes = async (
 		listInstances: ListInstancesUseCase;
 		createInstance: CreateInstanceUseCase;
 		getInstance: GetInstanceUseCase;
-		requestConnection: RequestInstanceConnectionUseCase;
+		connectInstance: ConnectInstanceUseCase;
+		getConnectionStatus: GetInstanceConnectionStatusUseCase;
+		getQRCode: GetInstanceQRCodeUseCase;
 		evaluateHealthOnDemand: EvaluateInstanceHealthOnDemandUseCase;
 	},
 ): Promise<void> => {
@@ -134,7 +138,7 @@ export const registerInstanceRoutes = async (
 
 		const params = request.params as { id: string };
 		try {
-			const result = await options.requestConnection.execute({
+			const result = await options.connectInstance.execute({
 				companyId: tenantId,
 				instanceId: params.id,
 				intent: "CONNECT",
@@ -151,10 +155,42 @@ export const registerInstanceRoutes = async (
 
 		const params = request.params as { id: string };
 		try {
-			const result = await options.requestConnection.execute({
+			const result = await options.connectInstance.execute({
 				companyId: tenantId,
 				instanceId: params.id,
 				intent: "RECONNECT",
+			});
+			return reply.send(result);
+		} catch {
+			return reply.status(404).send({ error: "INSTANCE_NOT_FOUND" });
+		}
+	});
+
+	fastify.get("/api/instances/:id/connection-status", async (request, reply) => {
+		const tenantId = await resolveTenantId(request.headers as any);
+		if (!tenantId) return reply.status(401).send({ error: "UNAUTHORIZED" });
+
+		const params = request.params as { id: string };
+		try {
+			const result = await options.getConnectionStatus.execute({
+				companyId: tenantId,
+				instanceId: params.id,
+			});
+			return reply.send(result);
+		} catch {
+			return reply.status(404).send({ error: "INSTANCE_NOT_FOUND" });
+		}
+	});
+
+	fastify.get("/api/instances/:id/qrcode", async (request, reply) => {
+		const tenantId = await resolveTenantId(request.headers as any);
+		if (!tenantId) return reply.status(401).send({ error: "UNAUTHORIZED" });
+
+		const params = request.params as { id: string };
+		try {
+			const result = await options.getQRCode.execute({
+				companyId: tenantId,
+				instanceId: params.id,
 			});
 			return reply.send(result);
 		} catch {
