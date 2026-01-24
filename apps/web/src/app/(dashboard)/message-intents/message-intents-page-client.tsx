@@ -182,7 +182,7 @@ export default function MessageIntentsPageClient() {
 						</div>
 						<div className="flex items-center gap-2 text-xs text-muted-foreground">
 							<ListFilter className="h-4 w-4 text-primary" />
-						<span>{intents.data?.items.length ?? 0} intents</span>
+							<span>{intents.data?.items.length ?? 0} intents</span>
 						</div>
 					</CardContent>
 				</Card>

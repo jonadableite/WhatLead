@@ -12,8 +12,8 @@ interface StatusBadgeProps {
 const variantClassMap: Record<StatusVariant, string> = {
 	neutral: "border-border bg-card text-muted-foreground",
 	primary: "border-primary/40 bg-primary/10 text-primary",
-	success: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500",
-	warning: "border-amber-500/40 bg-amber-500/10 text-amber-500",
+	success: "border-secondary/40 bg-secondary/10 text-secondary-foreground",
+	warning: "border-accent/40 bg-accent/10 text-accent-foreground",
 	danger: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
