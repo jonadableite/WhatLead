@@ -17,11 +17,23 @@ import type {
   InstanceListItem,
 } from "@/lib/instances/instance-types";
 
-const riskBadgeClasses = (risk: InstanceListItem["riskLevel"]): string => {
-  if (risk === "HIGH") return "bg-red-500/15 text-red-200 border-red-500/30";
+const riskBadgeClasses = (
+  risk: InstanceListItem["riskLevel"],
+): { badge: string; label: string } => {
+  if (risk === "HIGH")
+    return {
+      badge: "bg-red-500/15 text-red-200 border-red-500/30",
+      label: "Alto",
+    };
   if (risk === "MEDIUM")
-    return "bg-amber-500/15 text-amber-200 border-amber-500/30";
-  return "bg-emerald-500/15 text-emerald-200 border-emerald-500/30";
+    return {
+      badge: "bg-amber-500/15 text-amber-200 border-amber-500/30",
+      label: "Médio",
+    };
+  return {
+    badge: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
+    label: "Baixo",
+  };
 };
 
 export default function InstanceDetailsPageClient({

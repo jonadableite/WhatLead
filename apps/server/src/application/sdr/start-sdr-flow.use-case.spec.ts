@@ -10,12 +10,23 @@ import { InMemoryInstanceRepository } from "../../infra/repositories/in-memory-i
 import { InMemoryAgentRepository } from "../../infra/repositories/in-memory-agent-repository";
 import { Agent } from "../../domain/entities/agent";
 import { SLAEvaluator } from "../../domain/services/sla-evaluator";
+import { Instance } from "../../domain/entities/instance";
+import { InstanceReputation } from "../../domain/entities/instance-reputation";
 
 describe("StartSdrFlowUseCase", () => {
 	it("creates lead, links conversation, assigns agent and dispatches", async () => {
 		const leads = new InMemoryLeadRepository();
 		const conversations = new InMemoryConversationRepository();
-		const instances = new InMemoryInstanceRepository("t-1", "TURBOZAP");
+		const instances = new InMemoryInstanceRepository();
+		const rep = InstanceReputation.initialize("i-1");
+		const instance = Instance.initialize({
+			id: "i-1",
+			companyId: "t-1",
+			engine: "TURBOZAP",
+			reputation: rep,
+		});
+		instance.markConnected();
+		await instances.create(instance);
 		const agents = new InMemoryAgentRepository([
 			Agent.create({ id: "a-1", organizationId: "t-1", role: "SDR", status: "ONLINE", purpose: "SDR" }),
 		]);

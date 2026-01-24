@@ -6,6 +6,7 @@ describe("HeaterUseCase (dispatch gate)", () => {
 	it("does not send when dispatch gate blocks", async () => {
 		const instance = {
 			id: "i-1",
+			companyId: "t-1",
 			reputation: { currentWarmUpPhase: () => "OBSERVER" },
 		};
 
@@ -40,6 +41,10 @@ describe("HeaterUseCase (dispatch gate)", () => {
 		};
 		const dispatchPort = new GuardedDispatchPort(innerDispatchPort as any, guard as any);
 
+		const intents = { create: vi.fn(async () => {}) };
+		const gate = { execute: vi.fn(async () => ({ decision: "BLOCKED", reason: "POLICY_BLOCKED" })) };
+		const idFactory = { createId: () => "id-1" };
+
 		const metricIngestion = {
 			recordMany: vi.fn(),
 		};
@@ -49,6 +54,9 @@ describe("HeaterUseCase (dispatch gate)", () => {
 			evaluateInstanceHealth as any,
 			warmUpStrategy as any,
 			dispatchPort as any,
+			intents as any,
+			gate as any,
+			idFactory,
 			metricIngestion as any,
 		);
 

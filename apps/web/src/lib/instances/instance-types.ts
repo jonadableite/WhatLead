@@ -64,4 +64,3 @@ export interface InstanceHealthResponse {
 		signalsSnapshot: Record<string, unknown>;
 	};
 }
-

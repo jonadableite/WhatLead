@@ -71,6 +71,19 @@ apps/server/src
 
 ---
 
+## 3.1 UI/UX & Frontend Standards (New)
+
+> **Mandatory Reading**: [UI_UX.md](./UI_UX.md)
+> All frontend work must adhere to the **Premium SaaS Design System**.
+
+### Key Rules
+- **Mobile-First**: If it doesn't work on mobile, the PR is rejected.
+- **Strict Tokens**: Use `bg-card`, `text-muted-foreground`, etc. No magic hex codes.
+- **Component Classes**: Use `.btn-primary`, `.input-premium`, `.card-hover` defined in `index.css`.
+- **Motion**: UI must feel alive. Use `.animate-fade-in` and `.stagger-*` utilities.
+
+---
+
 ## 4. Mandatory TypeScript Rules
 
 - `strict: true`
@@ -363,6 +376,23 @@ If it behaves like a bot, it will be banned.
 Everything in WhatLead exists to enforce this rule.
 
 ---
+
+## 19. Agent vs Operator Protocols 🤖👤
+
+To maintain strict governance over "Who did what", we distinguish between AI and Humans.
+
+### Terminology
+- **Operator (👤)**: A human user interacting via the UI.
+- **Agent (🤖)**: An AI system acting autonomously or semi-autonomously.
+
+### Rules of Engagement
+1.  **Identity Separation**: Every action must be traceable to either an `agentId` or `userId`.
+2.  **Dispatch Gate**: Neither Agents nor Operators can bypass the `DispatchGateUseCase`. All messages are subject to reputation checks.
+3.  **Agent Visibility**: When an Agent takes an action (e.g., replies to a lead), the UI must clearly indicate "AI" or the Agent's Name.
+4.  **Operator Override**: Human actions always take precedence over Agent intents. If a human intervenes, the Agent must pause or yield.
+
+---
+
 🧭 Skill Set Summary (Recommended for WhatLead)
 Core (Must-have)
 
@@ -374,6 +404,8 @@ solid-typescript-engineer
 
 integration-provider-architect
 
+saas-ui-architect (New)
+
 Strategic (Highly recommended)
 
 event-normalization-specialist
@@ -382,9 +414,15 @@ use-case-orchestrator
 
 ml-ready-domain-designer
 
+SaaS UI System Designer (New)
+
+Mobile-First Responsive UX (New)
+
 Optional (Quality at scale)
 
 safe-refactor-guardian
+
+Accessibility & Usability Compliance (New)
 
 ## Logging System (Pino + Pino-Pretty) 🎨✨
 

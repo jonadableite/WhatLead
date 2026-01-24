@@ -3,14 +3,14 @@ import { RequireSession } from "@/components/auth/require-session";
 import InstanceHealthPageClient from "./instance-health-page-client";
 
 interface Props {
-	params: { id: string };
+	params: Promise<{ id: string }>;
 }
 
-export default function InstanceHealthPage({ params }: Props) {
+export default async function InstanceHealthPage({ params }: Props) {
+	const { id } = await params;
 	return (
 		<RequireSession>
-			<InstanceHealthPageClient instanceId={params.id} />
+			<InstanceHealthPageClient instanceId={id} />
 		</RequireSession>
 	);
 }
-

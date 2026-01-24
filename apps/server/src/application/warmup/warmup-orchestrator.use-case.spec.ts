@@ -3,6 +3,7 @@ import { TimelineDispatchRateSnapshotAdapter } from "../../infra/dispatch-gate/t
 import { InMemoryReputationSignalRepository } from "../../infra/signals/in-memory-reputation-signal-repository";
 import { GetReputationTimelineUseCase } from "../use-cases/get-reputation-timeline.use-case";
 import { WarmupOrchestratorUseCase } from "./warmup-orchestrator.use-case";
+import { InMemoryMessageIntentRepository } from "../../infra/repositories/in-memory-message-intent-repository";
 
 describe("WarmupOrchestratorUseCase", () => {
 	it("executes controlled warmup when health allows dispatch", async () => {
@@ -28,17 +29,11 @@ describe("WarmupOrchestratorUseCase", () => {
 			randomText: () => "kkk",
 		};
 
-		const dispatch = {
-			execute: vi.fn(async () => ({
-				decision: {
-					allowed: true,
-					maxMessages: 2,
-					minIntervalSeconds: 60,
-					allowedMessageTypes: ["TEXT", "REACTION"],
-				},
-				result: { status: "SENT", occurredAt: new Date("2026-01-16T00:00:00.000Z") },
-			})),
+		const intents = new InMemoryMessageIntentRepository();
+		const gate = {
+			execute: vi.fn(async () => ({ decision: "APPROVED", instanceId: "i-1" })),
 		};
+		const idFactory = { createId: () => "id-1" };
 
 		const dispatchPort = {
 			send: vi.fn(),
@@ -52,11 +47,21 @@ describe("WarmupOrchestratorUseCase", () => {
 		const timeline = new GetReputationTimelineUseCase(repo);
 		const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
 
+		const instanceRepository = {
+			findById: vi.fn(async () => ({
+				id: "i-1",
+				companyId: "t-1",
+			})),
+		};
+
 		const orchestrator = new WarmupOrchestratorUseCase(
+			instanceRepository as any,
 			evaluateInstanceHealth as any,
 			targets as any,
 			content as any,
-			dispatch as any,
+			intents as any,
+			gate as any,
+			idFactory,
 			dispatchPort as any,
 			metricIngestion as any,
 			timeline,
@@ -68,7 +73,7 @@ describe("WarmupOrchestratorUseCase", () => {
 
 		expect(result.plan).not.toBeNull();
 		expect(result.executedActions).toBe(1);
-		expect(dispatch.execute).toHaveBeenCalledTimes(1);
+		expect(gate.execute).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not execute when budget is exhausted", async () => {
@@ -94,9 +99,9 @@ describe("WarmupOrchestratorUseCase", () => {
 			randomText: () => "kkk",
 		};
 
-		const dispatch = {
-			execute: vi.fn(),
-		};
+		const intents = new InMemoryMessageIntentRepository();
+		const gate = { execute: vi.fn() };
+		const idFactory = { createId: () => "id-1" };
 
 		const dispatchPort = {
 			send: vi.fn(),
@@ -126,11 +131,22 @@ describe("WarmupOrchestratorUseCase", () => {
 
 		const timeline = new GetReputationTimelineUseCase(repo);
 		const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
+
+		const instanceRepository = {
+			findById: vi.fn(async () => ({
+				id: "i-1",
+				companyId: "t-1",
+			})),
+		};
+
 		const orchestrator = new WarmupOrchestratorUseCase(
+			instanceRepository as any,
 			evaluateInstanceHealth as any,
 			targets as any,
 			content as any,
-			dispatch as any,
+			intents as any,
+			gate as any,
+			idFactory,
 			dispatchPort as any,
 			metricIngestion as any,
 			timeline,
@@ -145,6 +161,6 @@ describe("WarmupOrchestratorUseCase", () => {
 		expect(result.plan).not.toBeNull();
 		expect(result.executedActions).toBe(0);
 		expect(dispatchPort.send).not.toHaveBeenCalled();
-		expect(dispatch.execute).not.toHaveBeenCalled();
+		expect(gate.execute).not.toHaveBeenCalled();
 	});
 });

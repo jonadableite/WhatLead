@@ -120,8 +120,7 @@ export default function NewInstancePageClient() {
                   Nova instância
                 </h1>
                 <p className="mt-1 text-sm text-white/60">
-                  Crie a instância (sem provider). O sistema só registra
-                  intenção e estado.
+                  Crie a instância do seu WhatsApp
                 </p>
               </div>
             </div>
@@ -149,10 +148,6 @@ export default function NewInstancePageClient() {
                   placeholder="+55 11 99999-9999"
                   className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 px-4 py-3 transition-all duration-200"
                 />
-                <p className="text-xs text-white/40">
-                  Este número será mascarado na UI. A decisão do que fazer com
-                  ele é do domínio.
-                </p>
               </div>
 
               <div className="space-y-2">

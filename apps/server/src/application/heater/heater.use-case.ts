@@ -1,5 +1,8 @@
 import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 import type { EvaluateInstanceHealthUseCase } from "../../domain/use-cases/evaluate-instance-health";
+import { MessageIntent } from "../../domain/entities/message-intent";
+import type { MessageIntentRepository } from "../../domain/repositories/message-intent-repository";
+import type { DispatchMessageIntentGateUseCase } from "../message-dispatch/dispatch-message-intent-gate.use-case";
 import type { MetricIngestionPort } from "../ports/metric-ingestion-port";
 import type { DispatchPort } from "./dispatch-port";
 import type { WarmUpStrategy } from "./warmup-strategy";
@@ -10,6 +13,9 @@ export class HeaterUseCase {
 		private readonly evaluateInstanceHealth: EvaluateInstanceHealthUseCase,
 		private readonly warmUpStrategy: WarmUpStrategy,
 		private readonly dispatchPort: DispatchPort,
+		private readonly intents: MessageIntentRepository,
+		private readonly gate: DispatchMessageIntentGateUseCase,
+		private readonly idFactory: { createId: () => string },
 		private readonly metricIngestion: MetricIngestionPort,
 	) {}
 
@@ -33,6 +39,36 @@ export class HeaterUseCase {
 		const plan = await this.warmUpStrategy.plan({ instance, phase, now });
 
 		for (const action of plan.actions) {
+			if (action.type === "SEND_TEXT") {
+				const intent = MessageIntent.create({
+					id: this.idFactory.createId(),
+					organizationId: instance.companyId,
+					target: { kind: "PHONE", value: action.to },
+					type: "TEXT",
+					purpose: "WARMUP",
+					payload: { type: "TEXT", text: action.text },
+					now,
+				});
+				await this.intents.create(intent);
+				await this.gate.execute({ intentId: intent.id, organizationId: instance.companyId, now });
+				continue;
+			}
+
+			if (action.type === "SEND_REACTION") {
+				const intent = MessageIntent.create({
+					id: this.idFactory.createId(),
+					organizationId: instance.companyId,
+					target: { kind: "PHONE", value: action.to },
+					type: "REACTION",
+					purpose: "WARMUP",
+					payload: { type: "REACTION", emoji: action.emoji, messageRef: action.messageId },
+					now,
+				});
+				await this.intents.create(intent);
+				await this.gate.execute({ intentId: intent.id, organizationId: instance.companyId, now });
+				continue;
+			}
+
 			let result: Awaited<ReturnType<DispatchPort["send"]>>;
 			try {
 				result = await this.dispatchPort.send(action);

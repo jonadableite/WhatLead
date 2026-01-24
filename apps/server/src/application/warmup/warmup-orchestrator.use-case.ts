@@ -1,9 +1,14 @@
+import { MessageIntent } from "../../domain/entities/message-intent";
+import type { InstanceRepository } from "../../domain/repositories/instance-repository";
+import type { MessageIntentRepository } from "../../domain/repositories/message-intent-repository";
 import type { EvaluateInstanceHealthUseCase } from "../../domain/use-cases/evaluate-instance-health";
-import type { DispatchUseCase } from "../dispatch/dispatch.use-case";
+import type { MessageIntentPayload } from "../../domain/value-objects/message-intent-payload";
+import type { MessageTarget } from "../../domain/value-objects/message-target";
 import type { DispatchRateSnapshotPort } from "../dispatch-gate/dispatch-rate-snapshot-port";
 import type { WarmUpContentProvider } from "../heater/content/warmup-content-provider";
 import type { DispatchAction, DispatchPort } from "../heater/dispatch-port";
 import type { WarmUpTargetsProvider } from "../heater/targets/warmup-targets-provider";
+import type { DispatchMessageIntentGateUseCase } from "../message-dispatch/dispatch-message-intent-gate.use-case";
 import type { MetricIngestionPort } from "../ports/metric-ingestion-port";
 import type { GetReputationTimelineUseCase } from "../use-cases/get-reputation-timeline.use-case";
 import { WarmupLimiter } from "./warmup-limiter";
@@ -14,10 +19,13 @@ export class WarmupOrchestratorUseCase {
 	private readonly limiter: WarmupLimiter;
 
 	constructor(
+		private readonly instanceRepository: InstanceRepository,
 		private readonly evaluateInstanceHealth: EvaluateInstanceHealthUseCase,
 		private readonly targets: WarmUpTargetsProvider,
 		private readonly content: WarmUpContentProvider,
-		private readonly dispatch: DispatchUseCase,
+		private readonly intents: MessageIntentRepository,
+		private readonly gate: DispatchMessageIntentGateUseCase,
+		private readonly idFactory: { createId: () => string },
 		private readonly dispatchPort: DispatchPort,
 		private readonly metricIngestion: MetricIngestionPort,
 		private readonly timeline: GetReputationTimelineUseCase,
@@ -51,6 +59,11 @@ export class WarmupOrchestratorUseCase {
 		const plan = WarmupPlanFactory.fromHealth({ instanceId, health });
 		if (!plan) {
 			return { plan: null, executedActions: 0, stoppedBecause: "HEALTH" };
+		}
+
+		const instance = await this.instanceRepository.findById(instanceId);
+		if (!instance) {
+			return { plan: null, executedActions: 0, stoppedBecause: "NO_INSTANCE" };
 		}
 
 		const targets = await this.targets.listTargets(instanceId);
@@ -92,41 +105,46 @@ export class WarmupOrchestratorUseCase {
 
 			try {
 				if (action.type === "SEND_TEXT") {
-					const out = await this.dispatch.execute({
-						instanceId,
-						intent: { source: "WARMUP" },
-						message: { type: "TEXT", to: action.to, text: action.text },
+					const intentId = await this.createWarmupIntent({
+						organizationId: instance.companyId,
+						target: { kind: "PHONE", value: action.to },
+						payload: { type: "TEXT", text: action.text },
 						now,
 					});
-					if (out.result.status !== "SENT") {
-						return {
-							plan,
-							executedActions: executed,
-							stoppedBecause: out.result.status === "FAILED" ? "DISPATCH_FAILED" : "BLOCKED",
-						};
+
+					const decision = await this.gate.execute({
+						intentId,
+						organizationId: instance.companyId,
+						now,
+					});
+
+					if (decision.decision !== "APPROVED") {
+						return { plan, executedActions: executed, stoppedBecause: "BLOCKED" };
 					}
 					executed += 1;
 					continue;
 				}
 
 				if (action.type === "SEND_REACTION") {
-					const out = await this.dispatch.execute({
-						instanceId,
-						intent: { source: "WARMUP" },
-						message: {
+					const intentId = await this.createWarmupIntent({
+						organizationId: instance.companyId,
+						target: { kind: "PHONE", value: action.to },
+						payload: {
 							type: "REACTION",
-							to: action.to,
-							messageId: action.messageId,
 							emoji: action.emoji,
+							messageRef: action.messageId,
 						},
 						now,
 					});
-					if (out.result.status !== "SENT") {
-						return {
-							plan,
-							executedActions: executed,
-							stoppedBecause: out.result.status === "FAILED" ? "DISPATCH_FAILED" : "BLOCKED",
-						};
+
+					const decision = await this.gate.execute({
+						intentId,
+						organizationId: instance.companyId,
+						now,
+					});
+
+					if (decision.decision !== "APPROVED") {
+						return { plan, executedActions: executed, stoppedBecause: "BLOCKED" };
 					}
 					executed += 1;
 					continue;
@@ -150,6 +168,25 @@ export class WarmupOrchestratorUseCase {
 		}
 
 		return { plan, executedActions: executed, stoppedBecause: "BUDGET" };
+	}
+
+	private async createWarmupIntent(params: {
+		organizationId: string;
+		target: MessageTarget;
+		payload: MessageIntentPayload;
+		now: Date;
+	}): Promise<string> {
+		const intent = MessageIntent.create({
+			id: this.idFactory.createId(),
+			organizationId: params.organizationId,
+			target: params.target,
+			type: params.payload.type,
+			purpose: "WARMUP",
+			payload: params.payload,
+			now: params.now,
+		});
+		await this.intents.create(intent);
+		return intent.id;
 	}
 
 	private async buildAction(params: {

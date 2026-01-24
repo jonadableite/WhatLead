@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -21,6 +21,17 @@ export function OrganizationSwitcher() {
   const { data: activeOrg } = useActiveOrganization();
   const { data: organizations } = useListOrganizations();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="h-11 w-full rounded-xl border border-white/5 bg-white/5" />
+    );
+  }
 
   const handleSwitchOrg = async (orgId: string) => {
     await authClient.organization.setActive({

@@ -38,6 +38,9 @@ import { EvaluateInstanceHealthOnDemandUseCase } from "./application/instances/e
 import { GetInstanceUseCase } from "./application/instances/get-instance.use-case";
 import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
 import { RequestInstanceConnectionUseCase } from "./application/instances/request-instance-connection.use-case";
+import { DispatchMessageIntentGateUseCase } from "./application/message-dispatch/dispatch-message-intent-gate.use-case";
+import { CreateMessageIntentUseCase } from "./application/message-intents/create-message-intent.use-case";
+import { DecideMessageIntentUseCase } from "./application/message-intents/decide-message-intent.use-case";
 import { WhatsAppProviderFactory } from "./application/providers/whatsapp-provider-factory";
 import { CreateLeadUseCase } from "./application/sdr/create-lead.use-case";
 import { OpenConversationForLeadUseCase } from "./application/sdr/open-conversation-for-lead.use-case";
@@ -51,9 +54,11 @@ import { RecordReputationSignalUseCase } from "./application/use-cases/record-re
 import { WarmupOrchestratorUseCase } from "./application/warmup/warmup-orchestrator.use-case";
 import { Agent } from "./domain/entities/agent";
 import { DispatchPolicy } from "./domain/services/dispatch-policy";
+import { InstanceDispatchScoreService } from "./domain/services/instance-dispatch-score-service";
 import { InstanceReputationEvaluator } from "./domain/services/instance-reputation-evaluator";
 import { SLAEvaluator } from "./domain/services/sla-evaluator";
 import { EvaluateInstanceHealthUseCase } from "./domain/use-cases/evaluate-instance-health";
+import { StaticPlanPolicy } from "./infra/billing/static-plan-policy";
 import { PrismaActiveInstanceIdsProvider } from "./infra/cron/prisma-active-instance-ids-provider";
 import { InMemoryDispatchGateDecisionRecorder } from "./infra/dispatch-gate/in-memory-dispatch-gate-decision-recorder";
 import { TimelineDispatchRateSnapshotAdapter } from "./infra/dispatch-gate/timeline-dispatch-rate-snapshot-adapter";
@@ -69,6 +74,7 @@ import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-me
 import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
 import { PrismaInstanceRepository } from "./infra/repositories/prisma-instance-repository";
 import { PrismaLeadRepository } from "./infra/repositories/prisma-lead-repository";
+import { PrismaMessageIntentRepository } from "./infra/repositories/prisma-message-intent-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
 import {
     isCrossSiteMutationWithoutOrigin,
@@ -81,6 +87,7 @@ import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-in
 import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
 import { SignalMetricIngestionAdapter } from "./infra/signals/signal-metric-ingestion-adapter";
 import { registerInstanceRoutes } from "./infra/web/instances.routes";
+import { registerMessageIntentRoutes } from "./infra/web/message-intents.routes";
 import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
@@ -349,6 +356,28 @@ const outboundMessageRecorded = new OutboundMessageRecordedUseCase(
 const timeline = new GetReputationTimelineUseCase(signalRepository);
 const dispatchPolicy = new DispatchPolicy();
 const rateSnapshots = new TimelineDispatchRateSnapshotAdapter(timeline);
+const planPolicy = new StaticPlanPolicy();
+const messageIntentRepository = new PrismaMessageIntentRepository();
+const messageIntentEventBus = new LoggingDomainEventBus();
+const instanceDispatchScorer = new InstanceDispatchScoreService();
+const messageIntentGate = new DispatchMessageIntentGateUseCase(
+	messageIntentRepository,
+	instanceRepository,
+	evaluateInstanceHealth,
+	dispatchPolicy,
+	rateSnapshots,
+	planPolicy,
+	instanceDispatchScorer,
+	messageIntentEventBus,
+);
+const createMessageIntent = new CreateMessageIntentUseCase(
+	messageIntentRepository,
+	idFactory,
+);
+const decideMessageIntent = new DecideMessageIntentUseCase(
+	messageIntentRepository,
+	messageIntentGate,
+);
 const slaEvaluator = new SLAEvaluator();
 const gateDecisionRecorder = new InMemoryDispatchGateDecisionRecorder();
 const dispatchGate = new DispatchGateUseCase(
@@ -385,10 +414,13 @@ const dispatch = new DispatchUseCase(
 	outboundMessageRecorded,
 );
 const heater = new WarmupOrchestratorUseCase(
+	instanceRepository,
 	evaluateInstanceHealth,
 	warmUpTargets,
 	warmUpContent,
-	dispatch,
+	messageIntentRepository,
+	messageIntentGate,
+	idFactory,
 	guardedDispatchPort,
 	metricIngestion,
 	timeline,
@@ -442,6 +474,11 @@ const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
 
 await registerWebhookRoutes(fastify, {
 	eventHandler: webhookEventHandler,
+});
+
+await registerMessageIntentRoutes(fastify, {
+	createMessageIntent,
+	decideMessageIntent,
 });
 
 const playbook = new DefaultAgentPlaybook();

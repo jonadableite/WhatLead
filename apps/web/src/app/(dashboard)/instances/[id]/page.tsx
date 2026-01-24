@@ -3,14 +3,14 @@ import { RequireSession } from "@/components/auth/require-session";
 import InstanceDetailsPageClient from "./instance-details-page-client";
 
 interface Props {
-	params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function InstanceDetailsPage({ params }: Props) {
-	return (
-		<RequireSession>
-			<InstanceDetailsPageClient instanceId={params.id} />
-		</RequireSession>
-	);
+export default async function InstanceDetailsPage({ params }: Props) {
+  const { id } = await params;
+  return (
+    <RequireSession>
+      <InstanceDetailsPageClient instanceId={id} />
+    </RequireSession>
+  );
 }
-

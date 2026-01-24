@@ -158,7 +158,10 @@ export default function InstancesDashboard() {
                               item.riskLevel,
                             )}`}
                           >
-                            Risco {item.riskLevel}
+                            Risco{" "}
+                            {item.riskLevel === "LOW"
+                              ? "BAIXO"
+                              : item.riskLevel}
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-white/60">

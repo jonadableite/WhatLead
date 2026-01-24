@@ -1,0 +1,19 @@
+model MessageIntent {
+  id                  String   @id @default(uuid())
+  organizationId       String
+  targetKind           String
+  targetValue          String
+  intentType           String
+  purpose              String
+  payload              Json
+  status               String
+  decidedByInstanceId  String?
+  blockedReason        String?
+  queuedUntil          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@map("message_intent")
+}
+

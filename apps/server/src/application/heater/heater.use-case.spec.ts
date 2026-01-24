@@ -27,6 +27,14 @@ describe("HeaterUseCase", () => {
 			send: vi.fn(async () => ({ success: true, producedEvents: [] })),
 		};
 
+		const intents = {
+			create: vi.fn(async () => {}),
+		};
+		const gate = {
+			execute: vi.fn(),
+		};
+		const idFactory = { createId: () => "id-1" };
+
 		const metricIngestion = {
 			record: vi.fn(async () => {}),
 			recordMany: vi.fn(async () => {}),
@@ -37,6 +45,9 @@ describe("HeaterUseCase", () => {
 			evaluateInstanceHealth as any,
 			warmUpStrategy as any,
 			dispatchPort as any,
+			intents as any,
+			gate as any,
+			idFactory,
 			metricIngestion as any,
 		);
 
@@ -45,11 +56,14 @@ describe("HeaterUseCase", () => {
 		expect(evaluateInstanceHealth.execute).toHaveBeenCalledTimes(1);
 		expect(warmUpStrategy.plan).not.toHaveBeenCalled();
 		expect(dispatchPort.send).not.toHaveBeenCalled();
+		expect(intents.create).not.toHaveBeenCalled();
+		expect(gate.execute).not.toHaveBeenCalled();
 	});
 
 	it("dispatches all plan actions when health allows dispatch", async () => {
 		const instance = {
 			id: "i-1",
+			companyId: "t-1",
 			reputation: {
 				currentWarmUpPhase: () => "OBSERVER",
 			},
@@ -93,6 +107,19 @@ describe("HeaterUseCase", () => {
 			send: vi.fn(async () => ({ success: true, producedEvents: [producedEvent] })),
 		};
 
+		const intents = {
+			create: vi.fn(async () => {}),
+		};
+		const gate = {
+			execute: vi.fn(async () => ({ decision: "APPROVED", instanceId: "i-1" })),
+		};
+		const idFactory = {
+			createId: (() => {
+				let i = 0;
+				return () => `id-${++i}`;
+			})(),
+		};
+
 		const metricIngestion = {
 			record: vi.fn(async () => {}),
 			recordMany: vi.fn(async () => {}),
@@ -103,6 +130,9 @@ describe("HeaterUseCase", () => {
 			evaluateInstanceHealth as any,
 			warmUpStrategy as any,
 			dispatchPort as any,
+			intents as any,
+			gate as any,
+			idFactory,
 			metricIngestion as any,
 		);
 
@@ -115,8 +145,9 @@ describe("HeaterUseCase", () => {
 				phase: "OBSERVER",
 			}),
 		);
-		expect(dispatchPort.send).toHaveBeenCalledTimes(2);
-		expect(metricIngestion.recordMany).toHaveBeenCalledTimes(2);
-		expect(metricIngestion.recordMany).toHaveBeenCalledWith([producedEvent]);
+		expect(dispatchPort.send).not.toHaveBeenCalled();
+		expect(intents.create).toHaveBeenCalledTimes(2);
+		expect(gate.execute).toHaveBeenCalledTimes(2);
+		expect(metricIngestion.recordMany).not.toHaveBeenCalled();
 	});
 });
