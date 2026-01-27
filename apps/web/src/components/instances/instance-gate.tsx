@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApiSWR } from "@/lib/api/swr";
+import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 type InstanceGateState = "READY" | "NO_INSTANCE" | "NOT_HEALTHY";
@@ -25,15 +26,20 @@ type GateResponse = GateResponseReady | GateResponseBlocked;
 
 export function InstanceGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { data: session, isPending: isSessionPending } = useSession();
   const isInstancesRoute = pathname?.startsWith("/instances") ?? false;
+  const shouldFetchGate = !isSessionPending && !!session?.user;
 
-  const { data, isLoading } = useApiSWR<GateResponse>("/api/instances/gate", {
-    revalidateOnFocus: true,
-    dedupingInterval: 10_000,
-  });
+  const { data, isLoading } = useApiSWR<GateResponse>(
+    shouldFetchGate ? "/api/instances/gate" : null,
+    {
+      revalidateOnFocus: true,
+      dedupingInterval: 10_000,
+    },
+  );
 
   const blocked =
-    !isInstancesRoute && !isLoading && !!data && data.state !== "READY";
+    shouldFetchGate && !isInstancesRoute && !isLoading && !!data && data.state !== "READY";
 
   return (
     <div className="relative">

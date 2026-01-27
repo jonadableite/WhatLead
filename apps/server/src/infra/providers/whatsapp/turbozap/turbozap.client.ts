@@ -54,6 +54,16 @@ interface TurboZapMessageResult {
 }
 
 /**
+ * Instance create response from TurboZap.
+ */
+interface TurboZapInstanceCreate {
+	id: string;
+	name: string;
+	status: string;
+	created_at?: string;
+}
+
+/**
  * Group info from TurboZap.
  */
 interface TurboZapGroup {
@@ -91,6 +101,17 @@ export class TurboZapClient {
 		instanceName: string,
 	): Promise<TurboZapResponse<TurboZapQRCode>> {
 		return this.post<TurboZapQRCode>(`/instance/${instanceName}/connect`);
+	}
+
+	/**
+	 * Creates a new instance.
+	 */
+	async createInstance(
+		instanceName: string,
+	): Promise<TurboZapResponse<TurboZapInstanceCreate>> {
+		return this.post<TurboZapInstanceCreate>("/instance/create", {
+			name: instanceName,
+		});
 	}
 
 	/**
@@ -270,7 +291,35 @@ export class TurboZapClient {
 
 			clearTimeout(timeoutId);
 
-			const data = (await response.json()) as TurboZapResponse<T>;
+			const contentType = response.headers.get("content-type") ?? "";
+			if (!contentType.includes("application/json")) {
+				const bodyText = await response.text().catch(() => "");
+				return {
+					success: false,
+					error: {
+						code: `HTTP_${response.status}`,
+						message: bodyText
+							? `Unexpected response: ${bodyText.substring(0, 120)}`
+							: "Unexpected non-JSON response from TurboZap",
+					},
+				};
+			}
+
+			let data: TurboZapResponse<T>;
+			try {
+				data = (await response.json()) as TurboZapResponse<T>;
+			} catch (error) {
+				return {
+					success: false,
+					error: {
+						code: "PARSE_ERROR",
+						message:
+							error instanceof Error
+								? error.message
+								: "Failed to parse TurboZap response",
+					},
+				};
+			}
 
 			if (!response.ok) {
 				return {

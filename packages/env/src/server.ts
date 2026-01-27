@@ -13,7 +13,7 @@ export const env = createEnv({
 			.default("development"),
 		PORT: z.string().regex(/^\d+$/).default("3000"),
 		GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
-		TURBOZAP_BASE_URL: z.string().min(1).default("http://localhost:3001"),
+		TURBOZAP_BASE_URL: z.string().min(1).default("http://localhost:8080"),
 		TURBOZAP_API_KEY: z.string().min(1).default("dev"),
 		TURBOZAP_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
 		REDIS_URL: z.string().default("redis://localhost:6379"),

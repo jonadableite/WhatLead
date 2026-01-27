@@ -88,11 +88,49 @@ export class TurboZapProvider
 		this.client = new TurboZapClient(config);
 	}
 
+	private isInstanceMissing(error?: { code?: string; message?: string }): boolean {
+		if (!error) return false;
+		if (error.code === "HTTP_404") return true;
+		const message = error.message?.toLowerCase() ?? "";
+		return message.includes("not found") || message.includes("instance");
+	}
+
+	private async ensureInstanceExists(
+		instanceId: string,
+	): Promise<{ ok: boolean; error?: string }> {
+		const status = await this.client.getStatus(instanceId);
+		if (status.success) return { ok: true };
+		if (!this.isInstanceMissing(status.error)) {
+			return {
+				ok: false,
+				error: status.error?.message ?? "Failed to validate instance on provider",
+			};
+		}
+
+		const created = await this.client.createInstance(instanceId);
+		if (created.success) return { ok: true };
+		if (created.error?.code === "HTTP_409") return { ok: true };
+
+		return {
+			ok: false,
+			error: created.error?.message ?? "Failed to create instance on provider",
+		};
+	}
+
 	// ─────────────────────────────────────────────────────────────────────────
 	// CONNECTION MANAGEMENT
 	// ─────────────────────────────────────────────────────────────────────────
 
 	async connect(instanceId: string): Promise<ConnectionResult> {
+		const ensured = await this.ensureInstanceExists(instanceId);
+		if (!ensured.ok) {
+			return {
+				success: false,
+				status: "ERROR",
+				error: ensured.error ?? "Failed to ensure instance on provider",
+			};
+		}
+
 		const response = await this.client.connect(instanceId);
 
 		if (!response.success) {
@@ -136,6 +174,11 @@ export class TurboZapProvider
 	}
 
 	async getQRCode(instanceId: string): Promise<QRCodeResult> {
+		const ensured = await this.ensureInstanceExists(instanceId);
+		if (!ensured.ok) {
+			throw new Error(ensured.error ?? "Failed to ensure instance on provider");
+		}
+
 		const response = await this.client.getQRCode(instanceId);
 
 		if (!response.success || !response.data) {

@@ -2,18 +2,18 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { env } from "@WhatLead/env/server";
 import { createChildLogger, logSlowQuery } from "@WhatLead/logger";
 
-import { PrismaClient } from "../prisma/generated/client.js";
+import { Prisma, PrismaClient } from "../prisma/generated/client.js";
+
+// Create database logger
+const dbLogger = createChildLogger({ component: "database" });
 
 const adapter = new PrismaPg({
 	connectionString: env.DATABASE_URL,
 });
 
-// Create database logger
-const dbLogger = createChildLogger({ component: "database" });
-
 // Prisma client with logging and performance monitoring
 const prisma = new PrismaClient({
-  adapter,
+	adapter,
   log: [
     { level: "query", emit: "event" },
     { level: "info", emit: "event" },
@@ -23,7 +23,7 @@ const prisma = new PrismaClient({
 });
 
 // Log Prisma events
-prisma.$on("query", (e) => {
+prisma.$on("query", (e: Prisma.QueryEvent) => {
   const duration = e.duration;
   const query = e.query;
 
@@ -42,15 +42,15 @@ prisma.$on("query", (e) => {
   }
 });
 
-prisma.$on("info", (e) => {
+prisma.$on("info", (e: Prisma.LogEvent) => {
   dbLogger.info({ message: e.message, target: e.target }, "Prisma info");
 });
 
-prisma.$on("warn", (e) => {
+prisma.$on("warn", (e: Prisma.LogEvent) => {
   dbLogger.warn({ message: e.message, target: e.target }, "Prisma warning");
 });
 
-prisma.$on("error", (e) => {
+prisma.$on("error", (e: Prisma.LogEvent) => {
   dbLogger.error({
     message: e.message,
     target: e.target,

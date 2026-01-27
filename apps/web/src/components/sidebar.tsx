@@ -13,6 +13,7 @@ import { AnimatedIcon } from "./ui/animated-icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import UserMenu from "./user-menu";
+import { useSession } from "@/lib/auth-client";
 
 // Assets Imports
 import aiIcon from "@/asset/wired-outline-2512-artificial-intelligence-ai-alt-hover-pinch.json";
@@ -37,6 +38,7 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session, isPending: isSessionPending } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [hoveredItemPath, setHoveredItemPath] = useState<string | null>(null);
@@ -125,7 +127,11 @@ export function Sidebar() {
 
           {/* Organization Switcher */}
           <div className="mb-6">
-            <OrganizationSwitcher />
+            {isSessionPending ? (
+              <div className="h-11 w-full rounded-xl border border-white/5 bg-white/5" />
+            ) : session?.user ? (
+              <OrganizationSwitcher />
+            ) : null}
           </div>
 
           {/* Search */}

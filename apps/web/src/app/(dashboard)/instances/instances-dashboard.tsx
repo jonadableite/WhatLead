@@ -13,14 +13,21 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { QRCodeConnectionStep } from "@/components/instances/qr-code-connection-step";
 import { AlertBanner } from "@/components/ui/alert-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { useApiSWR } from "@/lib/api/swr";
 import { pauseInstance, resumeInstance } from "@/lib/ops/ops-api";
 import type { ExecutionMetricsSnapshot } from "@/lib/ops/ops-types";
 import {
-  connectInstance,
 	getConnectionStatus,
   reconnectInstance,
 } from "@/lib/instances/instance-api";
@@ -66,19 +73,14 @@ export default function InstancesDashboard() {
 	);
 
   const [actionInstanceId, setActionInstanceId] = useState<string | null>(null);
+	const [connectModalOpen, setConnectModalOpen] = useState(false);
+	const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
+		null,
+	);
 
   const onConnect = async (instanceId: string) => {
-    setActionInstanceId(instanceId);
-    try {
-      await connectInstance(instanceId);
-			await getConnectionStatus(instanceId);
-      await mutate();
-			toast.success("Conexão iniciada. Acompanhe o status.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao conectar");
-    } finally {
-      setActionInstanceId(null);
-    }
+		setSelectedInstanceId(instanceId);
+		setConnectModalOpen(true);
   };
 
   const onReconnect = async (instanceId: string) => {
@@ -119,6 +121,20 @@ export default function InstancesDashboard() {
 		} finally {
 			setActionInstanceId(null);
 		}
+	};
+
+	const handleConnectModalOpenChange = (open: boolean) => {
+		setConnectModalOpen(open);
+		if (!open) {
+			setSelectedInstanceId(null);
+		}
+	};
+
+	const handleConnected = async () => {
+		setConnectModalOpen(false);
+		setSelectedInstanceId(null);
+		await mutate();
+		toast.success("Instância conectada com sucesso.");
 	};
 
 	return (
@@ -317,6 +333,25 @@ export default function InstancesDashboard() {
             ))}
           </div>
         )}
+				<Dialog
+					open={connectModalOpen}
+					onOpenChange={handleConnectModalOpenChange}
+				>
+					<DialogContent className="max-w-lg">
+						<DialogHeader>
+							<DialogTitle>Conectar WhatsApp</DialogTitle>
+							<DialogDescription>
+								Leia o QR Code no WhatsApp para ativar a instância.
+							</DialogDescription>
+						</DialogHeader>
+						{selectedInstanceId ? (
+							<QRCodeConnectionStep
+								instanceId={selectedInstanceId}
+								onConnected={handleConnected}
+							/>
+						) : null}
+					</DialogContent>
+				</Dialog>
       </div>
     </div>
   );
