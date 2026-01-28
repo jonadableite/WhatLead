@@ -5,5 +5,6 @@ export interface InstanceRepository {
 	findById(instanceId: string): Promise<Instance | null>;
 	listByCompanyId(companyId: string): Promise<Instance[]>;
 	save(instance: Instance): Promise<void>;
+	delete(instanceId: string): Promise<void>;
 }
 

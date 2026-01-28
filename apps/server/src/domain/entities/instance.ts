@@ -14,6 +14,9 @@ export interface InstanceProps {
 	purpose: InstancePurpose;
 	displayName: string;
 	phoneNumber: string;
+	profileName?: string | null;
+	profilePicUrl?: string | null;
+	profileLastSyncAt?: Date | null;
 	lifecycleStatus: InstanceLifecycleStatus;
 	connectionStatus: InstanceConnectionStatus;
 	reputation: InstanceReputation;
@@ -30,6 +33,9 @@ export class Instance {
 	private _purpose: InstancePurpose;
 	private _displayName: string;
 	private _phoneNumber: string;
+	private _profileName: string | null;
+	private _profilePicUrl: string | null;
+	private _profileLastSyncAt: Date | null;
 	private _lifecycleStatus: InstanceLifecycleStatus;
 	private _connectionStatus: InstanceConnectionStatus;
 	private _reputation: InstanceReputation;
@@ -44,6 +50,9 @@ export class Instance {
 		this._purpose = props.purpose;
 		this._displayName = props.displayName;
 		this._phoneNumber = props.phoneNumber;
+		this._profileName = props.profileName ?? null;
+		this._profilePicUrl = props.profilePicUrl ?? null;
+		this._profileLastSyncAt = props.profileLastSyncAt ?? null;
 		this._lifecycleStatus = props.lifecycleStatus;
 		this._connectionStatus = props.connectionStatus;
 		this._reputation = props.reputation;
@@ -68,6 +77,9 @@ export class Instance {
 			purpose: params.purpose ?? "WARMUP",
 			displayName: params.displayName ?? "Nova instância",
 			phoneNumber: params.phoneNumber ?? "",
+			profileName: null,
+			profilePicUrl: null,
+			profileLastSyncAt: null,
 			lifecycleStatus: "CREATED",
 			connectionStatus: "DISCONNECTED",
 			reputation: params.reputation,
@@ -113,6 +125,18 @@ export class Instance {
 		return this._phoneNumber;
 	}
 
+	get profileName(): string | null {
+		return this._profileName;
+	}
+
+	get profilePicUrl(): string | null {
+		return this._profilePicUrl;
+	}
+
+	get profileLastSyncAt(): Date | null {
+		return this._profileLastSyncAt;
+	}
+
 	get maskedPhoneNumber(): string {
 		return maskPhoneNumber(this._phoneNumber);
 	}
@@ -131,6 +155,22 @@ export class Instance {
 
 	get lastConnectedAt(): Date | null {
 		return this._lastConnectedAt;
+	}
+
+	updateWhatsAppProfile(params: {
+		name?: string | null;
+		picUrl?: string | null;
+		syncedAt?: Date | null;
+	}): void {
+		if (typeof params.name !== "undefined") {
+			this._profileName = params.name;
+		}
+		if (typeof params.picUrl !== "undefined") {
+			this._profilePicUrl = params.picUrl;
+		}
+		if (typeof params.syncedAt !== "undefined") {
+			this._profileLastSyncAt = params.syncedAt;
+		}
 	}
 
 	markConnecting(): void {

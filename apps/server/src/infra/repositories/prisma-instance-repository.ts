@@ -22,6 +22,9 @@ export class PrismaInstanceRepository implements InstanceRepository {
 				tenantId: instance.companyId,
 				displayName: instance.displayName,
 				phoneNumber: instance.phoneNumber,
+				profileName: instance.profileName,
+				profilePicUrl: instance.profilePicUrl,
+				profileLastSyncAt: instance.profileLastSyncAt,
 				purpose: instance.purpose,
 				engine: instance.engine,
 				lifecycleStatus: instance.lifecycleStatus,
@@ -45,6 +48,9 @@ export class PrismaInstanceRepository implements InstanceRepository {
 			purpose: row.purpose as any,
 			displayName: row.displayName,
 			phoneNumber: row.phoneNumber,
+			profileName: row.profileName,
+			profilePicUrl: row.profilePicUrl,
+			profileLastSyncAt: row.profileLastSyncAt,
 			lifecycleStatus: row.lifecycleStatus as any,
 			connectionStatus: row.connectionStatus as any,
 			reputation,
@@ -70,6 +76,9 @@ export class PrismaInstanceRepository implements InstanceRepository {
 					purpose: row.purpose as any,
 					displayName: row.displayName,
 					phoneNumber: row.phoneNumber,
+					profileName: row.profileName,
+					profilePicUrl: row.profilePicUrl,
+					profileLastSyncAt: row.profileLastSyncAt,
 					lifecycleStatus: row.lifecycleStatus as any,
 					connectionStatus: row.connectionStatus as any,
 					reputation,
@@ -91,6 +100,9 @@ export class PrismaInstanceRepository implements InstanceRepository {
 				tenantId: instance.companyId,
 				displayName: instance.displayName,
 				phoneNumber: instance.phoneNumber,
+				profileName: instance.profileName,
+				profilePicUrl: instance.profilePicUrl,
+				profileLastSyncAt: instance.profileLastSyncAt,
 				purpose: instance.purpose,
 				engine: instance.engine,
 				lifecycleStatus: instance.lifecycleStatus,
@@ -101,12 +113,19 @@ export class PrismaInstanceRepository implements InstanceRepository {
 			update: {
 				displayName: instance.displayName,
 				phoneNumber: instance.phoneNumber,
+				profileName: instance.profileName,
+				profilePicUrl: instance.profilePicUrl,
+				profileLastSyncAt: instance.profileLastSyncAt,
 				purpose: instance.purpose,
 				lifecycleStatus: instance.lifecycleStatus,
 				connectionStatus: instance.connectionStatus,
 				lastConnectedAt: instance.lastConnectedAt,
 			},
 		});
+	}
+
+	async delete(instanceId: string): Promise<void> {
+		await prisma.instance.delete({ where: { id: instanceId } });
 	}
 }
 

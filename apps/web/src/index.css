@@ -698,6 +698,10 @@
     overflow: hidden;
   }
 
+  .page-content {
+    view-transition-name: page-content;
+  }
+
   /* Aspect ratios */
   .aspect-golden { aspect-ratio: 1.618 / 1; }
 
@@ -726,6 +730,38 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     opacity: 0.03;
     pointer-events: none;
+  }
+}
+
+/* =============================================================================
+   VIEW TRANSITIONS API (Progressive Enhancement)
+   ============================================================================= */
+
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes page-fade-out {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 0; transform: translate3d(0, -6px, 0); }
+}
+
+@supports (view-transition-name: none) {
+  ::view-transition-old(root) {
+    animation: page-fade-out 0.18s ease-in;
+  }
+
+  ::view-transition-new(root) {
+    animation: page-fade-in 0.24s ease-out;
+  }
+
+  ::view-transition-old(page-content) {
+    animation: page-fade-out 0.18s ease-in;
+  }
+
+  ::view-transition-new(page-content) {
+    animation: page-fade-in 0.24s ease-out;
   }
 }
 

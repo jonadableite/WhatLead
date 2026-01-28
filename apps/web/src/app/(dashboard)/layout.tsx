@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import { RequireSession } from "@/components/auth/require-session";
 import { InstanceGate } from "@/components/instances/instance-gate";
 import { Sidebar } from "@/components/sidebar";
+import { PageTransition } from "@/components/transitions/page-transition";
 
 export default function DashboardLayout({
   children,
@@ -22,7 +23,9 @@ export default function DashboardLayout({
           <div className="h-16 md:hidden" />
 
           <main className="flex-1 p-4 md:p-8">
-            <InstanceGate>{children}</InstanceGate>
+            <InstanceGate>
+              <PageTransition>{children}</PageTransition>
+            </InstanceGate>
           </main>
         </div>
       </div>

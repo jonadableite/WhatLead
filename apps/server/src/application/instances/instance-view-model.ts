@@ -8,6 +8,9 @@ import type { WhatsAppEngine } from "../../domain/value-objects/whatsapp-engine"
 export interface InstanceListItemViewModel {
 	id: string;
 	name: string;
+	profileName: string | null;
+	profilePicUrl: string | null;
+	profileLastSyncAt: string | null;
 	numberMasked: string;
 	purpose: InstancePurpose;
 	engine: WhatsAppEngine;
@@ -28,6 +31,11 @@ export const toInstanceListItemViewModel = (
 	return {
 		id: instance.id,
 		name: instance.displayName,
+		profileName: instance.profileName,
+		profilePicUrl: instance.profilePicUrl,
+		profileLastSyncAt: instance.profileLastSyncAt
+			? instance.profileLastSyncAt.toISOString()
+			: null,
 		numberMasked: instance.maskedPhoneNumber,
 		purpose: instance.purpose,
 		engine: instance.engine,

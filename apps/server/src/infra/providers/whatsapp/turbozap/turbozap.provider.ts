@@ -96,9 +96,9 @@ export class TurboZapProvider
 	}
 
 	private async ensureInstanceExists(
-		instanceId: string,
+		instanceName: string,
 	): Promise<{ ok: boolean; error?: string }> {
-		const status = await this.client.getStatus(instanceId);
+		const status = await this.client.getStatus(instanceName);
 		if (status.success) return { ok: true };
 		if (!this.isInstanceMissing(status.error)) {
 			return {
@@ -107,7 +107,7 @@ export class TurboZapProvider
 			};
 		}
 
-		const created = await this.client.createInstance(instanceId);
+		const created = await this.client.createInstance(instanceName);
 		if (created.success) return { ok: true };
 		if (created.error?.code === "HTTP_409") return { ok: true };
 

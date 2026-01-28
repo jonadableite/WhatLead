@@ -358,8 +358,7 @@ export class TurboZapClient {
 
 // Export types for use in provider
 export type {
-	TurboZapResponse,
-	TurboZapInstanceStatus,
-	TurboZapMessageResult,
-	TurboZapGroup,
+	TurboZapGroup, TurboZapInstanceStatus,
+	TurboZapMessageResult, TurboZapResponse
 };
+

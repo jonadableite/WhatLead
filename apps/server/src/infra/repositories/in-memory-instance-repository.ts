@@ -20,6 +20,10 @@ export class InMemoryInstanceRepository implements InstanceRepository {
 		this.store.set(instance.id, instance);
 	}
 
+	async delete(instanceId: string): Promise<void> {
+		this.store.delete(instanceId);
+	}
+
 	listIds(): string[] {
 		return [...this.store.keys()];
 	}

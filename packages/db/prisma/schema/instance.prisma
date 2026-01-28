@@ -7,6 +7,9 @@ model Instance {
   engine            String
   lifecycleStatus   String
   connectionStatus  String
+  profileName       String?
+  profilePicUrl     String?
+  profileLastSyncAt DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   lastConnectedAt   DateTime?

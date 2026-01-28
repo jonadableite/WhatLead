@@ -2,6 +2,7 @@ import type { WhatsAppProvider } from "../providers/whatsapp-provider";
 import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 import type { InstanceConnectionStatus } from "../../domain/value-objects/instance-connection-status";
 import { toInstanceListItemViewModel, type InstanceListItemViewModel } from "./instance-view-model";
+import { getProviderInstanceName } from "./provider-instance-name";
 
 export type InstanceConnectionIntent = "CONNECT" | "RECONNECT";
 
@@ -35,7 +36,8 @@ export class ConnectInstanceUseCase {
 			throw new Error("INSTANCE_NOT_FOUND");
 		}
 
-		const result = await this.provider.connect(instance.id);
+		const providerName = getProviderInstanceName(instance);
+		const result = await this.provider.connect(providerName);
 
 		if (!result.success) {
 			instance.markError();

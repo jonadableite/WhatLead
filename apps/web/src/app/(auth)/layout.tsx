@@ -3,6 +3,7 @@
 import { Zap } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
+import { PageTransition } from "@/components/transitions/page-transition";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Left Panel - Branding (Desktop only) */}
       <div className="relative hidden overflow-hidden lg:flex lg:w-1/2">
         {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-success/10" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-background to-success/10" />
 
         {/* Animated Grid Pattern */}
         <div
@@ -66,7 +67,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <Link href="/" className="mb-12 flex items-center gap-3">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary opacity-50 blur-xl" />
-                <div className="relative rounded-xl bg-gradient-to-br from-primary to-primary/70 p-3">
+                <div className="relative rounded-xl bg-linear-to-br from-primary to-primary/70 p-3">
                   <Zap
                     className="h-8 w-8 text-primary-foreground"
                     fill="currentColor"
@@ -81,7 +82,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             {/* Headline */}
             <h1 className="mb-6 text-4xl font-bold leading-tight text-foreground lg:text-5xl">
               Automatize seu{" "}
-              <span className="bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary to-success bg-clip-text text-transparent">
                 WhatsApp
               </span>
               <br />
@@ -125,14 +126,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           transition={{ duration: 0.4 }}
           className="w-full max-w-md"
         >
-          {children}
+          <PageTransition variant="fadeSlideUp">{children}</PageTransition>
         </motion.div>
       </div>
 
       {/* Mobile Logo (shown only on small screens) */}
       <div className="fixed left-6 top-6 z-20 lg:hidden">
         <Link href="/" className="flex items-center gap-2">
-          <div className="rounded-lg bg-gradient-to-br from-primary to-primary/70 p-2">
+          <div className="rounded-lg bg-linear-to-br from-primary to-primary/70 p-2">
             <Zap
               className="h-5 w-5 text-primary-foreground"
               fill="currentColor"

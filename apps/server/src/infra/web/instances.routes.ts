@@ -4,6 +4,7 @@ import type { FastifyInstance } from "fastify";
 import { auth } from "@WhatLead/auth";
 import type { ConnectInstanceUseCase } from "../../application/instances/connect-instance.use-case";
 import type { CreateInstanceUseCase } from "../../application/instances/create-instance.use-case";
+import type { DeleteInstanceUseCase } from "../../application/instances/delete-instance.use-case";
 import type { EvaluateInstanceHealthOnDemandUseCase } from "../../application/instances/evaluate-instance-health-on-demand.use-case";
 import type { GetInstanceConnectionStatusUseCase } from "../../application/instances/get-instance-connection-status.use-case";
 import type { GetInstanceQRCodeUseCase } from "../../application/instances/get-instance-qrcode.use-case";
@@ -45,6 +46,7 @@ export const registerInstanceRoutes = async (
 		listInstances: ListInstancesUseCase;
 		createInstance: CreateInstanceUseCase;
 		getInstance: GetInstanceUseCase;
+		deleteInstance: DeleteInstanceUseCase;
 		connectInstance: ConnectInstanceUseCase;
 		getConnectionStatus: GetInstanceConnectionStatusUseCase;
 		getQRCode: GetInstanceQRCodeUseCase;
@@ -127,6 +129,22 @@ export const registerInstanceRoutes = async (
 				instanceId: params.id,
 			});
 			return reply.send(result);
+		} catch {
+			return reply.status(404).send({ error: "INSTANCE_NOT_FOUND" });
+		}
+	});
+
+	fastify.delete("/api/instances/:id", async (request, reply) => {
+		const tenantId = await resolveTenantId(request.headers as any);
+		if (!tenantId) return reply.status(401).send({ error: "UNAUTHORIZED" });
+
+		const params = request.params as { id: string };
+		try {
+			await options.deleteInstance.execute({
+				companyId: tenantId,
+				instanceId: params.id,
+			});
+			return reply.status(204).send();
 		} catch {
 			return reply.status(404).send({ error: "INSTANCE_NOT_FOUND" });
 		}

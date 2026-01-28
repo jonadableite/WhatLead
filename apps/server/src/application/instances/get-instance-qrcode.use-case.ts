@@ -1,5 +1,6 @@
 import type { WhatsAppProvider } from "../providers/whatsapp-provider";
 import type { InstanceRepository } from "../../domain/repositories/instance-repository";
+import { getProviderInstanceName } from "./provider-instance-name";
 
 export interface GetInstanceQRCodeUseCaseRequest {
 	companyId: string;
@@ -22,7 +23,8 @@ export class GetInstanceQRCodeUseCase {
 			throw new Error("INSTANCE_NOT_FOUND");
 		}
 
-		const { qrCode } = await this.provider.getQRCode(instance.id);
+		const providerName = getProviderInstanceName(instance);
+		const { qrCode } = await this.provider.getQRCode(providerName);
 		return { qrCode };
 	}
 }

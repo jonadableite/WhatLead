@@ -19,13 +19,15 @@ export const apiFetch = async <T>(
 		? path
 		: `${env.NEXT_PUBLIC_SERVER_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 
+	const headers = new Headers(init.headers ?? {});
+	if (init.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+		headers.set("Content-Type", "application/json");
+	}
+
 	const res = await fetch(url, {
 		...init,
 		credentials: "include",
-		headers: {
-			"Content-Type": "application/json",
-			...(init.headers ?? {}),
-		},
+		headers,
 	});
 
 	const contentType = res.headers.get("content-type") ?? "";

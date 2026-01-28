@@ -49,6 +49,11 @@ export const reconnectInstance = async (
 export const getInstance = async (instanceId: string): Promise<GetInstanceResponse> =>
 	apiFetch<GetInstanceResponse>(`/api/instances/${encodeURIComponent(instanceId)}`);
 
+export const deleteInstance = async (instanceId: string): Promise<void> =>
+	apiFetch<void>(`/api/instances/${encodeURIComponent(instanceId)}`, {
+		method: "DELETE",
+	});
+
 export const getConnectionStatus = async (
 	instanceId: string,
 ): Promise<InstanceConnectionStatusResponse> =>

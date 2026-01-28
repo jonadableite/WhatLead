@@ -25,6 +25,9 @@ export type InstanceAllowedAction =
 export interface InstanceListItem {
 	id: string;
 	name: string;
+	profileName?: string | null;
+	profilePicUrl?: string | null;
+	profileLastSyncAt?: string | null;
 	numberMasked: string;
 	purpose: InstancePurpose;
 	engine: WhatsAppEngine;

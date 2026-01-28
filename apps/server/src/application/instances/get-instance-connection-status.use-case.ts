@@ -2,6 +2,7 @@ import type { WhatsAppProvider } from "../providers/whatsapp-provider";
 import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 import type { InstanceConnectionStatus } from "../../domain/value-objects/instance-connection-status";
 import { toInstanceListItemViewModel, type InstanceListItemViewModel } from "./instance-view-model";
+import { getProviderInstanceName } from "./provider-instance-name";
 
 export interface GetInstanceConnectionStatusUseCaseRequest {
 	companyId: string;
@@ -34,8 +35,16 @@ export class GetInstanceConnectionStatusUseCase {
 			throw new Error("INSTANCE_NOT_FOUND");
 		}
 
-		const status = await this.provider.getStatus(instance.id);
+		const providerName = getProviderInstanceName(instance);
+		const status = await this.provider.getStatus(providerName);
 		applyProviderStatus(instance, status.status);
+		if (status.profileName || status.profilePicUrl) {
+			instance.updateWhatsAppProfile({
+				name: status.profileName ?? null,
+				picUrl: status.profilePicUrl ?? null,
+				syncedAt: now,
+			});
+		}
 		await this.instances.save(instance);
 
 		return {

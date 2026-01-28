@@ -36,6 +36,7 @@ import { DelayedDispatchPort } from "./application/heater/delayed-dispatch-port"
 import { GuardedDispatchPort } from "./application/heater/guarded-dispatch-port";
 import { ConnectInstanceUseCase } from "./application/instances/connect-instance.use-case";
 import { CreateInstanceUseCase } from "./application/instances/create-instance.use-case";
+import { DeleteInstanceUseCase } from "./application/instances/delete-instance.use-case";
 import { EvaluateInstanceHealthOnDemandUseCase } from "./application/instances/evaluate-instance-health-on-demand.use-case";
 import { GetInstanceConnectionStatusUseCase } from "./application/instances/get-instance-connection-status.use-case";
 import { GetInstanceQRCodeUseCase } from "./application/instances/get-instance-qrcode.use-case";
@@ -625,13 +626,14 @@ await registerSdrFlowRoutes(fastify, {
 	gateDecisions: gateDecisionRecorder,
 });
 
-const listInstances = new ListInstancesUseCase(instanceRepository);
+const listInstances = new ListInstancesUseCase(instanceRepository, provider);
 const createInstance = new CreateInstanceUseCase(
 	instanceRepository,
 	reputationRepository,
 	idFactory,
 );
 const getInstance = new GetInstanceUseCase(instanceRepository);
+const deleteInstance = new DeleteInstanceUseCase(instanceRepository);
 const connectInstance = new ConnectInstanceUseCase(instanceRepository, provider);
 const getConnectionStatus = new GetInstanceConnectionStatusUseCase(
 	instanceRepository,
@@ -647,6 +649,7 @@ await registerInstanceRoutes(fastify, {
 	listInstances,
 	createInstance,
 	getInstance,
+	deleteInstance,
 	connectInstance,
 	getConnectionStatus,
 	getQRCode,
