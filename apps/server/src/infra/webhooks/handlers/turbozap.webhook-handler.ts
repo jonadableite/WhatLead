@@ -27,10 +27,13 @@ import type {
  */
 interface TurboZapWebhookPayload {
 	event: string;
-	instance_id: string;
-	instance: string;
-	timestamp: string;
-	data: unknown;
+	instance_id?: string;
+	instance?: string;
+	timestamp?: string;
+	data?: unknown;
+	data_type?: string;
+	data_value?: unknown;
+	instance_name?: string;
 }
 
 /**
@@ -45,6 +48,8 @@ interface TurboZapMessageReceivedData {
 	timestamp: string;
 	is_group: boolean;
 	push_name?: string;
+	fromMe?: boolean;
+	from_name?: string;
 }
 
 /**
@@ -87,6 +92,7 @@ const EVENT_TYPE_MAP: Record<string, WhatsAppEventType | undefined> = {
 	"message.received": "MESSAGE_RECEIVED",
 	"message.sent": "MESSAGE_SENT",
 	"send-message": "MESSAGE_SENT",
+	"messages.upsert": "MESSAGE_RECEIVED",
 	"messages.update": undefined, // Handled specially based on status
 	"messages.delete": undefined, // Not tracked for reputation
 	"connection.update": undefined, // Handled specially based on status
@@ -130,14 +136,16 @@ export class TurboZapWebhookTransformer
 	 */
 	transform(raw: TurboZapWebhookPayload): NormalizedWhatsAppEvent[] {
 		const events: NormalizedWhatsAppEvent[] = [];
+		const data = (raw.data_value ?? raw.data) as unknown;
 
 		// Route to specific handler based on event type
 		switch (raw.event) {
 			case "message.received":
+			case "messages.upsert":
 				events.push(
 					...this.transformMessageReceived(
 						raw,
-						raw.data as TurboZapMessageReceivedData,
+						data as TurboZapMessageReceivedData,
 					),
 				);
 				break;
@@ -147,7 +155,7 @@ export class TurboZapWebhookTransformer
 				events.push(
 					...this.transformMessageSent(
 						raw,
-						raw.data as TurboZapMessageSentData,
+						data as TurboZapMessageSentData,
 					),
 				);
 				break;
@@ -156,7 +164,7 @@ export class TurboZapWebhookTransformer
 				events.push(
 					...this.transformMessageUpdate(
 						raw,
-						raw.data as TurboZapMessageUpdateData,
+						data as TurboZapMessageUpdateData,
 					),
 				);
 				break;
@@ -165,7 +173,7 @@ export class TurboZapWebhookTransformer
 				events.push(
 					...this.transformConnectionUpdate(
 						raw,
-						raw.data as TurboZapConnectionUpdateData,
+						data as TurboZapConnectionUpdateData,
 					),
 				);
 				break;
@@ -199,14 +207,14 @@ export class TurboZapWebhookTransformer
 			{
 				type: eventType,
 				source: "WEBHOOK",
-				instanceId: raw.instance_id || raw.instance,
-				occurredAt: new Date(data.timestamp || raw.timestamp),
+				instanceId: raw.instance_id || raw.instance || raw.instance_name || "",
+				occurredAt: new Date(data.timestamp || raw.timestamp || new Date().toISOString()),
 				messageId: data.message_id,
 				remoteJid: data.from,
 				isGroup: data.is_group,
 				metadata: {
 					messageType: data.type,
-					pushName: data.push_name,
+					pushName: data.push_name ?? data.from_name,
 					text:
 						data.type === "text" && typeof data.content === "string"
 							? data.content

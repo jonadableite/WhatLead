@@ -22,6 +22,8 @@ import { randomUUID } from "crypto";
 import Fastify from "fastify";
 import { AgentOrchestratorUseCase } from "./application/agents/agent-orchestrator.use-case";
 import { DefaultAgentPlaybook } from "./application/agents/default-agent-playbook";
+import { ListConversationsUseCase } from "./application/conversations/list-conversations.use-case";
+import { SendChatMessageUseCase } from "./application/conversations/send-chat-message.use-case";
 import { AssignConversationUseCase } from "./application/conversation/assign-conversation.use-case";
 import { ConversationEventPipelineUseCase } from "./application/conversation/conversation-event-pipeline.use-case";
 import { ConversationRouter } from "./application/conversation/conversation-router";
@@ -120,6 +122,7 @@ import { registerMessageIntentRoutes } from "./infra/web/message-intents.routes"
 import { registerOpsRoutes } from "./infra/web/ops.routes";
 import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
 import { registerExecutionJobsRoutes } from "./infra/web/execution-jobs.routes";
+import { registerConversationRoutes } from "./infra/web/conversations.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 
 // =============================================================================
@@ -432,6 +435,9 @@ const provider = WhatsAppProviderFactory.create("TURBOZAP", {
 	baseUrl: env.TURBOZAP_BASE_URL,
 	apiKey: env.TURBOZAP_API_KEY,
 	timeoutMs: env.TURBOZAP_TIMEOUT_MS,
+	webhookUrl: env.WEBHOOK_PUBLIC_URL
+		? `${env.WEBHOOK_PUBLIC_URL.replace(/\/$/, "")}/webhooks/turbozap`
+		: undefined,
 });
 
 const messageExecutionJobRepository = new PrismaMessageExecutionJobRepository();
@@ -479,6 +485,13 @@ const decideMessageIntent = new DecideMessageIntentUseCase(
 	messageIntentRepository,
 	messageIntentGate,
 	enqueueExecutionJob ?? undefined,
+);
+
+const listConversations = new ListConversationsUseCase(conversationRepository);
+const sendChatMessage = new SendChatMessageUseCase(
+	conversationRepository,
+	createMessageIntent,
+	decideMessageIntent,
 );
 
 const getExecutionMetrics = new GetExecutionMetricsUseCase(
@@ -584,6 +597,12 @@ await registerMessageIntentRoutes(fastify, {
 	decideMessageIntent,
 	getMessageIntent,
 	listMessageIntents,
+});
+
+await registerConversationRoutes(fastify, {
+	listConversations,
+	sendChatMessage,
+	conversationRepository,
 });
 
 await registerExecutionJobsRoutes(fastify, {

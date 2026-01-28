@@ -83,9 +83,11 @@ export class TurboZapProvider
 {
 	readonly providerName = "TurboZap";
 	private readonly client: TurboZapClient;
+	private readonly webhookUrl?: string;
 
 	constructor(config: ProviderConfig) {
 		this.client = new TurboZapClient(config);
+		this.webhookUrl = config.webhookUrl;
 	}
 
 	private isInstanceMissing(error?: { code?: string; message?: string }): boolean {
@@ -139,6 +141,17 @@ export class TurboZapProvider
 				status: "ERROR",
 				error: response.error?.message ?? "Failed to connect",
 			};
+		}
+
+		if (this.webhookUrl) {
+			try {
+				await this.client.setWebhook(instanceId, {
+					url: this.webhookUrl,
+					events: ["messages.upsert", "message.sent", "messages.update", "connection.update", "qrcode.updated"],
+				});
+			} catch {
+				// Não bloqueia a conexão se o webhook falhar.
+			}
 		}
 
 		return {

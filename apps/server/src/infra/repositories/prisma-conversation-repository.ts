@@ -1,7 +1,15 @@
 import prisma from "@WhatLead/db";
 import { Conversation } from "../../domain/entities/conversation";
 import { ConversationSLA } from "../../domain/value-objects/conversation-sla";
-import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
+import type {
+	ConversationListResult,
+	ConversationMessagesResult,
+	ConversationRepository,
+} from "../../domain/repositories/conversation-repository";
+import type { ConversationStatus } from "../../domain/value-objects/conversation-status";
+import type { MessageDirection } from "../../domain/value-objects/message-direction";
+import type { MessageSender } from "../../domain/value-objects/message-sender";
+import type { MessageType } from "../../domain/value-objects/message-type";
 
 export class PrismaConversationRepository implements ConversationRepository {
 	async findActiveByInstanceAndContact(params: {
@@ -124,4 +132,114 @@ export class PrismaConversationRepository implements ConversationRepository {
 			},
 		});
 	}
+
+	async listByInstance(params: {
+		tenantId: string;
+		instanceId: string;
+		status?: ConversationStatus;
+		search?: string;
+		limit: number;
+		offset: number;
+	}): Promise<ConversationListResult> {
+		const where = {
+			tenantId: params.tenantId,
+			instanceId: params.instanceId,
+			...(params.status ? { status: params.status } : {}),
+			...(params.search
+				? {
+						OR: [
+							{ contactId: { contains: params.search, mode: "insensitive" } },
+							{ lead: { name: { contains: params.search, mode: "insensitive" } } },
+						],
+					}
+				: {}),
+		};
+
+		const [rows, total] = await Promise.all([
+			prisma.conversation.findMany({
+				where,
+				orderBy: { lastMessageAt: "desc" },
+				skip: params.offset,
+				take: params.limit,
+				include: {
+					lead: { select: { name: true } },
+					messages: {
+						orderBy: { occurredAt: "desc" },
+						take: 1,
+					},
+				},
+			}),
+			prisma.conversation.count({ where }),
+		]);
+
+		return {
+			items: rows.map((row) => {
+				const last = row.messages[0];
+				return {
+					id: row.id,
+					instanceId: row.instanceId,
+					contactId: row.contactId,
+					contactName: row.lead?.name ?? null,
+					status: row.status as ConversationStatus,
+					unreadCount: (row as any).unreadCount ?? 0,
+					lastMessageAt: row.lastMessageAt,
+					lastMessage: last
+						? {
+								body: resolveMessageBody(last.contentRef, last.metadata),
+								direction: last.direction as MessageDirection,
+								type: last.type as MessageType,
+								sentBy: last.sentBy as MessageSender,
+								occurredAt: last.occurredAt,
+							}
+						: null,
+				};
+			}),
+			total,
+		};
+	}
+
+	async getMessagesWithContent(params: {
+		conversationId: string;
+		limit: number;
+		cursor?: string;
+	}): Promise<ConversationMessagesResult> {
+		const rows = await prisma.message.findMany({
+			where: { conversationId: params.conversationId },
+			orderBy: { occurredAt: "desc" },
+			take: params.limit + 1,
+			...(params.cursor
+				? {
+						cursor: { id: params.cursor },
+						skip: 1,
+					}
+				: {}),
+		});
+
+		const hasMore = rows.length > params.limit;
+		const sliced = hasMore ? rows.slice(0, params.limit) : rows;
+		const items = sliced
+			.map((row) => ({
+				id: row.id,
+				direction: row.direction as MessageDirection,
+				type: row.type as MessageType,
+				sentBy: row.sentBy as MessageSender,
+				body: resolveMessageBody(row.contentRef, row.metadata),
+				occurredAt: row.occurredAt,
+			}))
+			.reverse();
+
+		return {
+			items,
+			nextCursor: hasMore ? sliced[sliced.length - 1]?.id : undefined,
+		};
+	}
 }
+
+const resolveMessageBody = (contentRef: string | null, metadata: unknown): string => {
+	if (contentRef && String(contentRef).trim()) return String(contentRef);
+	if (metadata && typeof metadata === "object") {
+		const text = (metadata as any).text ?? (metadata as any).body;
+		if (typeof text === "string" && text.trim()) return text;
+	}
+	return "";
+};

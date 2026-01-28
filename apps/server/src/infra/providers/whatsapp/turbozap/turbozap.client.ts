@@ -72,6 +72,11 @@ interface TurboZapGroup {
 	participants_count: number;
 }
 
+interface TurboZapWebhookConfig {
+	url: string;
+	events?: string[];
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CLIENT IMPLEMENTATION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -242,6 +247,16 @@ export class TurboZapClient {
 		instanceName: string,
 	): Promise<TurboZapResponse<{ groups: TurboZapGroup[] }>> {
 		return this.get<{ groups: TurboZapGroup[] }>(`/group/${instanceName}/list`);
+	}
+
+	/**
+	 * Sets webhook URL for instance events.
+	 */
+	async setWebhook(
+		instanceName: string,
+		params: TurboZapWebhookConfig,
+	): Promise<TurboZapResponse<unknown>> {
+		return this.post(`/webhook/${instanceName}/set`, params);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────

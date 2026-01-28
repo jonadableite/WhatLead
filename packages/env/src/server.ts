@@ -16,6 +16,7 @@ export const env = createEnv({
 		TURBOZAP_BASE_URL: z.string().min(1).default("http://localhost:8080"),
 		TURBOZAP_API_KEY: z.string().min(1).default("dev"),
 		TURBOZAP_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+		WEBHOOK_PUBLIC_URL: z.url().optional(),
 		REDIS_URL: z.string().default("redis://localhost:6379"),
 		EXECUTION_QUEUE_ENABLED: z
 			.string()

@@ -24,6 +24,8 @@ export interface ProviderConfig {
 	apiKey: string;
 	/** Request timeout in milliseconds */
 	timeoutMs?: number;
+	/** Optional webhook URL for inbound events */
+	webhookUrl?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

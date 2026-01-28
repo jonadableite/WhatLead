@@ -7,17 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApiSWR } from "@/lib/api/swr";
 import {
-	connectInstance,
-	getConnectionStatus,
-	getQRCode,
+    connectInstance,
+    getConnectionStatus,
+    getQRCode,
 } from "@/lib/instances/instance-api";
-import type {
-	ConnectInstanceResponse,
-	InstanceConnectionStatus,
-	InstanceConnectionStatusResponse,
-	InstanceQRCodeResponse,
-} from "@/lib/instances/instance-types";
 import { translateConnectionStatus } from "@/lib/instances/instance-status-translations";
+import type {
+    ConnectInstanceResponse,
+    InstanceConnectionStatus,
+    InstanceConnectionStatusResponse,
+    InstanceQRCodeResponse,
+} from "@/lib/instances/instance-types";
 
 interface QRCodeConnectionStepProps {
 	instanceId: string;
