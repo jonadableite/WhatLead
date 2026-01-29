@@ -101,3 +101,106 @@
 
 - [ ] Ajustar estados vazios e erros na tela de intents
 - [ ] Validar UX mobile no painel de control plane
+
+---
+
+## 2026-01-28 - Ajustes Chat CRM + Operator View
+
+### O que foi feito
+
+- [x] MessageIntent agora registra `origin` (ex: CHAT_MANUAL) sem novos purposes
+- [x] Message.status simplificado para `PENDING | SENT | FAILED`
+- [x] Conversation agora suporta `assignedOperatorId` (ownership humano)
+- [x] CRUD operacional de operadores (listar, assign, release, transfer)
+- [x] Operator View (fila + minhas conversas)
+
+### Arquivos alterados
+
+- `packages/db/prisma/schema/message-intent.prisma` - campo `origin`
+- `packages/db/prisma/schema/conversation.prisma` - `status` em Message + `assignedOperatorId`
+- `packages/db/prisma/schema/auth.prisma` - tabela `Operator`
+- `apps/server/src/domain/*` - entidades/value-objects de Operator e MessageIntent/Message
+- `apps/server/src/application/operators/*` - use cases de operadores
+- `apps/server/src/infra/web/operators.routes.ts` - endpoints de operadores
+- `apps/server/src/infra/repositories/*` - repos de operadores e updates de conversa
+- `apps/web/src/app/(dashboard)/operator/*` - Operator View
+- `apps/web/src/components/operator/*` - componentes de fila e minhas conversas
+
+### Decisões arquiteturais
+
+- `origin` em MessageIntent evita explosão de purposes e facilita métricas futuras
+- Ownership humano separado de Agent via `assignedOperatorId` sem misturar responsabilidades
+- Status de Message reduzido para evitar heurísticas de delivery no core
+
+### Próximos passos
+
+- [ ] Associar Operator ao usuário logado (auto-seleção na UI)
+- [ ] Incluir filtros por operador na listagem de conversas
+
+---
+
+## 2026-01-28 - Phase 6 (Operator UX & Security)
+
+### O que foi feito
+
+- [x] Mensagens outbound agora iniciam como `PENDING` e são confirmadas como `SENT` via webhook
+- [x] Operadores agora usam contagem recalculada para evitar drift de workload
+- [x] Claim de conversa com lock otimista (evita dupla atribuição)
+- [x] Endpoint `/api/operators/me` para auto-seleção do operador
+- [x] Filtro por operador + fila no `GET /api/conversations`
+
+### Arquivos alterados
+
+- `apps/server/src/application/conversations/send-chat-message.use-case.ts` - cria Message PENDING
+- `apps/server/src/application/use-cases/outbound-message-recorded.use-case.ts` - atualiza para SENT
+- `apps/server/src/domain/entities/conversation.ts` - métodos de pending/confirm
+- `apps/server/src/domain/repositories/message-repository.ts` - novos métodos de update
+- `apps/server/src/infra/repositories/*message-repository.ts` - update de delivery
+- `apps/server/src/infra/repositories/*conversation-repository.ts` - assign otimista + filtro operador
+- `apps/server/src/infra/web/operators.routes.ts` - `/me`
+- `apps/server/src/infra/web/conversations.routes.ts` - query operatorId/includeUnassigned
+- `apps/web/src/app/(dashboard)/operator/operator-page-client.tsx` - auto-select operador
+
+### Decisões arquiteturais
+
+- Mensagem outbound PENDING evita confundir persistência com envio real
+- Count de operador tratado como cache, recalculado em operações críticas
+- Optimistic locking aplicado no claim para evitar race conditions
+
+### Próximos passos
+
+- [ ] Registrar audit log para assign/release/transfer (OperationalEvent)
+- [ ] Estratégia de auto-assign (round-robin / menor carga)
+
+---
+
+## 2026-01-29 - Phase 7 (Realtime Gateway)
+
+### O que foi feito
+
+- [x] Gateway WebSocket `/realtime` com autenticação via sessão
+- [x] Broadcast de eventos `MESSAGE_RECEIVED`, `MESSAGE_SENT`, `MESSAGE_STATUS_UPDATED`
+- [x] Hook `useRealtime` no frontend com reconexão automática
+- [x] Chat CRM reagindo a eventos em tempo real (SWR revalidate)
+
+### Arquivos alterados
+
+- `apps/server/src/infra/realtime/websocket-gateway.ts` - Gateway WS e subscriptions
+- `apps/server/src/infra/event-bus/realtime-domain-event-publisher.ts` - Publisher realtime
+- `apps/server/src/domain/events/chat-message-events.ts` - Eventos de mensagem
+- `apps/server/src/application/use-cases/inbound-message.use-case.ts` - Emissão de eventos inbound
+- `apps/server/src/application/use-cases/outbound-message-recorded.use-case.ts` - Emissão de eventos outbound
+- `apps/server/src/application/conversations/send-chat-message.use-case.ts` - Emissão status PENDING/FAILED
+- `apps/server/src/index.ts` - Registro do WS + wiring do event bus
+- `apps/web/src/lib/realtime/use-realtime.ts` - Hook de WebSocket
+- `apps/web/src/app/(dashboard)/chat/chat-page-client.tsx` - Integração realtime no Chat CRM
+
+### Decisões arquiteturais
+
+- Eventos de chat são isolados em bus específico para evitar logging com PII
+- Realtime envia payload mínimo e usa SWR para revalidar dados críticos
+
+### Próximos passos
+
+- [ ] Exibir status da conexão WS na UI do Chat CRM
+- [ ] Integrar eventos de delivery/read assim que disponíveis no provider

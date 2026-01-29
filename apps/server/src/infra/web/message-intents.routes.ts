@@ -6,6 +6,10 @@ import type { CreateMessageIntentUseCase } from "../../application/message-inten
 import type { DecideMessageIntentUseCase } from "../../application/message-intents/decide-message-intent.use-case";
 import type { GetMessageIntentUseCase } from "../../application/message-intents/get-message-intent.use-case";
 import type { ListMessageIntentsUseCase } from "../../application/message-intents/list-message-intents.use-case";
+import {
+	MESSAGE_INTENT_ORIGINS,
+	type MessageIntentOrigin,
+} from "../../domain/value-objects/message-intent-origin";
 import type { MessageIntentPayload } from "../../domain/value-objects/message-intent-payload";
 import {
 	MESSAGE_INTENT_PURPOSES,
@@ -22,6 +26,7 @@ interface CreateMessageIntentBody {
 	target: MessageTarget;
 	type: MessageIntentType;
 	purpose: MessageIntentPurpose;
+	origin?: MessageIntentOrigin;
 	payload: MessageIntentPayload;
 }
 
@@ -102,11 +107,17 @@ export const registerMessageIntentRoutes = async (
 		if (!body?.purpose) return reply.status(400).send({ message: "purpose é obrigatório" });
 		if (!body?.payload) return reply.status(400).send({ message: "payload é obrigatório" });
 
+		const origin = parseMessageIntentOrigin(body.origin);
+		if (body.origin && !origin) {
+			return reply.status(400).send({ message: "origin inválido" });
+		}
+
 		const result = await options.createMessageIntent.execute({
 			organizationId: tenantId,
 			target: body.target,
 			type: body.type,
 			purpose: body.purpose,
+			origin,
 			payload: body.payload,
 		});
 
@@ -157,6 +168,13 @@ const parseMessageIntentPurpose = (value?: string): MessageIntentPurpose | undef
 	if (!value) return undefined;
 	return MESSAGE_INTENT_PURPOSES.includes(value as MessageIntentPurpose)
 		? (value as MessageIntentPurpose)
+		: undefined;
+};
+
+const parseMessageIntentOrigin = (value?: string): MessageIntentOrigin | undefined => {
+	if (!value) return undefined;
+	return MESSAGE_INTENT_ORIGINS.includes(value as MessageIntentOrigin)
+		? (value as MessageIntentOrigin)
 		: undefined;
 };
 

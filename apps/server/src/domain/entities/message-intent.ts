@@ -1,5 +1,6 @@
 import type { MessageIntentDomainEvent } from "../events/message-intent-events";
 import type { MessageGateDecisionReason } from "../value-objects/message-gate-decision-reason";
+import type { MessageIntentOrigin } from "../value-objects/message-intent-origin";
 import type { MessageIntentPayload } from "../value-objects/message-intent-payload";
 import type { MessageIntentPurpose } from "../value-objects/message-intent-purpose";
 import type { MessageIntentStatus } from "../value-objects/message-intent-status";
@@ -12,6 +13,7 @@ export interface MessageIntentProps {
 	target: MessageTarget;
 	type: MessageIntentType;
 	purpose: MessageIntentPurpose;
+	origin: MessageIntentOrigin | null;
 	payload: MessageIntentPayload;
 	status: MessageIntentStatus;
 	decidedByInstanceId: string | null;
@@ -26,6 +28,7 @@ export class MessageIntent {
 	private readonly _target: MessageTarget;
 	private readonly _type: MessageIntentType;
 	private readonly _purpose: MessageIntentPurpose;
+	private readonly _origin: MessageIntentOrigin | null;
 	private readonly _payload: MessageIntentPayload;
 	private _status: MessageIntentStatus;
 	private _decidedByInstanceId: string | null;
@@ -39,6 +42,7 @@ export class MessageIntent {
 		this._target = props.target;
 		this._type = props.type;
 		this._purpose = props.purpose;
+		this._origin = props.origin;
 		this._payload = props.payload;
 		this._status = props.status;
 		this._decidedByInstanceId = props.decidedByInstanceId;
@@ -53,6 +57,7 @@ export class MessageIntent {
 		target: MessageTarget;
 		type: MessageIntentType;
 		purpose: MessageIntentPurpose;
+		origin?: MessageIntentOrigin | null;
 		payload: MessageIntentPayload;
 		now?: Date;
 	}): MessageIntent {
@@ -63,6 +68,7 @@ export class MessageIntent {
 			target: params.target,
 			type: params.type,
 			purpose: params.purpose,
+			origin: params.origin ?? null,
 			payload: params.payload,
 			status: "PENDING",
 			decidedByInstanceId: null,
@@ -94,6 +100,10 @@ export class MessageIntent {
 
 	get purpose(): MessageIntentPurpose {
 		return this._purpose;
+	}
+
+	get origin(): MessageIntentOrigin | null {
+		return this._origin;
 	}
 
 	get payload(): MessageIntentPayload {

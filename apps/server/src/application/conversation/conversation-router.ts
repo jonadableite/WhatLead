@@ -34,7 +34,7 @@ export class ConversationRouter {
 			};
 		}
 
-		if (params.conversation.assignedAgentId) {
+		if (params.conversation.assignedAgentId || params.conversation.assignedOperatorId) {
 			return {
 				replyIntent: noneReplyIntent({
 					conversationId: params.conversation.id,

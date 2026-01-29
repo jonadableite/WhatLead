@@ -8,28 +8,31 @@ import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { google } from "@ai-sdk/google";
 import fastifyCors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
+import websocket from "@fastify/websocket";
 import {
-    fastifyTRPCPlugin,
-    type FastifyTRPCPluginOptions,
+  fastifyTRPCPlugin,
+  type FastifyTRPCPluginOptions,
 } from "@trpc/server/adapters/fastify";
 import {
-    convertToModelMessages,
-    streamText,
-    type UIMessage,
-    wrapLanguageModel,
+  convertToModelMessages,
+  streamText,
+  type UIMessage,
+  wrapLanguageModel,
 } from "ai";
 import { randomUUID } from "crypto";
 import Fastify from "fastify";
 import { AgentOrchestratorUseCase } from "./application/agents/agent-orchestrator.use-case";
 import { DefaultAgentPlaybook } from "./application/agents/default-agent-playbook";
-import { ListConversationsUseCase } from "./application/conversations/list-conversations.use-case";
-import { SendChatMessageUseCase } from "./application/conversations/send-chat-message.use-case";
 import { AssignConversationUseCase } from "./application/conversation/assign-conversation.use-case";
 import { ConversationEventPipelineUseCase } from "./application/conversation/conversation-event-pipeline.use-case";
 import { ConversationRouter } from "./application/conversation/conversation-router";
 import { ReplyIntentDispatcher } from "./application/conversation/reply-intent-dispatcher";
+import { ListConversationsUseCase } from "./application/conversations/list-conversations.use-case";
+import { SendChatMessageUseCase } from "./application/conversations/send-chat-message.use-case";
 import { DispatchGateUseCase } from "./application/dispatch-gate/dispatch-gate.use-case";
 import { DispatchUseCase } from "./application/dispatch/dispatch.use-case";
+import { ListExecutionJobsUseCase } from "./application/execution/list-execution-jobs.use-case";
+import { CreateExecutionJobUseCase as EnqueueExecutionJobUseCase } from "./application/execution/use-cases/create-execution-job.use-case";
 import { InstanceHealthCronJob } from "./application/handlers/cron/instance-health.cron";
 import { MessageExecutorWorker } from "./application/handlers/cron/message-executor.worker";
 import { PreDispatchGuard } from "./application/handlers/dispatch/pre-dispatch.guard";
@@ -44,8 +47,6 @@ import { GetInstanceConnectionStatusUseCase } from "./application/instances/get-
 import { GetInstanceQRCodeUseCase } from "./application/instances/get-instance-qrcode.use-case";
 import { GetInstanceUseCase } from "./application/instances/get-instance.use-case";
 import { ListInstancesUseCase } from "./application/instances/list-instances.use-case";
-import { CreateExecutionJobUseCase as EnqueueExecutionJobUseCase } from "./application/execution/use-cases/create-execution-job.use-case";
-import { ListExecutionJobsUseCase } from "./application/execution/list-execution-jobs.use-case";
 import { DispatchMessageIntentGateUseCase } from "./application/message-dispatch/dispatch-message-intent-gate.use-case";
 import { CreateExecutionJobUseCase } from "./application/message-execution/create-execution-job.use-case";
 import { ExecuteMessageIntentUseCase } from "./application/message-execution/execute-message-intent.use-case";
@@ -55,6 +56,11 @@ import { CreateMessageIntentUseCase } from "./application/message-intents/create
 import { DecideMessageIntentUseCase } from "./application/message-intents/decide-message-intent.use-case";
 import { GetMessageIntentUseCase } from "./application/message-intents/get-message-intent.use-case";
 import { ListMessageIntentsUseCase } from "./application/message-intents/list-message-intents.use-case";
+import { AssignConversationToOperatorUseCase } from "./application/operators/assign-conversation-to-operator.use-case";
+import { GetOperatorByUserUseCase } from "./application/operators/get-operator-by-user.use-case";
+import { ListAvailableOperatorsUseCase } from "./application/operators/list-available-operators.use-case";
+import { ReleaseConversationUseCase } from "./application/operators/release-conversation.use-case";
+import { TransferConversationUseCase } from "./application/operators/transfer-conversation.use-case";
 import { ExecutionControlPolicy } from "./application/ops/execution-control-policy";
 import { GetExecutionMetricsUseCase } from "./application/ops/get-execution-metrics.use-case";
 import { GetMessageIntentTimelineUseCase } from "./application/ops/get-message-intent-timeline.use-case";
@@ -86,16 +92,17 @@ import { TimelineDispatchRateSnapshotAdapter } from "./infra/dispatch-gate/timel
 import { WhatsAppMessageDispatchAdapter } from "./infra/dispatch/whatsapp-message-dispatch-adapter";
 import { CompositeDomainEventBus } from "./infra/event-bus/composite-domain-event-bus";
 import { LoggingDomainEventBus } from "./infra/event-bus/logging-domain-event-bus";
+import { RealtimeDomainEventPublisher } from "./infra/event-bus/realtime-domain-event-publisher";
 import { StaticWarmUpContentProvider } from "./infra/heater/static-warmup-content-provider";
 import { StaticWarmUpTargetsProvider } from "./infra/heater/static-warmup-targets-provider";
 import { WhatsAppProviderDispatchAdapter } from "./infra/heater/whatsapp-dispatch-adapter";
 import { WhatsMeowProviderAdapter } from "./infra/message-execution/whatsmeow-provider-adapter";
 import { SignalBackedInstanceMetricRepository } from "./infra/metrics/signal-backed-instance-metric-repository";
-import { PrismaExecutionMetricsQuery } from "./infra/ops/prisma-execution-metrics-query";
 import { PersistingMessageExecutionEventBus } from "./infra/ops/persisting-message-execution-event-bus";
 import { PersistingMessageIntentEventBus } from "./infra/ops/persisting-message-intent-event-bus";
-import { BullMQExecutionQueue } from "./infra/queue/bullmq-execution.queue";
+import { PrismaExecutionMetricsQuery } from "./infra/ops/prisma-execution-metrics-query";
 import { registerTurboZapProvider } from "./infra/providers/whatsapp/turbozap/turbozap.provider";
+import { BullMQExecutionQueue } from "./infra/queue/bullmq-execution.queue";
 import { InMemoryAgentRepository } from "./infra/repositories/in-memory-agent-repository";
 import { InMemoryInstanceReputationRepository } from "./infra/repositories/in-memory-instance-reputation-repository";
 import { PrismaConversationRepository } from "./infra/repositories/prisma-conversation-repository";
@@ -106,24 +113,27 @@ import { PrismaMessageExecutionJobRepository } from "./infra/repositories/prisma
 import { PrismaMessageIntentRepository } from "./infra/repositories/prisma-message-intent-repository";
 import { PrismaMessageRepository } from "./infra/repositories/prisma-message-repository";
 import { PrismaOperationalEventRepository } from "./infra/repositories/prisma-operational-event-repository";
-import { ExecutionWorker } from "./infra/workers/execution.worker";
+import { PrismaOperatorRepository } from "./infra/repositories/prisma-operator-repository";
 import {
-    isCrossSiteMutationWithoutOrigin,
-    isProbablyAutomation,
-    isUntrustedOrigin,
+  isCrossSiteMutationWithoutOrigin,
+  isProbablyAutomation,
+  isUntrustedOrigin,
 } from "./infra/security/bot-fight";
 import { verifyTurnstile } from "./infra/security/turnstile";
 import { InMemoryReputationSignalRepository } from "./infra/signals/in-memory-reputation-signal-repository";
 import { LoggingIngestReputationSignalUseCase } from "./infra/signals/logging-ingest-reputation-signal-use-case";
 import { PrismaReputationSignalRepository } from "./infra/signals/prisma-reputation-signal-repository";
 import { SignalMetricIngestionAdapter } from "./infra/signals/signal-metric-ingestion-adapter";
+import { registerConversationRoutes } from "./infra/web/conversations.routes";
+import { registerExecutionJobsRoutes } from "./infra/web/execution-jobs.routes";
 import { registerInstanceRoutes } from "./infra/web/instances.routes";
 import { registerMessageIntentRoutes } from "./infra/web/message-intents.routes";
+import { registerOperatorRoutes } from "./infra/web/operators.routes";
 import { registerOpsRoutes } from "./infra/web/ops.routes";
 import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
-import { registerExecutionJobsRoutes } from "./infra/web/execution-jobs.routes";
-import { registerConversationRoutes } from "./infra/web/conversations.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
+import { ExecutionWorker } from "./infra/workers/execution.worker";
+import { WebSocketGateway } from "./infra/realtime/websocket-gateway";
 
 // =============================================================================
 // FASTIFY SERVER CONFIGURATION
@@ -344,6 +354,11 @@ await fastify.register(rateLimit, {
 	},
 });
 
+await fastify.register(websocket);
+
+const realtimeGateway = new WebSocketGateway();
+await realtimeGateway.register(fastify);
+
 registerTurboZapProvider();
 
 const signalRepository =
@@ -382,11 +397,16 @@ const MESSAGE_EXECUTOR_CRON_INTERVAL_MS = 5_000;
 const conversationRepository = new PrismaConversationRepository();
 const messageRepository = new PrismaMessageRepository();
 const leadRepository = new PrismaLeadRepository();
+const operatorRepository = new PrismaOperatorRepository();
 const idFactory = { createId: () => randomUUID() };
+const realtimeEventBus = new CompositeDomainEventBus([
+	new RealtimeDomainEventPublisher(realtimeGateway),
+]);
 const outboundMessageRecorded = new OutboundMessageRecordedUseCase(
 	conversationRepository,
 	messageRepository,
 	idFactory,
+	realtimeEventBus,
 );
 
 const timeline = new GetReputationTimelineUseCase(signalRepository);
@@ -396,6 +416,20 @@ const planPolicy = new StaticPlanPolicy();
 const executionControlRepository = new PrismaExecutionControlRepository();
 const executionControlPolicy = new ExecutionControlPolicy(executionControlRepository);
 const messageIntentRepository = new PrismaMessageIntentRepository();
+const getOperatorByUser = new GetOperatorByUserUseCase(operatorRepository);
+const listAvailableOperators = new ListAvailableOperatorsUseCase(operatorRepository);
+const assignConversationToOperator = new AssignConversationToOperatorUseCase(
+	conversationRepository,
+	operatorRepository,
+);
+const releaseConversation = new ReleaseConversationUseCase(
+	conversationRepository,
+	operatorRepository,
+);
+const transferConversation = new TransferConversationUseCase(
+	conversationRepository,
+	operatorRepository,
+);
 const operationalEvents = new PrismaOperationalEventRepository();
 const messageIntentEventBus = new CompositeDomainEventBus([
 	new LoggingDomainEventBus(),
@@ -490,8 +524,11 @@ const decideMessageIntent = new DecideMessageIntentUseCase(
 const listConversations = new ListConversationsUseCase(conversationRepository);
 const sendChatMessage = new SendChatMessageUseCase(
 	conversationRepository,
+	messageRepository,
 	createMessageIntent,
 	decideMessageIntent,
+	idFactory,
+	realtimeEventBus,
 );
 
 const getExecutionMetrics = new GetExecutionMetricsUseCase(
@@ -549,6 +586,7 @@ const inboundMessage = new InboundMessageUseCase({
 	conversationRepository,
 	messageRepository,
 	idFactory,
+	eventBus: realtimeEventBus,
 });
 const agents = new InMemoryAgentRepository([
 	Agent.create({
@@ -603,6 +641,14 @@ await registerConversationRoutes(fastify, {
 	listConversations,
 	sendChatMessage,
 	conversationRepository,
+});
+
+await registerOperatorRoutes(fastify, {
+	getOperatorByUser,
+	listAvailableOperators,
+	assignConversationToOperator,
+	releaseConversation,
+	transferConversation,
 });
 
 await registerExecutionJobsRoutes(fastify, {

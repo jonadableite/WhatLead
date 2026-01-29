@@ -6,6 +6,8 @@ export interface ListConversationsUseCaseRequest {
 	instanceId: string;
 	status?: ConversationStatus;
 	search?: string;
+	operatorId?: string;
+	includeUnassigned?: boolean;
 	limit?: number;
 	offset?: number;
 }
@@ -17,6 +19,8 @@ export interface ListConversationsUseCaseResponse {
 		contactId: string;
 		contactName?: string | null;
 		status: ConversationStatus;
+		assignedAgentId?: string | null;
+		assignedOperatorId?: string | null;
 		unreadCount: number;
 		lastMessageAt: string;
 		lastMessage?: {
@@ -44,6 +48,8 @@ export class ListConversationsUseCase {
 			instanceId: request.instanceId,
 			status: request.status,
 			search: request.search,
+			operatorId: request.operatorId,
+			includeUnassigned: request.includeUnassigned,
 			limit,
 			offset,
 		});
@@ -55,6 +61,8 @@ export class ListConversationsUseCase {
 				contactId: item.contactId,
 				contactName: item.contactName ?? null,
 				status: item.status,
+				assignedAgentId: item.assignedAgentId ?? null,
+				assignedOperatorId: item.assignedOperatorId ?? null,
 				unreadCount: item.unreadCount,
 				lastMessageAt: item.lastMessageAt.toISOString(),
 				lastMessage: item.lastMessage

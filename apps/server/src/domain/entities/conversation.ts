@@ -17,6 +17,7 @@ export interface ConversationProps {
 	status: ConversationStatus;
 	stage: ConversationStage;
 	assignedAgentId?: string | null;
+	assignedOperatorId?: string | null;
 	openedAt: Date;
 	lastMessageAt: Date;
 	lastInboundAt: Date | null;
@@ -41,6 +42,7 @@ export class Conversation {
 	private _status: ConversationStatus;
 	private _stage: ConversationStage;
 	private _assignedAgentId: string | null;
+	private _assignedOperatorId: string | null;
 	private _openedAt: Date;
 	private _lastMessageAt: Date;
 	private _lastInboundAt: Date | null;
@@ -60,6 +62,7 @@ export class Conversation {
 		this._status = props.status;
 		this._stage = props.stage;
 		this._assignedAgentId = props.assignedAgentId ?? null;
+		this._assignedOperatorId = props.assignedOperatorId ?? null;
 		this._openedAt = props.openedAt;
 		this._lastMessageAt = props.lastMessageAt;
 		this._lastInboundAt = props.lastInboundAt;
@@ -88,6 +91,7 @@ export class Conversation {
 			status: "OPEN",
 			stage: "LEAD",
 			assignedAgentId: null,
+			assignedOperatorId: null,
 			openedAt: params.openedAt,
 			lastMessageAt: params.openedAt,
 			lastInboundAt: null,
@@ -139,6 +143,10 @@ export class Conversation {
 		return this._assignedAgentId;
 	}
 
+	get assignedOperatorId(): string | null {
+		return this._assignedOperatorId;
+	}
+
 	get openedAt(): Date {
 		return this._openedAt;
 	}
@@ -176,7 +184,32 @@ export class Conversation {
 			return;
 		}
 		this._assignedAgentId = agentId;
+		this._assignedOperatorId = null;
 		this._status = "OPEN";
+	}
+
+	assignOperator(operatorId: string): void {
+		if (!this._isActive) {
+			return;
+		}
+		this._assignedOperatorId = operatorId;
+		this._assignedAgentId = null;
+		this._status = "OPEN";
+	}
+
+	releaseOperator(): void {
+		if (!this._isActive) {
+			return;
+		}
+		this._assignedOperatorId = null;
+	}
+
+	clearAssignment(): void {
+		if (!this._isActive) {
+			return;
+		}
+		this._assignedAgentId = null;
+		this._assignedOperatorId = null;
 	}
 
 	linkLead(leadId: string): void {
@@ -255,6 +288,7 @@ export class Conversation {
 			direction: "INBOUND",
 			type: params.type,
 			sentBy: "CONTACT",
+			status: "SENT",
 			providerMessageId: params.providerMessageId,
 			contentRef: params.contentRef,
 			metadata: params.metadata,
@@ -282,11 +316,46 @@ export class Conversation {
 			direction: "OUTBOUND",
 			type: params.type,
 			sentBy: params.sentBy,
+			status: "SENT",
 			providerMessageId: params.providerMessageId,
 			contentRef: params.contentRef,
 			metadata: params.metadata,
 			occurredAt: params.occurredAt,
 		});
+	}
+
+	recordPendingOutboundMessage(params: {
+		messageId: string;
+		type: MessageType;
+		sentBy: Exclude<MessageSender, "CONTACT">;
+		contentRef?: string;
+		metadata?: Record<string, unknown>;
+		occurredAt: Date;
+	}): Message {
+		this.ensureActive(params.occurredAt);
+		this._lastOutboundAt = params.occurredAt;
+		this._lastMessageAt = params.occurredAt;
+		this._unreadCount = 0;
+		this.clearSLA();
+
+		return this.createMessage({
+			messageId: params.messageId,
+			direction: "OUTBOUND",
+			type: params.type,
+			sentBy: params.sentBy,
+			status: "PENDING",
+			contentRef: params.contentRef,
+			metadata: params.metadata,
+			occurredAt: params.occurredAt,
+		});
+	}
+
+	confirmOutboundMessageSent(params: { occurredAt: Date }): void {
+		this.ensureActive(params.occurredAt);
+		this._lastOutboundAt = params.occurredAt;
+		this._lastMessageAt = params.occurredAt;
+		this._unreadCount = 0;
+		this.clearSLA();
 	}
 
 	private ensureActive(openedAt: Date): void {
@@ -317,6 +386,7 @@ export class Conversation {
 		direction: MessageDirection;
 		type: MessageType;
 		sentBy: MessageSender;
+		status: "PENDING" | "SENT" | "FAILED";
 		providerMessageId?: string;
 		contentRef?: string;
 		metadata?: Record<string, unknown>;
@@ -328,6 +398,7 @@ export class Conversation {
 			direction: params.direction,
 			type: params.type,
 			sentBy: params.sentBy,
+			status: params.status,
 			providerMessageId: params.providerMessageId,
 			contentRef: params.contentRef,
 			metadata: params.metadata,

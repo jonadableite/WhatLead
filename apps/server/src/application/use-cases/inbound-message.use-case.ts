@@ -3,6 +3,8 @@ import type { ConversationRepository } from "../../domain/repositories/conversat
 import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 import { FindOrCreateConversationUseCase } from "./find-or-create-conversation.use-case";
 import type { MessageRepository } from "../../domain/repositories/message-repository";
+import type { DomainEventBus } from "../../domain/events/domain-event-bus";
+import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-events";
 
 export class InboundMessageUseCase {
 	private readonly findOrCreateConversation: FindOrCreateConversationUseCase;
@@ -12,7 +14,9 @@ export class InboundMessageUseCase {
 		conversationRepository: ConversationRepository;
 		messageRepository: MessageRepository;
 		idFactory: { createId(): string };
+		eventBus: DomainEventBus<ChatMessageDomainEvent>;
 	}) {
+		this.eventBus = params.eventBus;
 		this.findOrCreateConversation = new FindOrCreateConversationUseCase(
 			params.instanceRepository,
 			params.conversationRepository,
@@ -41,6 +45,21 @@ export class InboundMessageUseCase {
 
 			await params.messageRepository.append(message);
 			await params.conversationRepository.save(args.conversation);
+			await this.eventBus.publish({
+				type: "MESSAGE_RECEIVED",
+				occurredAt: message.occurredAt,
+				organizationId: args.conversation.tenantId,
+				instanceId: args.conversation.instanceId,
+				conversationId: args.conversation.id,
+				message: {
+					id: message.id,
+					direction: message.direction,
+					type: message.type,
+					sentBy: message.sentBy,
+					status: message.status,
+					body: message.contentRef,
+				},
+			});
 		};
 	}
 
@@ -52,6 +71,7 @@ export class InboundMessageUseCase {
 		metadata?: Record<string, unknown>;
 		occurredAt: Date;
 	}) => Promise<void>;
+	private readonly eventBus: DomainEventBus<ChatMessageDomainEvent>;
 
 	async execute(event: NormalizedWhatsAppEvent): Promise<{ conversationId: string } | null> {
 		if (event.type !== "MESSAGE_RECEIVED" && event.type !== "GROUP_MESSAGE_RECEIVED") {

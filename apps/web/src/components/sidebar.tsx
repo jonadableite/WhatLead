@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Menu, Search, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -13,21 +14,23 @@ import { AnimatedIcon } from "./ui/animated-icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import UserMenu from "./user-menu";
-import { useSession } from "@/lib/auth-client";
 
 // Assets Imports
 import aiIcon from "@/asset/wired-outline-2512-artificial-intelligence-ai-alt-hover-pinch.json";
-import chatIcon from "@/asset/wired-outline-964-omnichannel-hover-pinch.json";
 import crmIcon from "@/asset/wired-outline-2610-lead-generation-hover-pinch.json";
 import dashboardIcon from "@/asset/wired-outline-63-home-hover-3d-roll.json";
-import instancesIcon from "@/asset/wired-outline-964-omnichannel-hover-pinch.json";
 import organizationIcon from "@/asset/wired-outline-952-business-network-hover-pinch.json";
+import {
+  default as chatIcon,
+  default as instancesIcon,
+} from "@/asset/wired-outline-964-omnichannel-hover-pinch.json";
 import tasksIcon from "@/asset/wired-outline-978-project-management-hover-pinch.json";
 
 const menuItems = [
   { name: "Dashboard", icon: dashboardIcon, path: "/dashboard" },
   { name: "Instâncias", icon: instancesIcon, path: "/instances" },
-	{ name: "Chat CRM", icon: chatIcon, path: "/chat" },
+  { name: "Chat CRM", icon: chatIcon, path: "/chat" },
+  { name: "Operator View", icon: instancesIcon, path: "/operator" },
   { name: "CRM & Leads", icon: crmIcon, path: "/crm" },
   { name: "AI Chat", icon: aiIcon, path: "/ai" },
   { name: "Organization", icon: organizationIcon, path: "/organization" },

@@ -1,5 +1,6 @@
 import type { MessageIntent } from "../../domain/entities/message-intent";
 import type { MessageGateDecisionReason } from "../../domain/value-objects/message-gate-decision-reason";
+import type { MessageIntentOrigin } from "../../domain/value-objects/message-intent-origin";
 import type { MessageIntentPurpose } from "../../domain/value-objects/message-intent-purpose";
 import type { MessageIntentStatus } from "../../domain/value-objects/message-intent-status";
 import type { MessageIntentType } from "../../domain/value-objects/message-intent-type";
@@ -21,6 +22,7 @@ export interface MessageIntentDetailViewModel {
 	organizationId: string;
 	status: MessageIntentStatus;
 	purpose: MessageIntentPurpose;
+	origin: MessageIntentOrigin | null;
 	type: MessageIntentType;
 	target: MessageTarget;
 	decidedByInstanceId: string | null;
@@ -37,6 +39,7 @@ export const toMessageIntentDetailViewModel = (
 	organizationId: intent.organizationId,
 	status: intent.status,
 	purpose: intent.purpose,
+	origin: intent.origin,
 	type: intent.type,
 	target: intent.target,
 	decidedByInstanceId: intent.decidedByInstanceId,

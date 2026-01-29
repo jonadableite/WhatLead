@@ -1,3 +1,4 @@
+import type { MessageDeliveryStatus } from "../value-objects/message-delivery-status";
 import type { MessageDirection } from "../value-objects/message-direction";
 import type { MessageSender } from "../value-objects/message-sender";
 import type { MessageType } from "../value-objects/message-type";
@@ -8,6 +9,7 @@ export interface MessageProps {
 	direction: MessageDirection;
 	type: MessageType;
 	sentBy: MessageSender;
+	status: MessageDeliveryStatus;
 	providerMessageId?: string;
 	contentRef?: string;
 	metadata?: Record<string, unknown>;
@@ -20,6 +22,7 @@ export class Message {
 	private readonly _direction: MessageDirection;
 	private readonly _type: MessageType;
 	private readonly _sentBy: MessageSender;
+	private readonly _status: MessageDeliveryStatus;
 	private readonly _providerMessageId?: string;
 	private readonly _contentRef?: string;
 	private readonly _metadata: Record<string, unknown>;
@@ -31,6 +34,7 @@ export class Message {
 		this._direction = props.direction;
 		this._type = props.type;
 		this._sentBy = props.sentBy;
+		this._status = props.status;
 		this._providerMessageId = props.providerMessageId;
 		this._contentRef = props.contentRef;
 		this._metadata = props.metadata ?? {};
@@ -63,6 +67,10 @@ export class Message {
 
 	get sentBy(): MessageSender {
 		return this._sentBy;
+	}
+
+	get status(): MessageDeliveryStatus {
+		return this._status;
 	}
 
 	get providerMessageId(): string | undefined {

@@ -12,6 +12,8 @@ export class AssignConversationUseCase {
 
 		if (params.decision.assignAgentId) {
 			conversation.assign(params.decision.assignAgentId);
+		} else if (params.decision.assignOperatorId) {
+			conversation.assignOperator(params.decision.assignOperatorId);
 		} else if (params.decision.markWaiting) {
 			conversation.markAsWaiting();
 		}

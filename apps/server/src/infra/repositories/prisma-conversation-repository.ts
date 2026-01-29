@@ -38,6 +38,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 			status: row.status as any,
 			stage: (row as any).stage as any,
 			assignedAgentId: row.assignedAgentId ?? null,
+			assignedOperatorId: (row as any).assignedOperatorId ?? null,
 			openedAt: row.openedAt,
 			lastMessageAt: row.lastMessageAt,
 			lastInboundAt: (row as any).lastInboundAt ?? null,
@@ -73,6 +74,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 			status: row.status as any,
 			stage: (row as any).stage as any,
 			assignedAgentId: row.assignedAgentId ?? null,
+			assignedOperatorId: (row as any).assignedOperatorId ?? null,
 			openedAt: row.openedAt,
 			lastMessageAt: row.lastMessageAt,
 			lastInboundAt: (row as any).lastInboundAt ?? null,
@@ -105,6 +107,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 				stage: conversation.stage,
 				isActive: conversation.isActive,
 				assignedAgentId: conversation.assignedAgentId,
+				assignedOperatorId: conversation.assignedOperatorId,
 				openedAt: conversation.openedAt,
 				lastMessageAt: conversation.lastMessageAt,
 				lastInboundAt: conversation.lastInboundAt,
@@ -121,6 +124,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 				stage: conversation.stage,
 				isActive: conversation.isActive,
 				assignedAgentId: conversation.assignedAgentId,
+				assignedOperatorId: conversation.assignedOperatorId,
 				lastMessageAt: conversation.lastMessageAt,
 				lastInboundAt: conversation.lastInboundAt,
 				lastOutboundAt: conversation.lastOutboundAt,
@@ -133,14 +137,45 @@ export class PrismaConversationRepository implements ConversationRepository {
 		});
 	}
 
+	async assignOperatorIfUnassigned(params: {
+		conversationId: string;
+		operatorId: string;
+	}): Promise<boolean> {
+		const result = await prisma.conversation.updateMany({
+			where: {
+				id: params.conversationId,
+				assignedOperatorId: null,
+				assignedAgentId: null,
+				isActive: true,
+			},
+			data: {
+				assignedOperatorId: params.operatorId,
+				assignedAgentId: null,
+				status: "OPEN",
+			},
+		});
+		return result.count > 0;
+	}
+
 	async listByInstance(params: {
 		tenantId: string;
 		instanceId: string;
 		status?: ConversationStatus;
 		search?: string;
+		operatorId?: string;
+		includeUnassigned?: boolean;
 		limit: number;
 		offset: number;
 	}): Promise<ConversationListResult> {
+		const assignmentFilters = params.operatorId
+			? [
+					{ assignedOperatorId: params.operatorId },
+					...(params.includeUnassigned === false
+						? []
+						: [{ assignedOperatorId: null, assignedAgentId: null }]),
+				]
+			: [];
+
 		const where = {
 			tenantId: params.tenantId,
 			instanceId: params.instanceId,
@@ -153,6 +188,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 						],
 					}
 				: {}),
+			...(assignmentFilters.length > 0 ? { OR: assignmentFilters } : {}),
 		};
 
 		const [rows, total] = await Promise.all([
@@ -181,6 +217,8 @@ export class PrismaConversationRepository implements ConversationRepository {
 					contactId: row.contactId,
 					contactName: row.lead?.name ?? null,
 					status: row.status as ConversationStatus,
+					assignedAgentId: row.assignedAgentId ?? null,
+					assignedOperatorId: (row as any).assignedOperatorId ?? null,
 					unreadCount: (row as any).unreadCount ?? 0,
 					lastMessageAt: row.lastMessageAt,
 					lastMessage: last
@@ -223,6 +261,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 				direction: row.direction as MessageDirection,
 				type: row.type as MessageType,
 				sentBy: row.sentBy as MessageSender,
+				status: (row as any).status as "PENDING" | "SENT" | "FAILED",
 				body: resolveMessageBody(row.contentRef, row.metadata),
 				occurredAt: row.occurredAt,
 			}))

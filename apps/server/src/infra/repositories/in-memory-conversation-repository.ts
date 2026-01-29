@@ -33,11 +33,29 @@ export class InMemoryConversationRepository implements ConversationRepository {
 		return this.byId.get(params.id) ?? null;
 	}
 
+	async assignOperatorIfUnassigned(params: {
+		conversationId: string;
+		operatorId: string;
+	}): Promise<boolean> {
+		const conversation = this.byId.get(params.conversationId);
+		if (!conversation || !conversation.isActive) {
+			return false;
+		}
+		if (conversation.assignedOperatorId || conversation.assignedAgentId) {
+			return false;
+		}
+		conversation.assignOperator(params.operatorId);
+		this.byId.set(conversation.id, conversation);
+		return true;
+	}
+
 	async listByInstance(params: {
 		tenantId: string;
 		instanceId: string;
 		status?: ConversationStatus;
 		search?: string;
+		operatorId?: string;
+		includeUnassigned?: boolean;
 		limit: number;
 		offset: number;
 	}): Promise<ConversationListResult> {
@@ -46,6 +64,14 @@ export class InMemoryConversationRepository implements ConversationRepository {
 			if (conversation.instanceId !== params.instanceId) return false;
 			if (params.status && conversation.status !== params.status) return false;
 			if (params.search && !conversation.contactId.includes(params.search)) return false;
+			if (params.operatorId) {
+				const isAssignedToOperator = conversation.assignedOperatorId === params.operatorId;
+				const isUnassigned =
+					!conversation.assignedOperatorId &&
+					!conversation.assignedAgentId &&
+					params.includeUnassigned !== false;
+				if (!isAssignedToOperator && !isUnassigned) return false;
+			}
 			return true;
 		});
 
@@ -57,6 +83,8 @@ export class InMemoryConversationRepository implements ConversationRepository {
 				contactId: conversation.contactId,
 				contactName: null,
 				status: conversation.status,
+				assignedAgentId: conversation.assignedAgentId,
+				assignedOperatorId: conversation.assignedOperatorId,
 				unreadCount: conversation.unreadCount,
 				lastMessageAt: conversation.lastMessageAt,
 				lastMessage: null,

@@ -33,6 +33,14 @@ This rule provides an overview of the WhatLead application's database schemas wi
 
 The database schemas are managed via Prisma and located in `packages/db/prisma/schemas/` (um schema por microserviço). Key entity groups by service:
 
+### control_plane_db (apps/server)
+
+**Schema**: `packages/db/prisma/schema/`
+
+- **MessageIntent**: Intents de envio (auditável). Fields: `id`, `organizationId`, `targetKind`, `targetValue`, `intentType`, `purpose`, `origin`, `payload`, `status`, `decidedByInstanceId`, `blockedReason`, `queuedUntil`, `createdAt`, `updatedAt`.
+- **Conversation/Message**: Chat CRM. Message fields now include `status` (`PENDING | SENT | FAILED`) for delivery tracking.
+- **Conversation**: inclui `assignedOperatorId` para ownership humano (além de `assignedAgentId`).
+
 ### auth_db (auth-service)
 
 **Schema**: `packages/db/prisma/schemas/auth/`
@@ -41,6 +49,7 @@ The database schemas are managed via Prisma and located in `packages/db/prisma/s
 - **Session**: Sessões de autenticação (Better Auth). Fields: `id`, `userId`, `token`, `expiresAt`, `ipAddress`, `userAgent`, timestamps.
 - **Account**: Contas vinculadas (Better Auth). Fields: `id`, `userId`, `accountId`, `providerId`, `accessToken`, `refreshToken`, timestamps.
 - **Verification**: Tokens de verificação. Fields: `id`, `identifier`, `value`, `expiresAt`, timestamps.
+- **Operator**: Operadores humanos para atendimento. Fields: `id`, `organizationId`, `userId`, `name`, `status` (ONLINE/AWAY/OFFLINE), `maxConcurrentConversations`, `currentConversationCount`, timestamps.
 
 ### campaign_db (campaign-service)
 

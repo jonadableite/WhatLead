@@ -182,6 +182,7 @@ export class WarmupOrchestratorUseCase {
 			target: params.target,
 			type: params.payload.type,
 			purpose: "WARMUP",
+			origin: "WARMUP",
 			payload: params.payload,
 			now: params.now,
 		});

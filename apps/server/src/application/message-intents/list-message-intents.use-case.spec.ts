@@ -63,6 +63,7 @@ const createIntent = (params: {
 	target: MessageTarget;
 	type: MessageIntentType;
 	purpose: MessageIntentPurpose;
+	origin?: "CHAT_MANUAL" | "WARMUP" | "SYSTEM";
 	status?: MessageIntentStatus;
 	decidedByInstanceId?: string | null;
 }): MessageIntent =>
@@ -72,6 +73,7 @@ const createIntent = (params: {
 		target: params.target,
 		type: params.type,
 		purpose: params.purpose,
+		origin: params.origin ?? null,
 		payload: { type: "TEXT", text: "Olá" },
 		status: params.status ?? "PENDING",
 		decidedByInstanceId: params.decidedByInstanceId ?? null,

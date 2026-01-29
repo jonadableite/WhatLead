@@ -49,6 +49,8 @@ export const registerConversationRoutes = async (
 			instanceId?: string;
 			status?: string;
 			search?: string;
+			operatorId?: string;
+			includeUnassigned?: string;
 			limit?: string;
 			offset?: string;
 		};
@@ -73,11 +75,18 @@ export const registerConversationRoutes = async (
 			return reply.status(400).send({ message: "offset inválido" });
 		}
 
+		const includeUnassigned =
+			typeof query.includeUnassigned === "string"
+				? query.includeUnassigned !== "false"
+				: undefined;
+
 		const result = await options.listConversations.execute({
 			tenantId,
 			instanceId,
 			status,
 			search: query.search?.trim() || undefined,
+			operatorId: query.operatorId?.trim() || undefined,
+			includeUnassigned,
 			limit,
 			offset,
 		});
@@ -116,6 +125,7 @@ export const registerConversationRoutes = async (
 				direction: item.direction,
 				type: item.type,
 				sentBy: item.sentBy,
+				status: item.status,
 				body: item.body,
 				occurredAt: item.occurredAt.toISOString(),
 			})),

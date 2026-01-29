@@ -5,6 +5,7 @@ model MessageIntent {
   targetValue          String
   intentType           String
   purpose              String
+  origin               String?
   payload              Json
   status               String
   decidedByInstanceId  String?

@@ -121,6 +121,23 @@ model Member {
 	@@map("member")
 }
 
+model Operator {
+	id                         String   @id @default(uuid())
+	organizationId             String
+	userId                     String
+	name                       String
+	status                     String   @default("OFFLINE")
+	maxConcurrentConversations Int      @default(20)
+	currentConversationCount   Int      @default(0)
+	createdAt                  DateTime @default(now())
+	updatedAt                  DateTime @updatedAt
+
+	@@unique([organizationId, userId])
+	@@index([organizationId])
+	@@index([status])
+	@@map("operator")
+}
+
 model Invitation {
 	id             String   @id
 	organizationId String

@@ -10,6 +10,8 @@ export interface ConversationListItem {
 	contactId: string;
 	contactName?: string | null;
 	status: ConversationStatus;
+	assignedAgentId?: string | null;
+	assignedOperatorId?: string | null;
 	unreadCount: number;
 	lastMessageAt: Date;
 	lastMessage?: {
@@ -26,6 +28,7 @@ export interface ConversationMessageItem {
 	direction: MessageDirection;
 	type: MessageType;
 	sentBy: MessageSender;
+	status: "PENDING" | "SENT" | "FAILED";
 	body: string;
 	occurredAt: Date;
 }
@@ -50,11 +53,18 @@ export interface ConversationRepository {
 
 	save(conversation: Conversation): Promise<void>;
 
+	assignOperatorIfUnassigned(params: {
+		conversationId: string;
+		operatorId: string;
+	}): Promise<boolean>;
+
 	listByInstance(params: {
 		tenantId: string;
 		instanceId: string;
 		status?: ConversationStatus;
 		search?: string;
+		operatorId?: string;
+		includeUnassigned?: boolean;
 		limit: number;
 		offset: number;
 	}): Promise<ConversationListResult>;

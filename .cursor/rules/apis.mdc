@@ -213,6 +213,7 @@ This document serves as the central repository for documentation on all API endp
      "organizationId": "org-uuid",
      "status": "APPROVED",
      "purpose": "DISPATCH",
+     "origin": "CHAT_MANUAL",
      "type": "TEXT",
      "target": { "kind": "PHONE", "value": "5511999999999" },
      "decidedByInstanceId": "instance-uuid",
@@ -285,6 +286,7 @@ This document serves as the central repository for documentation on all API endp
         "id": "intent-uuid",
         "target": { "kind": "PHONE", "value": "5511999999999" },
         "purpose": "DISPATCH",
+        "origin": "CHAT_MANUAL",
         "status": "APPROVED",
         "decidedByInstanceId": "instance-uuid",
         "createdAt": "2026-01-24T10:00:00.000Z"
@@ -294,6 +296,262 @@ This document serves as the central repository for documentation on all API endp
   ```
 * **Error Responses:**
   * `400 BAD_REQUEST`: Parâmetros inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+### Conversas (Chat CRM)
+
+#### `GET /api/conversations`
+
+* **Purpose:** Lista conversas filtradas por instância e status.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `instanceId` (string, required): ID da instância.
+  * `status` (string, optional): `OPEN | WAITING | CLOSED | LOST`.
+  * `search` (string, optional): Termo para filtrar por contato.
+  * `operatorId` (string, optional): Filtra por operador e fila.
+  * `includeUnassigned` (boolean, optional): Inclui conversas sem operador (default true).
+  * `limit` (number, optional): Máximo de itens (1-200).
+  * `offset` (number, optional): Paginação por offset.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "items": [
+      {
+        "id": "conversation-uuid",
+        "instanceId": "instance-uuid",
+        "contactId": "5511999999999",
+        "contactName": "Lead A",
+        "status": "OPEN",
+        "assignedAgentId": "agent-uuid",
+        "assignedOperatorId": "operator-uuid",
+        "unreadCount": 1,
+        "lastMessageAt": "2026-01-24T10:00:00.000Z",
+        "lastMessage": {
+          "body": "Olá!",
+          "direction": "INBOUND",
+          "type": "TEXT",
+          "sentBy": "CONTACT",
+          "occurredAt": "2026-01-24T10:00:00.000Z"
+        }
+      }
+    ],
+    "total": 1
+  }
+  ```
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Parâmetros inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+### Operadores (Chat CRM)
+
+#### `GET /api/operators/me`
+
+* **Purpose:** Retorna o operador associado ao usuário logado.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Success Response (200 OK):**
+  ```json
+  {
+    "operator": {
+      "id": "operator-uuid",
+      "userId": "user-uuid",
+      "name": "Operador A",
+      "status": "ONLINE",
+      "maxConcurrentConversations": 20,
+      "currentConversationCount": 3
+    }
+  }
+  ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `GET /api/operators`
+
+* **Purpose:** Lista operadores disponíveis para assumir conversas.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `status` (string, optional): `ONLINE | AWAY | OFFLINE`.
+  * `limit` (number, optional): Máximo de itens (1-200).
+* **Success Response (200 OK):**
+  ```json
+  {
+    "items": [
+      {
+        "id": "operator-uuid",
+        "userId": "user-uuid",
+        "name": "Operador A",
+        "status": "ONLINE",
+        "maxConcurrentConversations": 20,
+        "currentConversationCount": 3
+      }
+    ]
+  }
+  ```
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Parâmetros inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `POST /api/operators/assign`
+
+* **Purpose:** Atribui uma conversa a um operador.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "conversationId": "conversation-uuid",
+    "operatorId": "operator-uuid"
+  }
+  ```
+* **Success Response (204 NO CONTENT)**
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Dados inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `404 NOT_FOUND`: Conversation ou operator não encontrados.
+  * `409 CONFLICT`: Conversation já atribuída.
+  * `409 CONFLICT`: Operador indisponível.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `POST /api/operators/release`
+
+* **Purpose:** Libera a conversa do operador atual.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "conversationId": "conversation-uuid",
+    "operatorId": "operator-uuid"
+  }
+  ```
+* **Success Response (204 NO CONTENT)**
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Dados inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `404 NOT_FOUND`: Conversation ou operator não encontrados.
+  * `409 CONFLICT`: Operator não está atribuído.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `POST /api/operators/transfer`
+
+* **Purpose:** Transfere a conversa entre operadores.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "conversationId": "conversation-uuid",
+    "fromOperatorId": "operator-uuid",
+    "toOperatorId": "operator-uuid"
+  }
+  ```
+* **Success Response (204 NO CONTENT)**
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Dados inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `404 NOT_FOUND`: Conversation ou operator não encontrados.
+  * `409 CONFLICT`: Operator não está atribuído ou destino indisponível.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `GET /api/conversations/:id/messages`
+
+* **Purpose:** Lista mensagens de uma conversa com conteúdo resolvido.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Parameters (URL/Query):**
+  * `id` (string, UUID): ID da conversa.
+  * `limit` (number, optional): Máximo de itens (1-200).
+  * `cursor` (string, optional): Paginação por cursor (message id).
+* **Success Response (200 OK):**
+  ```json
+  {
+    "items": [
+      {
+        "id": "message-uuid",
+        "direction": "INBOUND",
+        "type": "TEXT",
+        "sentBy": "CONTACT",
+        "status": "SENT",
+        "body": "Olá!",
+        "occurredAt": "2026-01-24T10:00:00.000Z"
+      }
+    ],
+    "nextCursor": "message-uuid"
+  }
+  ```
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Parâmetros inválidos.
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `404 NOT_FOUND`: Conversation não encontrada.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+### Realtime (WebSocket)
+
+#### `GET /realtime` (WebSocket)
+
+* **Purpose:** Entrega eventos em tempo real do Chat CRM para o frontend via WebSocket.
+* **Authentication:** Better Auth session (cookie da sessão do usuário).
+* **Client Message (subscribe):**
+  ```json
+  {
+    "type": "subscribe",
+    "instanceId": "instance-uuid",
+    "organizationId": "org-uuid"
+  }
+  ```
+* **Client Message (unsubscribe):**
+  ```json
+  {
+    "type": "unsubscribe"
+  }
+  ```
+* **Server Event (WebSocket message):**
+  ```json
+  {
+    "type": "MESSAGE_RECEIVED",
+    "payload": {
+      "conversationId": "conversation-uuid",
+      "instanceId": "instance-uuid",
+      "message": {
+        "id": "message-uuid",
+        "direction": "INBOUND",
+        "type": "TEXT",
+        "sentBy": "CONTACT",
+        "status": "SENT",
+        "body": "Olá!",
+        "occurredAt": "2026-01-24T10:00:00.000Z"
+      }
+    }
+  }
+  ```
+* **Error Responses:**
+  * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
+  * `403 FORBIDDEN`: Organização não autorizada.
+  * `404 NOT_FOUND`: Instância não encontrada.
+  * `500 INTERNAL_ERROR`: Erro interno do servidor.
+
+#### `POST /api/message-intents`
+
+* **Purpose:** Cria um Message Intent manual para auditoria e controle operacional.
+* **Authentication:** Better Auth session (usuário autenticado).
+* **Request Body (JSON):**
+  ```json
+  {
+    "target": { "kind": "PHONE", "value": "5511999999999" },
+    "type": "TEXT",
+    "purpose": "DISPATCH",
+    "origin": "CHAT_MANUAL",
+    "payload": { "type": "TEXT", "text": "Olá!" }
+  }
+  ```
+* **Success Response (201 CREATED):**
+  ```json
+  {
+    "intentId": "intent-uuid",
+    "status": "PENDING"
+  }
+  ```
+* **Error Responses:**
+  * `400 BAD_REQUEST`: Dados inválidos.
   * `401 UNAUTHORIZED`: Sessão inválida ou ausente.
   * `500 INTERNAL_ERROR`: Erro interno do servidor.
 

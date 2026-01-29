@@ -6,6 +6,7 @@ import type {
 	MessageIntentRepository,
 } from "../../domain/repositories/message-intent-repository";
 import type { MessageGateDecisionReason } from "../../domain/value-objects/message-gate-decision-reason";
+import type { MessageIntentOrigin } from "../../domain/value-objects/message-intent-origin";
 import type { MessageIntentPayload } from "../../domain/value-objects/message-intent-payload";
 import type { MessageIntentPurpose } from "../../domain/value-objects/message-intent-purpose";
 import type { MessageIntentStatus } from "../../domain/value-objects/message-intent-status";
@@ -21,6 +22,7 @@ const mapRowToIntent = (row: MessageIntentRow): MessageIntent =>
 		target: { kind: row.targetKind as MessageTarget["kind"], value: row.targetValue },
 		type: row.intentType as MessageIntentType,
 		purpose: row.purpose as MessageIntentPurpose,
+		origin: row.origin as MessageIntentOrigin | null,
 		payload: row.payload as unknown as MessageIntentPayload,
 		status: row.status as MessageIntentStatus,
 		decidedByInstanceId: row.decidedByInstanceId,
@@ -39,6 +41,7 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 				targetValue: intent.target.value,
 				intentType: intent.type,
 				purpose: intent.purpose,
+				origin: intent.origin,
 				payload: intent.payload as any,
 				status: intent.status,
 				decidedByInstanceId: intent.decidedByInstanceId,
@@ -65,6 +68,7 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 				targetValue: intent.target.value,
 				intentType: intent.type,
 				purpose: intent.purpose,
+				origin: intent.origin,
 				payload: intent.payload as any,
 				status: intent.status,
 				decidedByInstanceId: intent.decidedByInstanceId,
@@ -77,6 +81,7 @@ export class PrismaMessageIntentRepository implements MessageIntentRepository {
 				decidedByInstanceId: intent.decidedByInstanceId,
 				blockedReason: intent.blockedReason,
 				queuedUntil: intent.queuedUntil,
+				origin: intent.origin,
 			},
 		});
 	}

@@ -1,5 +1,6 @@
 import { MessageIntent } from "../../domain/entities/message-intent";
 import type { MessageIntentRepository } from "../../domain/repositories/message-intent-repository";
+import type { MessageIntentOrigin } from "../../domain/value-objects/message-intent-origin";
 import type { MessageIntentPayload } from "../../domain/value-objects/message-intent-payload";
 import type { MessageIntentPurpose } from "../../domain/value-objects/message-intent-purpose";
 import type { MessageIntentType } from "../../domain/value-objects/message-intent-type";
@@ -10,6 +11,7 @@ export interface CreateMessageIntentUseCaseRequest {
 	target: MessageTarget;
 	type: MessageIntentType;
 	purpose: MessageIntentPurpose;
+	origin?: MessageIntentOrigin | null;
 	payload: MessageIntentPayload;
 	now?: Date;
 }
@@ -34,6 +36,7 @@ export class CreateMessageIntentUseCase {
 			target: request.target,
 			type: request.type,
 			purpose: request.purpose,
+			origin: request.origin ?? null,
 			payload: request.payload,
 			now: request.now,
 		});

@@ -1,4 +1,7 @@
 import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
+import type { MessageRepository } from "../../domain/repositories/message-repository";
+import type { DomainEventBus } from "../../domain/events/domain-event-bus";
+import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-events";
 import type { CreateMessageIntentUseCase } from "../message-intents/create-message-intent.use-case";
 import type { DecideMessageIntentUseCase } from "../message-intents/decide-message-intent.use-case";
 
@@ -21,8 +24,11 @@ export interface SendChatMessageUseCaseResponse {
 export class SendChatMessageUseCase {
 	constructor(
 		private readonly conversations: ConversationRepository,
+		private readonly messages: MessageRepository,
 		private readonly createIntent: CreateMessageIntentUseCase,
 		private readonly decideIntent: DecideMessageIntentUseCase,
+		private readonly idFactory: { createId(): string },
+		private readonly eventBus: DomainEventBus<ChatMessageDomainEvent>,
 	) {}
 
 	async execute(
@@ -45,8 +51,38 @@ export class SendChatMessageUseCase {
 			target: { kind: "PHONE", value: conversation.contactId },
 			type: "TEXT",
 			purpose: "DISPATCH",
+			origin: "CHAT_MANUAL",
 			payload: { type: "TEXT", text: body },
 			now: request.now,
+		});
+
+		const occurredAt = request.now ?? new Date();
+		const messageId = this.idFactory.createId();
+		const message = conversation.recordPendingOutboundMessage({
+			messageId,
+			type: "TEXT",
+			sentBy: "BOT",
+			contentRef: body,
+			metadata: { origin: "CHAT_MANUAL", intentId: intent.intentId },
+			occurredAt,
+		});
+
+		await this.messages.append(message);
+		await this.conversations.save(conversation);
+		await this.eventBus.publish({
+			type: "MESSAGE_STATUS_UPDATED",
+			occurredAt: occurredAt,
+			organizationId: conversation.tenantId,
+			instanceId: conversation.instanceId,
+			conversationId: conversation.id,
+			message: {
+				id: message.id,
+				direction: message.direction,
+				type: message.type,
+				sentBy: message.sentBy,
+				status: message.status,
+				body: message.contentRef,
+			},
 		});
 
 		const decision = await this.decideIntent.execute({
@@ -54,6 +90,33 @@ export class SendChatMessageUseCase {
 			organizationId: request.tenantId,
 			now: request.now,
 		});
+
+		if (decision.decision.kind === "BLOCKED") {
+			await this.messages.updateDelivery({
+				messageId,
+				status: "FAILED",
+				metadata: {
+					origin: "CHAT_MANUAL",
+					intentId: intent.intentId,
+					blockedReason: decision.decision.reason,
+				},
+			});
+			await this.eventBus.publish({
+				type: "MESSAGE_STATUS_UPDATED",
+				occurredAt: new Date(),
+				organizationId: conversation.tenantId,
+				instanceId: conversation.instanceId,
+				conversationId: conversation.id,
+				message: {
+					id: message.id,
+					direction: message.direction,
+					type: message.type,
+					sentBy: message.sentBy,
+					status: "FAILED",
+					body: message.contentRef,
+				},
+			});
+		}
 
 		return {
 			intentId: decision.intentId,
