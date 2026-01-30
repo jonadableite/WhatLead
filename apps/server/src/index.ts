@@ -525,6 +525,7 @@ const listConversations = new ListConversationsUseCase(conversationRepository);
 const sendChatMessage = new SendChatMessageUseCase(
 	conversationRepository,
 	messageRepository,
+	leadRepository,
 	createMessageIntent,
 	decideMessageIntent,
 	idFactory,
@@ -585,6 +586,7 @@ const inboundMessage = new InboundMessageUseCase({
 	instanceRepository,
 	conversationRepository,
 	messageRepository,
+	leadRepository,
 	idFactory,
 	eventBus: realtimeEventBus,
 });
@@ -606,7 +608,11 @@ const agents = new InMemoryAgentRepository([
 ]);
 const router = new ConversationRouter(agents);
 const assignConversation = new AssignConversationUseCase(conversationRepository);
-const replyDispatcher = new ReplyIntentDispatcher(dispatch);
+const replyDispatcher = new ReplyIntentDispatcher(
+	dispatch,
+	conversationRepository,
+	leadRepository,
+);
 const updateLeadOnInbound = new UpdateLeadOnInboundUseCase(
 	conversationRepository,
 	leadRepository,
@@ -670,6 +676,7 @@ const agentOrchestrator = new AgentOrchestratorUseCase(
 	agents,
 	slaEvaluator,
 	playbook,
+	leadRepository,
 );
 const createLead = new CreateLeadUseCase(leadRepository, idFactory);
 const openConversationForLead = new OpenConversationForLeadUseCase(

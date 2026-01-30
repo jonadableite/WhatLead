@@ -3,6 +3,7 @@ import type { ConversationRepository } from "../../domain/repositories/conversat
 import type { MessageRepository } from "../../domain/repositories/message-repository";
 import type { DomainEventBus } from "../../domain/events/domain-event-bus";
 import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-events";
+import { parseContactIdentity } from "../conversations/contact-utils";
 
 export class OutboundMessageRecordedUseCase {
 	constructor(
@@ -17,10 +18,9 @@ export class OutboundMessageRecordedUseCase {
 			return;
 		}
 
-		const contactId = normalizeContactId(event.remoteJid);
-		if (!contactId) {
-			return;
-		}
+		const identity = parseContactIdentity(event.remoteJid);
+		if (!identity) return;
+		const contactId = identity.contactId;
 
 		const conversation = await this.conversationRepository.findActiveByInstanceAndContact({
 			instanceId: event.instanceId,
@@ -102,17 +102,6 @@ export class OutboundMessageRecordedUseCase {
 		});
 	}
 }
-
-const normalizeContactId = (remoteJid: string | undefined): string | null => {
-	if (!remoteJid) {
-		return null;
-	}
-	const trimmed = remoteJid.trim();
-	if (!trimmed) {
-		return null;
-	}
-	return trimmed;
-};
 
 const inferMessageType = (event: NormalizedWhatsAppEvent) => {
 	const messageType = event.metadata?.["messageType"];

@@ -29,6 +29,7 @@
 		"dotenv": "catalog:",
 		"fastify": "^5.3.3",
 		"ioredis": "^5.9.2",
+		"ws": "^8.19.0",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

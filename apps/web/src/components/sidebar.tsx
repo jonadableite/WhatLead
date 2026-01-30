@@ -16,21 +16,21 @@ import { Input } from "./ui/input";
 import UserMenu from "./user-menu";
 
 // Assets Imports
+import instancesIcon from "@/asset/wired-outline-1686-scan-qr-code-hover-pinch.json";
 import aiIcon from "@/asset/wired-outline-2512-artificial-intelligence-ai-alt-hover-pinch.json";
 import crmIcon from "@/asset/wired-outline-2610-lead-generation-hover-pinch.json";
 import dashboardIcon from "@/asset/wired-outline-63-home-hover-3d-roll.json";
-import organizationIcon from "@/asset/wired-outline-952-business-network-hover-pinch.json";
-import {
-  default as chatIcon,
-  default as instancesIcon,
-} from "@/asset/wired-outline-964-omnichannel-hover-pinch.json";
+import organizationIcon from "@/asset/wired-outline-951-customer-management-hover-roll.json";
+import operatorIcon from "@/asset/wired-outline-964-omnichannel-hover-pinch.json";
 import tasksIcon from "@/asset/wired-outline-978-project-management-hover-pinch.json";
+import chatIcon from "@/asset/wired-outline-981-consultation-hover-conversation.json";
+import boostIcon from "@/asset/wired-outline-3139-rocket-space-alt-hover-pinch.json";
 
 const menuItems = [
   { name: "Dashboard", icon: dashboardIcon, path: "/dashboard" },
   { name: "Instâncias", icon: instancesIcon, path: "/instances" },
   { name: "Chat CRM", icon: chatIcon, path: "/chat" },
-  { name: "Operator View", icon: instancesIcon, path: "/operator" },
+  { name: "Operator View", icon: operatorIcon, path: "/operator" },
   { name: "CRM & Leads", icon: crmIcon, path: "/crm" },
   { name: "AI Chat", icon: aiIcon, path: "/ai" },
   { name: "Organization", icon: organizationIcon, path: "/organization" },
@@ -95,7 +95,7 @@ export function Sidebar() {
       <motion.aside
         className={cn(
           "fixed top-0 left-0 z-50 h-full w-72 border-r border-white/5 bg-[#0D0D0D] shadow-2xl",
-          "md:translate-x-0",
+          "md:translate-x-0"
         )}
         initial={false}
         animate={{ x: isOpen || !isMobile ? 0 : "-100%" }}
@@ -194,13 +194,13 @@ export function Sidebar() {
                       isHovered={hoveredItemPath === item.path}
                       className={cn(
                         "opacity-70 transition-opacity duration-200 group-hover:opacity-100",
-                        isActive && "opacity-100 text-indigo-400", // Lordicon uses internal colors, but we can try filter if needed
+                        isActive && "opacity-100 text-indigo-400" // Lordicon uses internal colors, but we can try filter if needed
                       )}
                     />
                     <span
                       className={cn(
                         "text-sm font-medium text-zinc-400 transition-colors duration-200 group-hover:text-white",
-                        isActive && "text-white",
+                        isActive && "text-white"
                       )}
                     >
                       {item.name}
@@ -218,7 +218,7 @@ export function Sidebar() {
 
               <div className="relative z-10">
                 <div className="mb-3 flex items-center gap-2">
-                  <AnimatedIcon icon={aiIcon} size={20} />
+                  <AnimatedIcon icon={boostIcon} size={20} />
                   <span className="bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-sm font-semibold text-transparent">
                     Boost with AI
                   </span>

@@ -1,6 +1,7 @@
 import prisma from "@WhatLead/db";
 import { Conversation } from "../../domain/entities/conversation";
 import { ConversationSLA } from "../../domain/value-objects/conversation-sla";
+import { formatContactLabel } from "../../application/conversations/contact-utils";
 import type {
 	ConversationListResult,
 	ConversationMessagesResult,
@@ -20,6 +21,51 @@ export class PrismaConversationRepository implements ConversationRepository {
 			where: {
 				instanceId: params.instanceId,
 				contactId: params.contactId,
+				isActive: true,
+			},
+		});
+
+		if (!row) {
+			return null;
+		}
+
+		return Conversation.reconstitute({
+			id: row.id,
+			tenantId: row.tenantId,
+			channel: row.channel as any,
+			instanceId: row.instanceId,
+			contactId: row.contactId,
+			leadId: (row as any).leadId ?? null,
+			status: row.status as any,
+			stage: (row as any).stage as any,
+			assignedAgentId: row.assignedAgentId ?? null,
+			assignedOperatorId: (row as any).assignedOperatorId ?? null,
+			openedAt: row.openedAt,
+			lastMessageAt: row.lastMessageAt,
+			lastInboundAt: (row as any).lastInboundAt ?? null,
+			lastOutboundAt: (row as any).lastOutboundAt ?? null,
+			unreadCount: (row as any).unreadCount ?? 0,
+			metadata: ((row as any).metadata ?? {}) as any,
+			sla:
+				row.firstResponseDueAt || row.nextResponseDueAt || (row as any).slaBreachedAt
+					? ConversationSLA.reconstitute({
+							firstResponseDueAt: (row as any).firstResponseDueAt ?? null,
+							nextResponseDueAt: (row as any).nextResponseDueAt ?? null,
+							breachedAt: (row as any).slaBreachedAt ?? null,
+						})
+					: null,
+			isActive: row.isActive,
+		});
+	}
+
+	async findActiveByInstanceAndLead(params: {
+		instanceId: string;
+		leadId: string;
+	}): Promise<Conversation | null> {
+		const row = await prisma.conversation.findFirst({
+			where: {
+				instanceId: params.instanceId,
+				leadId: params.leadId,
 				isActive: true,
 			},
 		});
@@ -198,7 +244,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 				skip: params.offset,
 				take: params.limit,
 				include: {
-					lead: { select: { name: true } },
+					lead: { select: { name: true, phone: true, lid: true } },
 					messages: {
 						orderBy: { occurredAt: "desc" },
 						take: 1,
@@ -215,7 +261,12 @@ export class PrismaConversationRepository implements ConversationRepository {
 					id: row.id,
 					instanceId: row.instanceId,
 					contactId: row.contactId,
-					contactName: row.lead?.name ?? null,
+					contactName: formatContactLabel({
+						leadName: row.lead?.name ?? null,
+						phone: row.lead?.phone ?? null,
+						lid: (row.lead as any)?.lid ?? null,
+						contactId: row.contactId,
+					}),
 					status: row.status as ConversationStatus,
 					assignedAgentId: row.assignedAgentId ?? null,
 					assignedOperatorId: (row as any).assignedOperatorId ?? null,

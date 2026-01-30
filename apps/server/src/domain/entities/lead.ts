@@ -7,6 +7,7 @@ export interface LeadProps {
 	name: string;
 	email: string;
 	phone: string;
+	lid?: string | null;
 	stage: LeadStage;
 	createdAt: Date;
 }
@@ -18,6 +19,7 @@ export class Lead {
 	private _name: string;
 	private _email: string;
 	private _phone: string;
+	private _lid: string | null;
 	private _stage: LeadStage;
 	private readonly _createdAt: Date;
 
@@ -28,6 +30,7 @@ export class Lead {
 		this._name = props.name;
 		this._email = props.email;
 		this._phone = props.phone;
+		this._lid = props.lid ?? null;
 		this._stage = props.stage;
 		this._createdAt = props.createdAt;
 	}
@@ -64,6 +67,10 @@ export class Lead {
 		return this._phone;
 	}
 
+	get lid(): string | null {
+		return this._lid;
+	}
+
 	get stage(): LeadStage {
 		return this._stage;
 	}
@@ -72,7 +79,7 @@ export class Lead {
 		return this._createdAt;
 	}
 
-	updateIdentity(params: { name?: string; email?: string; phone?: string }): void {
+	updateIdentity(params: { name?: string; email?: string; phone?: string; lid?: string | null }): void {
 		if (typeof params.name === "string" && params.name.trim()) {
 			this._name = params.name.trim();
 		}
@@ -81,6 +88,9 @@ export class Lead {
 		}
 		if (typeof params.phone === "string" && params.phone.trim()) {
 			this._phone = params.phone.trim();
+		}
+		if (typeof params.lid === "string" && params.lid.trim()) {
+			this._lid = params.lid.trim();
 		}
 	}
 

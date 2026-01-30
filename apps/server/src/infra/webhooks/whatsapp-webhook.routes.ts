@@ -9,10 +9,11 @@
  * - POST /webhooks/evolution - Evolution API webhooks (future)
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import prisma from "@WhatLead/db";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type {
-	WebhookEventHandler,
-	NormalizedWhatsAppEvent,
+  NormalizedWhatsAppEvent,
+  WebhookEventHandler,
 } from "../../application/event-handlers/webhook-event-handler";
 import { turboZapTransformer } from "./handlers/turbozap.webhook-handler";
 
@@ -56,6 +57,7 @@ export const registerWebhookRoutes = async (
 		"/webhooks/turbozap",
 		async (request: FastifyRequest, reply: FastifyReply) => {
 			const payload = request.body as Record<string, unknown>;
+			const normalizedPayload = await resolveTurboZapInstance(payload);
 
 			// Optional: Verify webhook secret
 			if (webhookSecret) {
@@ -67,7 +69,9 @@ export const registerWebhookRoutes = async (
 
 			// Transform TurboZap payload to normalized events
 			const events = turboZapTransformer.transform(
-				payload as unknown as Parameters<typeof turboZapTransformer.transform>[0],
+				normalizedPayload as unknown as Parameters<
+					typeof turboZapTransformer.transform
+				>[0],
 			);
 
 			// Log events for debugging
@@ -161,3 +165,69 @@ const processEvents = async (
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default registerWebhookRoutes;
+
+const resolveTurboZapInstance = async (
+	payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> => {
+	const instanceId =
+		typeof payload.instance_id === "string" ? payload.instance_id : undefined;
+	if (instanceId) {
+		const match = await prisma.instance.findUnique({
+			where: { id: instanceId },
+			select: { id: true },
+		});
+		if (match) {
+			return payload;
+		}
+	}
+
+	const instanceName =
+		typeof payload.instance === "string"
+			? payload.instance
+			: typeof payload.instance_name === "string"
+				? payload.instance_name
+				: undefined;
+	if (!instanceName) {
+		return payload;
+	}
+	const trimmedInstanceName = instanceName.trim();
+	if (!trimmedInstanceName) {
+		return payload;
+	}
+
+	if (isUuid(trimmedInstanceName)) {
+		const match = await prisma.instance.findUnique({
+			where: { id: trimmedInstanceName },
+			select: { id: true },
+		});
+		if (match) {
+			return {
+				...payload,
+				instance_id: match.id,
+			};
+		}
+	}
+
+	const match = await prisma.instance.findFirst({
+		where: {
+			displayName: {
+				equals: trimmedInstanceName,
+				mode: "insensitive",
+			},
+		},
+		select: { id: true },
+	});
+	if (!match) {
+		return payload;
+	}
+
+	return {
+		...payload,
+		instance_id: match.id,
+	};
+};
+
+const isUuid = (value: string): boolean =>
+	/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+		value,
+	);

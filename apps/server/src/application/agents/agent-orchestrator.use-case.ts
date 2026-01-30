@@ -1,8 +1,10 @@
 import type { AgentRepository } from "../../domain/repositories/agent-repository";
 import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
+import type { LeadRepository } from "../../domain/repositories/lead-repository";
 import type { SLAEvaluator } from "../../domain/services/sla-evaluator";
 import type { DispatchIntent } from "../dispatch-gate/dispatch-intent";
 import type { AgentPlaybook } from "./agent-playbook";
+import { resolveOutboundRecipient } from "../conversations/contact-utils";
 
 export class AgentOrchestratorUseCase {
 	constructor(
@@ -10,6 +12,7 @@ export class AgentOrchestratorUseCase {
 		private readonly agents: AgentRepository,
 		private readonly slaEvaluator: SLAEvaluator,
 		private readonly playbook: AgentPlaybook,
+		private readonly leads: LeadRepository,
 	) {}
 
 	async execute(params: {
@@ -20,6 +23,15 @@ export class AgentOrchestratorUseCase {
 		const conversation = await this.conversations.findById({ id: params.conversationId });
 		if (!conversation) return null;
 		if (!conversation.isActive) return null;
+
+		const lead = conversation.leadId ? await this.leads.findById({ id: conversation.leadId }) : null;
+		const recipient = resolveOutboundRecipient({
+			conversationContactId: conversation.contactId,
+			lead,
+		});
+		if (!recipient) {
+			return null;
+		}
 
 		const onlineAgents = await this.agents.listOnlineByOrganization({
 			organizationId: conversation.tenantId,
@@ -39,7 +51,9 @@ export class AgentOrchestratorUseCase {
 				reason: "FOLLOW_UP",
 				now,
 			});
-			return intent ? { agentId: followUpAgent.id, intent } : null;
+			return intent
+				? { agentId: followUpAgent.id, intent: { ...intent, payload: { ...intent.payload, to: recipient } } }
+				: null;
 		}
 
 		const sdr = onlineAgents.find((a) => a.purpose === "SDR");
@@ -52,6 +66,6 @@ export class AgentOrchestratorUseCase {
 			now,
 		});
 
-		return intent ? { agentId: sdr.id, intent } : null;
+		return intent ? { agentId: sdr.id, intent: { ...intent, payload: { ...intent.payload, to: recipient } } } : null;
 	}
 }

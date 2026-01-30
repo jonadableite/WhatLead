@@ -1,9 +1,11 @@
 import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
 import type { MessageRepository } from "../../domain/repositories/message-repository";
+import type { LeadRepository } from "../../domain/repositories/lead-repository";
 import type { DomainEventBus } from "../../domain/events/domain-event-bus";
 import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-events";
 import type { CreateMessageIntentUseCase } from "../message-intents/create-message-intent.use-case";
 import type { DecideMessageIntentUseCase } from "../message-intents/decide-message-intent.use-case";
+import { resolveOutboundRecipient } from "./contact-utils";
 
 export interface SendChatMessageUseCaseRequest {
 	tenantId: string;
@@ -25,6 +27,7 @@ export class SendChatMessageUseCase {
 	constructor(
 		private readonly conversations: ConversationRepository,
 		private readonly messages: MessageRepository,
+		private readonly leads: LeadRepository,
 		private readonly createIntent: CreateMessageIntentUseCase,
 		private readonly decideIntent: DecideMessageIntentUseCase,
 		private readonly idFactory: { createId(): string },
@@ -46,9 +49,20 @@ export class SendChatMessageUseCase {
 			throw new Error("CONVERSATION_NOT_FOUND");
 		}
 
+		const lead = conversation.leadId
+			? await this.leads.findById({ id: conversation.leadId })
+			: null;
+		const recipient = resolveOutboundRecipient({
+			conversationContactId: conversation.contactId,
+			lead,
+		});
+		if (!recipient) {
+			throw new Error("RECIPIENT_NOT_FOUND");
+		}
+
 		const intent = await this.createIntent.execute({
 			organizationId: request.tenantId,
-			target: { kind: "PHONE", value: conversation.contactId },
+			target: { kind: "PHONE", value: recipient },
 			type: "TEXT",
 			purpose: "DISPATCH",
 			origin: "CHAT_MANUAL",

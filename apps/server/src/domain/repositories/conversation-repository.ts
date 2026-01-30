@@ -49,6 +49,11 @@ export interface ConversationRepository {
 		contactId: string;
 	}): Promise<Conversation | null>;
 
+	findActiveByInstanceAndLead(params: {
+		instanceId: string;
+		leadId: string;
+	}): Promise<Conversation | null>;
+
 	findById(params: { id: string }): Promise<Conversation | null>;
 
 	save(conversation: Conversation): Promise<void>;

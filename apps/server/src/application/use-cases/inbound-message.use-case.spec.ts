@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { InMemoryConversationRepository } from "../../infra/repositories/in-memory-conversation-repository";
+import { InMemoryLeadRepository } from "../../infra/repositories/in-memory-lead-repository";
 import { InMemoryMessageRepository } from "../../infra/repositories/in-memory-message-repository";
 import type { NormalizedWhatsAppEvent } from "../event-handlers/webhook-event-handler";
 import { InboundMessageUseCase } from "./inbound-message.use-case";
@@ -7,10 +8,12 @@ import { InboundMessageUseCase } from "./inbound-message.use-case";
 describe("InboundMessageUseCase", () => {
 	it("creates conversation on first inbound and increments unread", async () => {
 		const conversations = new InMemoryConversationRepository();
+		const leads = new InMemoryLeadRepository();
 		const messages = new InMemoryMessageRepository();
 		const instanceRepository = {
 			findById: vi.fn(async () => ({ id: "i-1", companyId: "t-1" })),
 		};
+		const eventBus = { publish: vi.fn() };
 		const idFactory = {
 			createId: (() => {
 				let i = 0;
@@ -22,7 +25,9 @@ describe("InboundMessageUseCase", () => {
 			instanceRepository: instanceRepository as any,
 			conversationRepository: conversations,
 			messageRepository: messages,
+			leadRepository: leads,
 			idFactory,
+			eventBus: eventBus as any,
 		});
 
 		const event: NormalizedWhatsAppEvent = {

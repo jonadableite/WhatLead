@@ -158,6 +158,9 @@ export const registerConversationRoutes = async (
 			if (error instanceof Error && error.message === "EMPTY_MESSAGE") {
 				return reply.status(400).send({ message: "mensagem é obrigatória" });
 			}
+			if (error instanceof Error && error.message === "RECIPIENT_NOT_FOUND") {
+				return reply.status(400).send({ message: "destinatario inválido" });
+			}
 			return reply.status(500).send({ error: "SEND_MESSAGE_FAILED" });
 		}
 	});

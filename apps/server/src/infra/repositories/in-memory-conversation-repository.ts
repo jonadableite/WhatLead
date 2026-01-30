@@ -25,6 +25,22 @@ export class InMemoryConversationRepository implements ConversationRepository {
 		return null;
 	}
 
+	async findActiveByInstanceAndLead(params: {
+		instanceId: string;
+		leadId: string;
+	}): Promise<Conversation | null> {
+		for (const conversation of this.byId.values()) {
+			if (
+				conversation.isActive &&
+				conversation.instanceId === params.instanceId &&
+				conversation.leadId === params.leadId
+			) {
+				return conversation;
+			}
+		}
+		return null;
+	}
+
 	async save(conversation: Conversation): Promise<void> {
 		this.byId.set(conversation.id, conversation);
 	}

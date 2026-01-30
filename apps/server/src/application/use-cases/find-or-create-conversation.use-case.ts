@@ -12,13 +12,23 @@ export class FindOrCreateConversationUseCase {
 	async execute(params: {
 		instanceId: string;
 		contactId: string;
+		leadId?: string | null;
 		now: Date;
 	}): Promise<Conversation> {
-		const existing =
-			await this.conversationRepository.findActiveByInstanceAndContact({
+		if (params.leadId) {
+			const byLead = await this.conversationRepository.findActiveByInstanceAndLead({
 				instanceId: params.instanceId,
-				contactId: params.contactId,
+				leadId: params.leadId,
 			});
+			if (byLead) {
+				return byLead;
+			}
+		}
+
+		const existing = await this.conversationRepository.findActiveByInstanceAndContact({
+			instanceId: params.instanceId,
+			contactId: params.contactId,
+		});
 		if (existing) {
 			return existing;
 		}
@@ -36,6 +46,9 @@ export class FindOrCreateConversationUseCase {
 			contactId: params.contactId,
 			openedAt: params.now,
 		});
+		if (params.leadId) {
+			conversation.linkLead(params.leadId);
+		}
 
 		await this.conversationRepository.save(conversation);
 		return conversation;

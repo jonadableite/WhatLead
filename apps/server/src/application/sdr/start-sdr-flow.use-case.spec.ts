@@ -40,7 +40,13 @@ describe("StartSdrFlowUseCase", () => {
 
 		const createLead = new CreateLeadUseCase(leads, idFactory);
 		const openConversation = new OpenConversationForLeadUseCase(instances as any, conversations, idFactory);
-		const orchestrator = new AgentOrchestratorUseCase(conversations, agents as any, new SLAEvaluator(), new DefaultAgentPlaybook());
+		const orchestrator = new AgentOrchestratorUseCase(
+			conversations,
+			agents as any,
+			new SLAEvaluator(),
+			new DefaultAgentPlaybook(),
+			leads as any,
+		);
 
 		const dispatch = {
 			execute: vi.fn(async () => ({
