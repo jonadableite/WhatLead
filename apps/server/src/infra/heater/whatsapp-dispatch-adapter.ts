@@ -9,15 +9,25 @@ import {
 	isPresenceCapable,
 	isReactionCapable,
 } from "../../application/providers/whatsapp-provider";
+import { getProviderInstanceName } from "../../application/instances/provider-instance-name";
+import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 
 export class WhatsAppProviderDispatchAdapter implements DispatchPort {
-	constructor(private readonly provider: WhatsAppProvider) {}
+	constructor(
+		private readonly provider: WhatsAppProvider,
+		private readonly instances: InstanceRepository,
+	) {}
 
 	async send(action: DispatchAction): Promise<DispatchResult> {
+		const providerInstanceId = await resolveProviderInstanceId(
+			this.instances,
+			action.instanceId,
+		);
+
 		switch (action.type) {
 			case "SEND_TEXT": {
 				const result = await this.provider.sendText({
-					instanceId: action.instanceId,
+					instanceId: providerInstanceId,
 					to: action.to,
 					text: action.text,
 					delayMs: action.delayMs,
@@ -41,7 +51,7 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 				}
 
 				const result = await this.provider.sendReaction({
-					instanceId: action.instanceId,
+					instanceId: providerInstanceId,
 					to: action.to,
 					messageId: action.messageId,
 					emoji: action.emoji,
@@ -65,7 +75,7 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 				}
 
 				await this.provider.setPresence({
-					instanceId: action.instanceId,
+					instanceId: providerInstanceId,
 					to: action.to,
 					presence: action.presence,
 				});
@@ -95,7 +105,7 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 				}
 
 				await this.provider.markAsRead({
-					instanceId: action.instanceId,
+					instanceId: providerInstanceId,
 					messageId: action.messageId,
 				});
 
@@ -189,3 +199,11 @@ export class WhatsAppProviderDispatchAdapter implements DispatchPort {
 		};
 	}
 }
+
+const resolveProviderInstanceId = async (
+	instances: InstanceRepository,
+	instanceId: string,
+): Promise<string> => {
+	const instance = await instances.findById(instanceId);
+	return instance ? getProviderInstanceName(instance) : instanceId;
+};

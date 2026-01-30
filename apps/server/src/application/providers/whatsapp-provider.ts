@@ -132,6 +132,35 @@ export interface WhatsAppGroupCapable {
 	listGroups(instanceId: string): Promise<GroupInfo[]>;
 }
 
+/**
+ * Provider supports contact profile lookups.
+ */
+export interface WhatsAppContactCapable {
+	/**
+	 * Gets contact information for a jid.
+	 */
+	getContactInfo(instanceId: string, jid: string): Promise<ContactInfo | null>;
+
+	/**
+	 * Gets contact profile picture URL for a jid.
+	 */
+	getProfilePicture(instanceId: string, jid: string): Promise<string | null>;
+}
+
+/**
+ * Contact information returned by providers.
+ */
+export interface ContactInfo {
+	jid: string;
+	phoneNumber?: string | null;
+	name?: string | null;
+	pushName?: string | null;
+	businessName?: string | null;
+	profilePicUrl?: string | null;
+	isBusiness?: boolean;
+	isVerified?: boolean;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPE GUARDS (for checking capabilities)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -172,6 +201,15 @@ export const isGroupCapable = (
 	return "listGroups" in provider;
 };
 
+/**
+ * Checks if provider supports contact profile features.
+ */
+export const isContactCapable = (
+	provider: WhatsAppProvider,
+): provider is WhatsAppProvider & WhatsAppContactCapable => {
+	return "getProfilePicture" in provider && "getContactInfo" in provider;
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FULL-FEATURED PROVIDER (convenience type)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -184,4 +222,5 @@ export type FullFeaturedWhatsAppProvider = WhatsAppProvider &
 	WhatsAppPresenceCapable &
 	WhatsAppReactionCapable &
 	WhatsAppAudioCapable &
-	WhatsAppGroupCapable;
+	WhatsAppGroupCapable &
+	WhatsAppContactCapable;

@@ -12,8 +12,9 @@ describe("WhatsAppProviderDispatchAdapter", () => {
 			sendText: vi.fn(async () => ({ success: true, messageId: "m-1" })),
 			sendMedia: vi.fn(),
 		};
+		const instances = { findById: vi.fn(async () => null) };
 
-		const adapter = new WhatsAppProviderDispatchAdapter(provider as any);
+		const adapter = new WhatsAppProviderDispatchAdapter(provider as any, instances as any);
 		const result = await adapter.send({
 			type: "SEND_TEXT",
 			instanceId: "i-1",
@@ -40,8 +41,9 @@ describe("WhatsAppProviderDispatchAdapter", () => {
 			sendText: vi.fn(),
 			sendMedia: vi.fn(),
 		};
+		const instances = { findById: vi.fn(async () => null) };
 
-		const adapter = new WhatsAppProviderDispatchAdapter(provider as any);
+		const adapter = new WhatsAppProviderDispatchAdapter(provider as any, instances as any);
 		const result = await adapter.send({
 			type: "SEND_REACTION",
 			instanceId: "i-1",
@@ -66,8 +68,9 @@ describe("WhatsAppProviderDispatchAdapter", () => {
 			setPresence: vi.fn(async () => {}),
 			markAsRead: vi.fn(async () => {}),
 		};
+		const instances = { findById: vi.fn(async () => null) };
 
-		const adapter = new WhatsAppProviderDispatchAdapter(provider as any);
+		const adapter = new WhatsAppProviderDispatchAdapter(provider as any, instances as any);
 		const result = await adapter.send({
 			type: "MARK_AS_READ",
 			instanceId: "i-1",

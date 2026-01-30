@@ -199,26 +199,52 @@ export class TurboZapWebhookTransformer
 		raw: TurboZapWebhookPayload,
 		data: TurboZapMessageReceivedData,
 	): NormalizedWhatsAppEvent[] {
-		const eventType: WhatsAppEventType = data.is_group
-			? "GROUP_MESSAGE_RECEIVED"
-			: "MESSAGE_RECEIVED";
+		if (data.is_group) {
+			return [];
+		}
+
+		const instanceId = raw.instance_id || raw.instance || raw.instance_name || "";
+		const occurredAt = new Date(
+			data.timestamp || raw.timestamp || new Date().toISOString(),
+		);
+		const text =
+			data.type === "text" && typeof data.content === "string"
+				? data.content
+				: undefined;
+
+		if (data.fromMe) {
+			return [
+				{
+					type: "MESSAGE_SENT",
+					source: "WEBHOOK",
+					instanceId,
+					occurredAt,
+					messageId: data.message_id,
+					remoteJid: data.to,
+					isGroup: false,
+					metadata: {
+						messageType: data.type,
+						text,
+						fromMe: true,
+						sentBy: "INSTANCE",
+					},
+				},
+			];
+		}
 
 		return [
 			{
-				type: eventType,
+				type: "MESSAGE_RECEIVED",
 				source: "WEBHOOK",
-				instanceId: raw.instance_id || raw.instance || raw.instance_name || "",
-				occurredAt: new Date(data.timestamp || raw.timestamp || new Date().toISOString()),
+				instanceId,
+				occurredAt,
 				messageId: data.message_id,
 				remoteJid: data.from,
-				isGroup: data.is_group,
+				isGroup: false,
 				metadata: {
 					messageType: data.type,
 					pushName: data.push_name ?? data.from_name,
-					text:
-						data.type === "text" && typeof data.content === "string"
-							? data.content
-							: undefined,
+					text,
 				},
 			},
 		];

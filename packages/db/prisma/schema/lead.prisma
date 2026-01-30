@@ -5,6 +5,7 @@ model Lead {
   name       String
   email      String
   phone      String
+  profilePicUrl String?
   lid        String?
   stage      String
   createdAt  DateTime @default(now())

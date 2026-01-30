@@ -4,6 +4,7 @@ import type { MessageRepository } from "../../domain/repositories/message-reposi
 import type { DomainEventBus } from "../../domain/events/domain-event-bus";
 import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-events";
 import { parseContactIdentity } from "../conversations/contact-utils";
+import { MESSAGE_SENDERS, type MessageSender } from "../../domain/value-objects/message-sender";
 
 export class OutboundMessageRecordedUseCase {
 	constructor(
@@ -76,7 +77,7 @@ export class OutboundMessageRecordedUseCase {
 		const message = conversation.recordOutboundMessage({
 			messageId: this.idFactory.createId(),
 			type: inferMessageType(event),
-			sentBy: "BOT",
+			sentBy: inferSentBy(event),
 			providerMessageId: event.messageId,
 			contentRef: inferContentRef(event),
 			metadata: event.metadata,
@@ -126,4 +127,16 @@ const mergeMetadata = (
 	...existing,
 	...(next ?? {}),
 });
+
+const inferSentBy = (event: NormalizedWhatsAppEvent): Exclude<MessageSender, "CONTACT"> => {
+	const candidate = event.metadata?.["sentBy"];
+	if (
+		typeof candidate === "string" &&
+		MESSAGE_SENDERS.includes(candidate as MessageSender) &&
+		candidate !== "CONTACT"
+	) {
+		return candidate as Exclude<MessageSender, "CONTACT">;
+	}
+	return "BOT";
+};
 

@@ -24,6 +24,7 @@ interface ConversationsResponse {
     instanceId: string;
     contactId: string;
     contactName?: string | null;
+    profilePicUrl?: string | null;
     status: string;
     unreadCount: number;
     lastMessageAt: string;

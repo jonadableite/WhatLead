@@ -1,13 +1,19 @@
 import type { WhatsAppProviderPort } from "../../application/message-execution/whatsapp-provider-port";
 import type { WhatsAppProvider } from "../../application/providers/whatsapp-provider";
 import { isAudioCapable, isReactionCapable } from "../../application/providers/whatsapp-provider";
+import { getProviderInstanceName } from "../../application/instances/provider-instance-name";
+import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 
 export class WhatsMeowProviderAdapter implements WhatsAppProviderPort {
-	constructor(private readonly provider: WhatsAppProvider) {}
+	constructor(
+		private readonly provider: WhatsAppProvider,
+		private readonly instances: InstanceRepository,
+	) {}
 
 	async sendText(params: { instanceId: string; to: string; text: string }): Promise<void> {
+		const instanceId = await resolveProviderInstanceId(this.instances, params.instanceId);
 		await this.provider.sendText({
-			instanceId: params.instanceId,
+			instanceId,
 			to: params.to,
 			text: params.text,
 		});
@@ -20,8 +26,9 @@ export class WhatsMeowProviderAdapter implements WhatsAppProviderPort {
 		mimeType: string;
 		caption?: string;
 	}): Promise<void> {
+		const instanceId = await resolveProviderInstanceId(this.instances, params.instanceId);
 		await this.provider.sendMedia({
-			instanceId: params.instanceId,
+			instanceId,
 			to: params.to,
 			mediaUrl: params.url,
 			mimeType: params.mimeType,
@@ -31,8 +38,9 @@ export class WhatsMeowProviderAdapter implements WhatsAppProviderPort {
 
 	async sendAudio(params: { instanceId: string; to: string; url: string }): Promise<void> {
 		if (!isAudioCapable(this.provider)) throw new Error("PROVIDER_NOT_AUDIO_CAPABLE");
+		const instanceId = await resolveProviderInstanceId(this.instances, params.instanceId);
 		await this.provider.sendAudio({
-			instanceId: params.instanceId,
+			instanceId,
 			to: params.to,
 			mediaUrl: params.url,
 			ptt: true,
@@ -46,12 +54,21 @@ export class WhatsMeowProviderAdapter implements WhatsAppProviderPort {
 		emoji: string;
 	}): Promise<void> {
 		if (!isReactionCapable(this.provider)) throw new Error("PROVIDER_NOT_REACTION_CAPABLE");
+		const instanceId = await resolveProviderInstanceId(this.instances, params.instanceId);
 		await this.provider.sendReaction({
-			instanceId: params.instanceId,
+			instanceId,
 			to: params.to,
 			messageId: params.messageRef,
 			emoji: params.emoji,
 		});
 	}
 }
+
+const resolveProviderInstanceId = async (
+	instances: InstanceRepository,
+	instanceId: string,
+): Promise<string> => {
+	const instance = await instances.findById(instanceId);
+	return instance ? getProviderInstanceName(instance) : instanceId;
+};
 

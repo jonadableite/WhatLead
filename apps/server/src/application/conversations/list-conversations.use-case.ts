@@ -18,6 +18,7 @@ export interface ListConversationsUseCaseResponse {
 		instanceId: string;
 		contactId: string;
 		contactName?: string | null;
+		profilePicUrl?: string | null;
 		status: ConversationStatus;
 		assignedAgentId?: string | null;
 		assignedOperatorId?: string | null;
@@ -60,6 +61,7 @@ export class ListConversationsUseCase {
 				instanceId: item.instanceId,
 				contactId: item.contactId,
 				contactName: item.contactName ?? null,
+				profilePicUrl: item.profilePicUrl ?? null,
 				status: item.status,
 				assignedAgentId: item.assignedAgentId ?? null,
 				assignedOperatorId: item.assignedOperatorId ?? null,

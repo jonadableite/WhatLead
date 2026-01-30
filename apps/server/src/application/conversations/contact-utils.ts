@@ -1,6 +1,6 @@
 import type { Lead } from "../../domain/entities/lead";
 
-export type ContactIdentityKind = "PHONE" | "LID" | "RAW";
+export type ContactIdentityKind = "PHONE" | "LID" | "NEWSLETTER" | "RAW";
 
 export interface ContactIdentity {
 	kind: ContactIdentityKind;
@@ -12,6 +12,7 @@ export interface ContactIdentity {
 
 const JID_DOMAINS = ["@s.whatsapp.net", "@c.us"];
 const LID_DOMAIN = "@lid";
+const NEWSLETTER_DOMAIN = "@newsletter";
 
 export const normalizePhone = (value: string): string => value.replace(/\D/g, "");
 
@@ -45,6 +46,12 @@ export const parseContactIdentity = (remoteJid?: string): ContactIdentity | null
 		return { kind: "LID", raw, lid, phone: phoneCandidate || undefined, contactId };
 	}
 
+	if (lower.endsWith(NEWSLETTER_DOMAIN)) {
+		const newsletterId = raw.slice(0, -NEWSLETTER_DOMAIN.length).trim();
+		if (!newsletterId) return null;
+		return { kind: "NEWSLETTER", raw, contactId: newsletterId };
+	}
+
 	const digits = normalizePhone(raw);
 	if (digits.length >= 8 && /^[\d+]+$/.test(raw)) {
 		return { kind: "PHONE", raw, phone: digits, contactId: digits };
@@ -67,6 +74,7 @@ export const resolveOutboundRecipient = (params: {
 	if (!identity) return null;
 	if (identity.kind === "PHONE" && identity.phone) return identity.phone;
 	if (identity.kind === "LID" && identity.lid) return identity.lid;
+	if (identity.kind === "NEWSLETTER") return identity.contactId || null;
 	return identity.contactId || null;
 };
 
@@ -88,5 +96,6 @@ export const formatContactLabel = (params: {
 	if (!identity) return null;
 	if (identity.kind === "PHONE" && identity.phone) return identity.phone;
 	if (identity.kind === "LID" && identity.lid) return identity.lid;
+	if (identity.kind === "NEWSLETTER") return identity.contactId || null;
 	return identity.contactId || null;
 };

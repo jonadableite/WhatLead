@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { MessageBubble } from "./message-bubble";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ interface ConversationSummary {
 	id: string;
 	contactId: string;
 	contactName?: string | null;
+	profilePicUrl?: string | null;
 	status: string;
 }
 
@@ -64,6 +65,12 @@ export function ChatView({
 						</Button>
 					)}
 					<Avatar className="h-9 w-9">
+						{conversation?.profilePicUrl && (
+							<AvatarImage
+								src={conversation.profilePicUrl}
+								alt={conversation?.contactName ?? conversation?.contactId ?? "Contato"}
+							/>
+						)}
 						<AvatarFallback className="bg-indigo-500/20 text-indigo-200 text-xs font-semibold">
 							{conversation?.contactName?.slice(0, 2).toUpperCase() ??
 								conversation?.contactId?.slice(0, 2).toUpperCase() ??

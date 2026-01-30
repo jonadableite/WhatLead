@@ -25,11 +25,13 @@ import type {
     SetPresenceParams,
 } from "../../../../application/providers/types";
 import type {
-    WhatsAppAudioCapable,
-    WhatsAppGroupCapable,
-    WhatsAppPresenceCapable,
-    WhatsAppProvider,
-    WhatsAppReactionCapable,
+	ContactInfo,
+	WhatsAppAudioCapable,
+	WhatsAppContactCapable,
+	WhatsAppGroupCapable,
+	WhatsAppPresenceCapable,
+	WhatsAppProvider,
+	WhatsAppReactionCapable,
 } from "../../../../application/providers/whatsapp-provider";
 import type { InstanceConnectionStatus } from "../../../../domain/value-objects/instance-connection-status";
 import { TurboZapClient } from "./turbozap.client";
@@ -79,7 +81,8 @@ export class TurboZapProvider
 		WhatsAppPresenceCapable,
 		WhatsAppReactionCapable,
 		WhatsAppAudioCapable,
-		WhatsAppGroupCapable
+		WhatsAppGroupCapable,
+		WhatsAppContactCapable
 {
 	readonly providerName = "TurboZap";
 	private readonly client: TurboZapClient;
@@ -357,6 +360,34 @@ export class TurboZapProvider
 			name: group.name,
 			participantsCount: group.participants_count,
 		}));
+	}
+
+	async getContactInfo(instanceId: string, jid: string): Promise<ContactInfo | null> {
+		const response = await this.client.getContactInfo(instanceId, jid);
+		if (!response.success || !response.data) {
+			return null;
+		}
+
+		return {
+			jid: response.data.jid,
+			phoneNumber: response.data.phone_number ?? null,
+			name: response.data.name ?? null,
+			pushName: response.data.push_name ?? null,
+			businessName: response.data.business_name ?? null,
+			profilePicUrl: response.data.profile_pic ?? null,
+			isBusiness: response.data.is_business ?? false,
+			isVerified: response.data.is_verified ?? false,
+		};
+	}
+
+	async getProfilePicture(instanceId: string, jid: string): Promise<string | null> {
+		const response = await this.client.getProfilePicture(instanceId, jid);
+		if (!response.success || !response.data) {
+			return null;
+		}
+		const url =
+			response.data.url ?? response.data.profile_pic ?? response.data.picture ?? null;
+		return typeof url === "string" && url.trim() ? url.trim() : null;
 	}
 }
 

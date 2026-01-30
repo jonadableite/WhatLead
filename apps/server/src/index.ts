@@ -479,7 +479,7 @@ const messageExecutionEventBus = new CompositeDomainEventBus([
 	new LoggingDomainEventBus(),
 	new PersistingMessageExecutionEventBus(operationalEvents, idFactory),
 ]);
-const whatsMeowProviderPort = new WhatsMeowProviderAdapter(provider);
+const whatsMeowProviderPort = new WhatsMeowProviderAdapter(provider, instanceRepository);
 const messageIntentExecutor = new MessageIntentExecutorService(whatsMeowProviderPort);
 const createExecutionJob = new CreateExecutionJobUseCase(
 	messageExecutionJobRepository,
@@ -550,7 +550,7 @@ const getMessageIntentTimeline = new GetMessageIntentTimelineUseCase(
 	operationalEvents,
 );
 
-const dispatchPort = new WhatsAppProviderDispatchAdapter(provider);
+const dispatchPort = new WhatsAppProviderDispatchAdapter(provider, instanceRepository);
 const preDispatchGuard = new PreDispatchGuard(dispatchGate);
 const delayedDispatchPort = new DelayedDispatchPort(dispatchPort);
 const guardedDispatchPort = new GuardedDispatchPort(
@@ -559,7 +559,7 @@ const guardedDispatchPort = new GuardedDispatchPort(
 );
 const warmUpTargets = new StaticWarmUpTargetsProvider(env.WARMUP_TARGETS);
 const warmUpContent = new StaticWarmUpContentProvider();
-const messageDispatchPort = new WhatsAppMessageDispatchAdapter(provider);
+const messageDispatchPort = new WhatsAppMessageDispatchAdapter(provider, instanceRepository);
 const dispatch = new DispatchUseCase(
 	instanceRepository,
 	dispatchGate,
@@ -616,6 +616,7 @@ const replyDispatcher = new ReplyIntentDispatcher(
 const updateLeadOnInbound = new UpdateLeadOnInboundUseCase(
 	conversationRepository,
 	leadRepository,
+	provider,
 );
 const ingestConversation = new ConversationEventPipelineUseCase(
 	inboundMessage,

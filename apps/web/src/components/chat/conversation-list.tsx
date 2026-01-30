@@ -12,6 +12,7 @@ interface ConversationListItem {
 	id: string;
 	contactId: string;
 	contactName?: string | null;
+	profilePicUrl?: string | null;
 	lastMessageAt: string;
 	unreadCount: number;
 	lastMessage?: {
@@ -95,6 +96,7 @@ export function ConversationList({
 							key={conversation.id}
 							id={conversation.id}
 							name={conversation.contactName || conversation.contactId}
+							profilePicUrl={conversation.profilePicUrl ?? null}
 							preview={conversation.lastMessage?.body || "Sem mensagens ainda"}
 							lastMessageAt={conversation.lastMessageAt}
 							unreadCount={conversation.unreadCount}

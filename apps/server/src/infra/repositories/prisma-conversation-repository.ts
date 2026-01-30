@@ -213,7 +213,11 @@ export class PrismaConversationRepository implements ConversationRepository {
 		limit: number;
 		offset: number;
 	}): Promise<ConversationListResult> {
-		const assignmentFilters = params.operatorId
+		type ConversationWhereInput = NonNullable<
+			NonNullable<Parameters<typeof prisma.conversation.findMany>[0]>["where"]
+		>;
+
+		const assignmentFilters: ConversationWhereInput[] = params.operatorId
 			? [
 					{ assignedOperatorId: params.operatorId },
 					...(params.includeUnassigned === false
@@ -222,20 +226,41 @@ export class PrismaConversationRepository implements ConversationRepository {
 				]
 			: [];
 
-		const where = {
+		const where: ConversationWhereInput = {
 			tenantId: params.tenantId,
 			instanceId: params.instanceId,
 			...(params.status ? { status: params.status } : {}),
-			...(params.search
-				? {
-						OR: [
-							{ contactId: { contains: params.search, mode: "insensitive" } },
-							{ lead: { name: { contains: params.search, mode: "insensitive" } } },
-						],
-					}
-				: {}),
-			...(assignmentFilters.length > 0 ? { OR: assignmentFilters } : {}),
 		};
+
+		const andFilters: ConversationWhereInput[] = [];
+		if (params.search) {
+			andFilters.push({
+				OR: [
+					{
+						contactId: {
+							contains: params.search,
+							mode: "insensitive",
+						},
+					},
+					{
+						lead: {
+							name: {
+								contains: params.search,
+								mode: "insensitive",
+							},
+						},
+					},
+				],
+			});
+		}
+
+		if (assignmentFilters.length > 0) {
+			andFilters.push({ OR: assignmentFilters });
+		}
+
+		if (andFilters.length > 0) {
+			where.AND = andFilters;
+		}
 
 		const [rows, total] = await Promise.all([
 			prisma.conversation.findMany({
@@ -244,7 +269,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 				skip: params.offset,
 				take: params.limit,
 				include: {
-					lead: { select: { name: true, phone: true, lid: true } },
+					lead: true,
 					messages: {
 						orderBy: { occurredAt: "desc" },
 						take: 1,
@@ -267,6 +292,7 @@ export class PrismaConversationRepository implements ConversationRepository {
 						lid: (row.lead as any)?.lid ?? null,
 						contactId: row.contactId,
 					}),
+					profilePicUrl: (row.lead as any)?.profilePicUrl ?? null,
 					status: row.status as ConversationStatus,
 					assignedAgentId: row.assignedAgentId ?? null,
 					assignedOperatorId: (row as any).assignedOperatorId ?? null,

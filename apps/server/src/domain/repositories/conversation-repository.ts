@@ -9,6 +9,7 @@ export interface ConversationListItem {
 	instanceId: string;
 	contactId: string;
 	contactName?: string | null;
+	profilePicUrl?: string | null;
 	status: ConversationStatus;
 	assignedAgentId?: string | null;
 	assignedOperatorId?: string | null;

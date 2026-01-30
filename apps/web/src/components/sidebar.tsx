@@ -16,15 +16,15 @@ import { Input } from "./ui/input";
 import UserMenu from "./user-menu";
 
 // Assets Imports
+import organizationIcon from "@/asset/wired-outline-1007-organization-hover-pinch.json";
 import instancesIcon from "@/asset/wired-outline-1686-scan-qr-code-hover-pinch.json";
 import aiIcon from "@/asset/wired-outline-2512-artificial-intelligence-ai-alt-hover-pinch.json";
 import crmIcon from "@/asset/wired-outline-2610-lead-generation-hover-pinch.json";
+import boostIcon from "@/asset/wired-outline-3139-rocket-space-alt-hover-pinch.json";
 import dashboardIcon from "@/asset/wired-outline-63-home-hover-3d-roll.json";
-import organizationIcon from "@/asset/wired-outline-951-customer-management-hover-roll.json";
 import operatorIcon from "@/asset/wired-outline-964-omnichannel-hover-pinch.json";
 import tasksIcon from "@/asset/wired-outline-978-project-management-hover-pinch.json";
 import chatIcon from "@/asset/wired-outline-981-consultation-hover-conversation.json";
-import boostIcon from "@/asset/wired-outline-3139-rocket-space-alt-hover-pinch.json";
 
 const menuItems = [
   { name: "Dashboard", icon: dashboardIcon, path: "/dashboard" },

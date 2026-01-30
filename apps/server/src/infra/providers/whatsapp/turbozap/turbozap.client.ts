@@ -72,6 +72,23 @@ interface TurboZapGroup {
 	participants_count: number;
 }
 
+interface TurboZapProfilePicture {
+	url?: string;
+	profile_pic?: string;
+	picture?: string;
+}
+
+interface TurboZapContactInfo {
+	jid: string;
+	phone_number?: string;
+	name?: string;
+	push_name?: string;
+	business_name?: string;
+	profile_pic?: string;
+	is_business?: boolean;
+	is_verified?: boolean;
+}
+
 interface TurboZapWebhookConfig {
 	url: string;
 	events?: string[];
@@ -247,6 +264,30 @@ export class TurboZapClient {
 		instanceName: string,
 	): Promise<TurboZapResponse<{ groups: TurboZapGroup[] }>> {
 		return this.get<{ groups: TurboZapGroup[] }>(`/group/${instanceName}/list`);
+	}
+
+	/**
+	 * Gets contact profile picture URL.
+	 */
+	async getProfilePicture(
+		instanceName: string,
+		jid: string,
+	): Promise<TurboZapResponse<TurboZapProfilePicture>> {
+		return this.get<TurboZapProfilePicture>(
+			`/contact/${instanceName}/${encodeURIComponent(jid)}/picture`,
+		);
+	}
+
+	/**
+	 * Gets contact info for a jid.
+	 */
+	async getContactInfo(
+		instanceName: string,
+		jid: string,
+	): Promise<TurboZapResponse<TurboZapContactInfo>> {
+		return this.get<TurboZapContactInfo>(
+			`/contact/${instanceName}/${encodeURIComponent(jid)}`,
+		);
 	}
 
 	/**

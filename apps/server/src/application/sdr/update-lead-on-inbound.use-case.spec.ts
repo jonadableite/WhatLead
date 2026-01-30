@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { InMemoryConversationRepository } from "../../infra/repositories/in-memory-conversation-repository";
 import { InMemoryLeadRepository } from "../../infra/repositories/in-memory-lead-repository";
 import { Conversation } from "../../domain/entities/conversation";
@@ -32,7 +32,11 @@ describe("UpdateLeadOnInboundUseCase", () => {
 		conversation.linkLead("l-1");
 		await conversations.save(conversation);
 
-		const useCase = new UpdateLeadOnInboundUseCase(conversations, leads);
+		const provider = {
+			getContactInfo: vi.fn(async () => null),
+			getProfilePicture: vi.fn(async () => null),
+		};
+		const useCase = new UpdateLeadOnInboundUseCase(conversations, leads, provider as any);
 		await useCase.execute({
 			conversationId: "c-1",
 			event: {

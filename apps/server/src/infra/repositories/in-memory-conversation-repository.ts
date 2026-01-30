@@ -98,6 +98,7 @@ export class InMemoryConversationRepository implements ConversationRepository {
 				instanceId: conversation.instanceId,
 				contactId: conversation.contactId,
 				contactName: null,
+				profilePicUrl: null,
 				status: conversation.status,
 				assignedAgentId: conversation.assignedAgentId,
 				assignedOperatorId: conversation.assignedOperatorId,

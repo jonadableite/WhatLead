@@ -7,6 +7,7 @@ export interface LeadProps {
 	name: string;
 	email: string;
 	phone: string;
+	profilePicUrl?: string | null;
 	lid?: string | null;
 	stage: LeadStage;
 	createdAt: Date;
@@ -19,6 +20,7 @@ export class Lead {
 	private _name: string;
 	private _email: string;
 	private _phone: string;
+	private _profilePicUrl: string | null;
 	private _lid: string | null;
 	private _stage: LeadStage;
 	private readonly _createdAt: Date;
@@ -30,6 +32,7 @@ export class Lead {
 		this._name = props.name;
 		this._email = props.email;
 		this._phone = props.phone;
+		this._profilePicUrl = props.profilePicUrl ?? null;
 		this._lid = props.lid ?? null;
 		this._stage = props.stage;
 		this._createdAt = props.createdAt;
@@ -67,6 +70,10 @@ export class Lead {
 		return this._phone;
 	}
 
+	get profilePicUrl(): string | null {
+		return this._profilePicUrl;
+	}
+
 	get lid(): string | null {
 		return this._lid;
 	}
@@ -92,6 +99,12 @@ export class Lead {
 		if (typeof params.lid === "string" && params.lid.trim()) {
 			this._lid = params.lid.trim();
 		}
+	}
+
+	updateProfilePicture(url: string): void {
+		const trimmed = url.trim();
+		if (!trimmed) return;
+		this._profilePicUrl = trimmed;
 	}
 
 	changeStage(nextStage: LeadStage): void {

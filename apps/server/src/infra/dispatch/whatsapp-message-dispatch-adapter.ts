@@ -4,14 +4,19 @@ import type {
 	MessageDispatchPort,
 	DispatchPortResult,
 } from "../../application/dispatch/dispatch-types";
+import { getProviderInstanceName } from "../../application/instances/provider-instance-name";
 import {
 	isAudioCapable,
 	isReactionCapable,
 	type WhatsAppProvider,
 } from "../../application/providers/whatsapp-provider";
+import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 
 export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
-	constructor(private readonly provider: WhatsAppProvider) {}
+	constructor(
+		private readonly provider: WhatsAppProvider,
+		private readonly instances: InstanceRepository,
+	) {}
 
 	async send(params: {
 		instanceId: string;
@@ -19,11 +24,15 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 		now: Date;
 	}): Promise<DispatchPortResult> {
 		const occurredAt = params.now;
+		const providerInstanceId = await resolveProviderInstanceId(
+			this.instances,
+			params.instanceId,
+		);
 
 		switch (params.message.type) {
 			case "TEXT": {
 				const result = await this.provider.sendText({
-					instanceId: params.instanceId,
+					instanceId: providerInstanceId,
 					to: params.message.to,
 					text: params.message.text,
 				});
@@ -49,7 +58,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 				}
 
 				const result = await this.provider.sendReaction({
-					instanceId: params.instanceId,
+					instanceId: providerInstanceId,
 					to: params.message.to,
 					messageId: params.message.messageId,
 					emoji: params.message.emoji,
@@ -107,7 +116,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 				}
 
 				const result = await this.provider.sendAudio({
-					instanceId: params.instanceId,
+					instanceId: providerInstanceId,
 					to: params.message.to,
 					mediaUrl: params.message.mediaUrl,
 					base64: params.message.base64,
@@ -125,7 +134,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 			}
 			case "IMAGE": {
 				const result = await this.provider.sendMedia({
-					instanceId: params.instanceId,
+					instanceId: providerInstanceId,
 					to: params.message.to,
 					mediaUrl: params.message.mediaUrl,
 					base64: params.message.base64,
@@ -144,7 +153,7 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 			}
 			case "STICKER": {
 				const result = await this.provider.sendMedia({
-					instanceId: params.instanceId,
+					instanceId: providerInstanceId,
 					to: params.message.to,
 					mediaUrl: params.message.mediaUrl,
 					base64: params.message.base64,
@@ -162,6 +171,14 @@ export class WhatsAppMessageDispatchAdapter implements MessageDispatchPort {
 		}
 	}
 }
+
+const resolveProviderInstanceId = async (
+	instances: InstanceRepository,
+	instanceId: string,
+): Promise<string> => {
+	const instance = await instances.findById(instanceId);
+	return instance ? getProviderInstanceName(instance) : instanceId;
+};
 
 const mapMessageResult = (params: {
 	instanceId: string;

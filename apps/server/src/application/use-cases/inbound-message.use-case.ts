@@ -84,7 +84,10 @@ export class InboundMessageUseCase {
 	private readonly idFactory: { createId(): string };
 
 	async execute(event: NormalizedWhatsAppEvent): Promise<{ conversationId: string } | null> {
-		if (event.type !== "MESSAGE_RECEIVED" && event.type !== "GROUP_MESSAGE_RECEIVED") {
+		if (event.type !== "MESSAGE_RECEIVED") {
+			return null;
+		}
+		if (event.isGroup) {
 			return null;
 		}
 
@@ -165,6 +168,24 @@ export class InboundMessageUseCase {
 				email: "",
 				phone,
 				lid: identity.lid,
+				stage: "NEW",
+				createdAt: event.occurredAt,
+			});
+			await this.leads.save(newLead);
+			return newLead;
+		}
+
+		if (identity.kind === "NEWSLETTER") {
+			const displayName = event.metadata?.["pushName"];
+			const leadName = typeof displayName === "string" && displayName.trim() ? displayName.trim() : "Contato";
+			const newLead = Lead.create({
+				id: this.idFactory.createId(),
+				tenantId,
+				campaignId: null,
+				name: leadName,
+				email: "",
+				phone: "",
+				lid: null,
 				stage: "NEW",
 				createdAt: event.occurredAt,
 			});
