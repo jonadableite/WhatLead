@@ -43,6 +43,12 @@ export class TransferConversationUseCase {
 		toOperator.claimConversation();
 
 		await this.conversations.save(conversation);
+		await this.conversations.saveEvent({
+			conversationId: conversation.id,
+			type: "ASSIGNMENT",
+			assignedTo: { type: "OPERATOR", id: toOperator.id },
+			createdAt: new Date(),
+		});
 		const [fromCount, toCount] = await Promise.all([
 			this.operators.recalculateConversationCount({ operatorId: fromOperator.id }),
 			this.operators.recalculateConversationCount({ operatorId: toOperator.id }),

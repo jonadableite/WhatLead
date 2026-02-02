@@ -2,12 +2,16 @@ import type {
 	ConversationListResult,
 	ConversationMessagesResult,
 	ConversationRepository,
+	ConversationTimelineResult,
 } from "../../domain/repositories/conversation-repository";
+import type { ConversationTimelineEvent } from "../../domain/entities/conversation-timeline-event";
 import type { Conversation } from "../../domain/entities/conversation";
 import type { ConversationStatus } from "../../domain/value-objects/conversation-status";
 
 export class InMemoryConversationRepository implements ConversationRepository {
 	private readonly byId = new Map<string, Conversation>();
+	private readonly timelineEvents: Array<{ conversationId: string; event: ConversationTimelineEvent }> =
+		[];
 
 	async findActiveByInstanceAndContact(params: {
 		instanceId: string;
@@ -116,5 +120,34 @@ export class InMemoryConversationRepository implements ConversationRepository {
 		cursor?: string;
 	}): Promise<ConversationMessagesResult> {
 		return { items: [] };
+	}
+
+	async saveEvent(event: ConversationTimelineEvent & { conversationId: string }): Promise<void> {
+		if (event.type === "MESSAGE") {
+			return;
+		}
+		this.timelineEvents.push({ conversationId: event.conversationId, event });
+	}
+
+	async findTimeline(params: {
+		conversationId: string;
+		limit: number;
+		cursor?: string;
+	}): Promise<ConversationTimelineResult> {
+		const cursorDate = params.cursor ? new Date(params.cursor) : null;
+		const items = this.timelineEvents
+			.filter((entry) => entry.conversationId === params.conversationId)
+			.map((entry) => entry.event)
+			.filter((event) =>
+				cursorDate ? event.createdAt.getTime() < cursorDate.getTime() : true,
+			)
+			.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+		const limit = Math.min(Math.max(params.limit, 1), 200);
+		const sliced = items.length > limit ? items.slice(-limit) : items;
+		const nextCursor =
+			items.length > limit ? sliced[0]?.createdAt.toISOString() : undefined;
+
+		return { items: sliced, nextCursor };
 	}
 }

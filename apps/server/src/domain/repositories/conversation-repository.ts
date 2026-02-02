@@ -1,4 +1,5 @@
 import type { Conversation } from "../entities/conversation";
+import type { ConversationTimelineEvent } from "../entities/conversation-timeline-event";
 import type { ConversationStatus } from "../value-objects/conversation-status";
 import type { MessageDirection } from "../value-objects/message-direction";
 import type { MessageSender } from "../value-objects/message-sender";
@@ -13,6 +14,7 @@ export interface ConversationListItem {
 	status: ConversationStatus;
 	assignedAgentId?: string | null;
 	assignedOperatorId?: string | null;
+	// Unread count for human operator inbox; AI should not depend on this.
 	unreadCount: number;
 	lastMessageAt: Date;
 	lastMessage?: {
@@ -31,6 +33,12 @@ export interface ConversationMessageItem {
 	sentBy: MessageSender;
 	status: "PENDING" | "SENT" | "FAILED";
 	body: string;
+	media?: {
+		url?: string;
+		base64?: string;
+		mimeType?: string;
+		caption?: string;
+	};
 	occurredAt: Date;
 }
 
@@ -41,6 +49,11 @@ export interface ConversationListResult {
 
 export interface ConversationMessagesResult {
 	items: ConversationMessageItem[];
+	nextCursor?: string;
+}
+
+export interface ConversationTimelineResult {
+	items: ConversationTimelineEvent[];
 	nextCursor?: string;
 }
 
@@ -80,4 +93,12 @@ export interface ConversationRepository {
 		limit: number;
 		cursor?: string;
 	}): Promise<ConversationMessagesResult>;
+
+	saveEvent(event: ConversationTimelineEvent & { conversationId: string }): Promise<void>;
+
+	findTimeline(params: {
+		conversationId: string;
+		limit: number;
+		cursor?: string;
+	}): Promise<ConversationTimelineResult>;
 }

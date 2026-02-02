@@ -15,10 +15,10 @@ export function ChatLayout({
 	conversationList,
 	chatView,
 }: ChatLayoutProps) {
-	const containerClass = "flex-1 min-h-0";
+	const containerClass = "flex-1 min-h-0 h-full";
 	if (isMobile) {
 		return (
-			<div className={`flex flex-1 flex-col gap-4 ${containerClass}`}>
+			<div className={`flex flex-1 min-h-0 flex-col gap-4 ${containerClass}`}>
 				{showConversationList ? conversationList : chatView}
 			</div>
 		);
@@ -26,7 +26,7 @@ export function ChatLayout({
 
 	return (
 		<div
-			className={`grid flex-1 ${containerClass} grid-cols-[minmax(280px,360px)_minmax(0,1fr)] gap-4`}
+			className={`grid flex-1 min-h-0 ${containerClass} grid-cols-[minmax(280px,360px)_minmax(0,1fr)] gap-4`}
 		>
 			{conversationList}
 			{chatView}

@@ -27,6 +27,7 @@ import { AssignConversationUseCase } from "./application/conversation/assign-con
 import { ConversationEventPipelineUseCase } from "./application/conversation/conversation-event-pipeline.use-case";
 import { ConversationRouter } from "./application/conversation/conversation-router";
 import { ReplyIntentDispatcher } from "./application/conversation/reply-intent-dispatcher";
+import { ConversationEngineUseCase } from "./application/conversations/conversation-engine.use-case";
 import { ListConversationsUseCase } from "./application/conversations/list-conversations.use-case";
 import { SendChatMessageUseCase } from "./application/conversations/send-chat-message.use-case";
 import { DispatchGateUseCase } from "./application/dispatch-gate/dispatch-gate.use-case";
@@ -134,6 +135,19 @@ import { registerSdrFlowRoutes } from "./infra/web/sdr-flow.routes";
 import { registerWebhookRoutes } from "./infra/webhooks/whatsapp-webhook.routes";
 import { ExecutionWorker } from "./infra/workers/execution.worker";
 import { WebSocketGateway } from "./infra/realtime/websocket-gateway";
+import { DefaultExecutionPlanner } from "./application/execution-engine/execution-planner";
+import { ExecutionEngineUseCase } from "./application/execution-engine/execution-engine.use-case";
+import { JobDispatcher } from "./application/execution-engine/job-dispatcher";
+import {
+	WarmupCheckWorker,
+	SlaTimeoutWorker,
+	AssignmentEvaluationWorker,
+	AutoCloseWorker,
+	WebhookDispatchWorker,
+} from "./application/execution-engine/workers";
+import { PrismaConversationExecutionJobRepository } from "./infra/repositories/prisma-conversation-execution-job-repository";
+import { BullMQConversationExecutionQueue } from "./infra/queue/conversation-execution.queue";
+import { ConversationExecutionWorker } from "./infra/workers/conversation-execution.worker";
 
 // =============================================================================
 // FASTIFY SERVER CONFIGURATION
@@ -408,6 +422,13 @@ const outboundMessageRecorded = new OutboundMessageRecordedUseCase(
 	idFactory,
 	realtimeEventBus,
 );
+const conversationEngine = new ConversationEngineUseCase({
+	instanceRepository,
+	conversationRepository,
+	messageRepository,
+	idFactory,
+	eventBus: realtimeEventBus,
+});
 
 const timeline = new GetReputationTimelineUseCase(signalRepository);
 const dispatchPolicy = new DispatchPolicy();
@@ -528,8 +549,8 @@ const sendChatMessage = new SendChatMessageUseCase(
 	leadRepository,
 	createMessageIntent,
 	decideMessageIntent,
-	idFactory,
 	realtimeEventBus,
+	conversationEngine,
 );
 
 const getExecutionMetrics = new GetExecutionMetricsUseCase(
@@ -584,11 +605,9 @@ fastify.decorate("heater", heater);
 
 const inboundMessage = new InboundMessageUseCase({
 	instanceRepository,
-	conversationRepository,
-	messageRepository,
+	conversationEngine,
 	leadRepository,
 	idFactory,
-	eventBus: realtimeEventBus,
 });
 const agents = new InMemoryAgentRepository([
 	Agent.create({
@@ -618,6 +637,60 @@ const updateLeadOnInbound = new UpdateLeadOnInboundUseCase(
 	leadRepository,
 	provider,
 );
+
+// Execution Engine setup
+const conversationExecutionJobRepository = new PrismaConversationExecutionJobRepository();
+const conversationExecutionQueue = env.EXECUTION_QUEUE_ENABLED
+	? new BullMQConversationExecutionQueue()
+	: null;
+const executionPlanner = new DefaultExecutionPlanner({
+	slaTimeoutMs: 10 * 60 * 1000, // 10 minutes
+	assignmentEvaluationDelayMs: 5 * 60 * 1000, // 5 minutes
+	autoCloseDelayMs: 24 * 60 * 60 * 1000, // 24 hours
+	webhookEnabled: false,
+});
+const executionEngineUseCase = new ExecutionEngineUseCase(
+	executionPlanner,
+	conversationExecutionJobRepository,
+	conversationExecutionQueue,
+	idFactory,
+);
+
+// Execution Engine Workers
+const warmupCheckWorker = new WarmupCheckWorker(
+	conversationExecutionJobRepository,
+	conversationRepository,
+	instanceRepository,
+);
+const slaTimeoutWorker = new SlaTimeoutWorker(
+	conversationExecutionJobRepository,
+	conversationRepository,
+);
+const assignmentEvaluationWorker = new AssignmentEvaluationWorker(
+	conversationExecutionJobRepository,
+	conversationRepository,
+);
+const autoCloseWorker = new AutoCloseWorker(
+	conversationExecutionJobRepository,
+	conversationRepository,
+);
+const webhookDispatchWorker = new WebhookDispatchWorker(
+	conversationExecutionJobRepository,
+	null, // No webhook config by default
+);
+
+const jobDispatcher = new JobDispatcher(conversationExecutionJobRepository, {
+	warmupCheck: warmupCheckWorker,
+	slaTimeout: slaTimeoutWorker,
+	assignmentEvaluation: assignmentEvaluationWorker,
+	autoClose: autoCloseWorker,
+	webhookDispatch: webhookDispatchWorker,
+});
+
+const conversationExecutionWorker = conversationExecutionQueue
+	? new ConversationExecutionWorker(jobDispatcher, conversationExecutionQueue)
+	: null;
+
 const ingestConversation = new ConversationEventPipelineUseCase(
 	inboundMessage,
 	outboundMessageRecorded,
@@ -627,6 +700,8 @@ const ingestConversation = new ConversationEventPipelineUseCase(
 	assignConversation,
 	replyDispatcher,
 	updateLeadOnInbound,
+	executionEngineUseCase,
+	idFactory,
 );
 const webhookEventHandler = new WhatsAppWebhookApplicationHandler(
 	ingestConversation,
@@ -648,6 +723,7 @@ await registerConversationRoutes(fastify, {
 	listConversations,
 	sendChatMessage,
 	conversationRepository,
+	conversationExecutionJobRepository,
 });
 
 await registerOperatorRoutes(fastify, {
@@ -974,6 +1050,15 @@ const start = async (): Promise<void> => {
 			}, MESSAGE_EXECUTOR_CRON_INTERVAL_MS);
 		}
 
+		// Start Conversation Execution Worker (Phase 8)
+		if (conversationExecutionWorker) {
+			conversationExecutionWorker.start();
+			serverLogger.info({
+				icon: "⚙️",
+				event: "conversation_execution_worker_start",
+			}, "Conversation execution worker started");
+		}
+
 		serverLogger.info({
 			port,
 			host,
@@ -1006,6 +1091,9 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 		}
 		if (executionWorker) {
 			await executionWorker.stop();
+		}
+		if (conversationExecutionWorker) {
+			await conversationExecutionWorker.stop();
 		}
 		await fastify.close();
 		serverLogger.info({

@@ -4,6 +4,7 @@ model Conversation {
   channel            String
   instanceId         String
   contactId          String
+  kind               String    @default("PRIVATE")
   status             String    @default("OPEN")
   stage              String    @default("LEAD")
   isActive           Boolean   @default(true)
@@ -24,6 +25,7 @@ model Conversation {
   updatedAt DateTime @updatedAt
 
   messages Message[]
+  events   ConversationEvent[]
   lead     Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@unique([instanceId, contactId, isActive])
@@ -32,6 +34,21 @@ model Conversation {
   @@index([isActive, nextResponseDueAt])
   @@index([tenantId, leadId])
   @@map("conversation")
+}
+
+model ConversationEvent {
+  id             String   @id @default(uuid())
+  conversationId String
+  type           String
+  payload        Json
+  occurredAt     DateTime
+
+  createdAt DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, occurredAt])
+  @@map("conversation_event")
 }
 
 model Message {

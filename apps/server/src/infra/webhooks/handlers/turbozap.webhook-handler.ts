@@ -50,6 +50,10 @@ interface TurboZapMessageReceivedData {
 	push_name?: string;
 	fromMe?: boolean;
 	from_name?: string;
+	media_url?: string;
+	media_mime_type?: string;
+	media_base64?: string;
+	caption?: string;
 }
 
 /**
@@ -211,6 +215,12 @@ export class TurboZapWebhookTransformer
 			data.type === "text" && typeof data.content === "string"
 				? data.content
 				: undefined;
+		const mediaUrl = typeof data.media_url === "string" ? data.media_url : undefined;
+		const mediaBase64 =
+			typeof data.media_base64 === "string" ? data.media_base64 : undefined;
+		const caption = typeof data.caption === "string" ? data.caption : undefined;
+		const mediaMimeType =
+			typeof data.media_mime_type === "string" ? data.media_mime_type : undefined;
 
 		if (data.fromMe) {
 			return [
@@ -225,6 +235,10 @@ export class TurboZapWebhookTransformer
 					metadata: {
 						messageType: data.type,
 						text,
+						mediaUrl,
+						mediaBase64,
+						mediaMimeType,
+						caption,
 						fromMe: true,
 						sentBy: "INSTANCE",
 					},
@@ -245,6 +259,10 @@ export class TurboZapWebhookTransformer
 					messageType: data.type,
 					pushName: data.push_name ?? data.from_name,
 					text,
+					mediaUrl,
+					mediaBase64,
+					mediaMimeType,
+					caption,
 				},
 			},
 		];

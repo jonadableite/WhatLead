@@ -1,4 +1,5 @@
 import type { ConversationChannel } from "../value-objects/conversation-channel";
+import type { ConversationKind } from "../value-objects/conversation-kind";
 import { ConversationSLA } from "../value-objects/conversation-sla";
 import type { ConversationStage } from "../value-objects/conversation-stage";
 import type { ConversationStatus } from "../value-objects/conversation-status";
@@ -13,6 +14,7 @@ export interface ConversationProps {
 	channel: ConversationChannel;
 	instanceId: string;
 	contactId: string;
+	kind: ConversationKind;
 	leadId?: string | null;
 	status: ConversationStatus;
 	stage: ConversationStage;
@@ -22,6 +24,7 @@ export interface ConversationProps {
 	lastMessageAt: Date;
 	lastInboundAt: Date | null;
 	lastOutboundAt: Date | null;
+	// Unread count for human operator inbox; AI should not depend on this.
 	unreadCount: number;
 	metadata: Record<string, unknown>;
 	sla: ConversationSLA | null;
@@ -37,6 +40,7 @@ export class Conversation {
 	private readonly _channel: ConversationChannel;
 	private readonly _instanceId: string;
 	private readonly _contactId: string;
+	private readonly _kind: ConversationKind;
 	private _leadId: string | null;
 
 	private _status: ConversationStatus;
@@ -58,6 +62,7 @@ export class Conversation {
 		this._channel = props.channel;
 		this._instanceId = props.instanceId;
 		this._contactId = props.contactId;
+		this._kind = props.kind;
 		this._leadId = props.leadId ?? null;
 		this._status = props.status;
 		this._stage = props.stage;
@@ -79,6 +84,7 @@ export class Conversation {
 		channel: ConversationChannel;
 		instanceId: string;
 		contactId: string;
+		kind?: ConversationKind;
 		openedAt: Date;
 	}): Conversation {
 		return new Conversation({
@@ -87,6 +93,7 @@ export class Conversation {
 			channel: params.channel,
 			instanceId: params.instanceId,
 			contactId: params.contactId,
+			kind: params.kind ?? "PRIVATE",
 			leadId: null,
 			status: "OPEN",
 			stage: "LEAD",
@@ -127,6 +134,10 @@ export class Conversation {
 		return this._contactId;
 	}
 
+	get kind(): ConversationKind {
+		return this._kind;
+	}
+
 	get leadId(): string | null {
 		return this._leadId;
 	}
@@ -145,6 +156,16 @@ export class Conversation {
 
 	get assignedOperatorId(): string | null {
 		return this._assignedOperatorId;
+	}
+
+	get assignedTo(): { type: "OPERATOR" | "AI"; id: string } | null {
+		if (this._assignedOperatorId) {
+			return { type: "OPERATOR", id: this._assignedOperatorId };
+		}
+		if (this._assignedAgentId) {
+			return { type: "AI", id: this._assignedAgentId };
+		}
+		return null;
 	}
 
 	get openedAt(): Date {
@@ -263,6 +284,7 @@ export class Conversation {
 		occurredAt: Date;
 	}): Message {
 		this.ensureActive(params.occurredAt);
+		this._status = "OPEN";
 		this._unreadCount += 1;
 		this._lastInboundAt = params.occurredAt;
 		this._lastMessageAt = params.occurredAt;

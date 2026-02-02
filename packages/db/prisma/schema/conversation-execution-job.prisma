@@ -1,0 +1,23 @@
+model ConversationExecutionJob {
+  id               String    @id @default(uuid())
+  conversationId   String
+  triggerEventId   String
+  type             String    // WARMUP_CHECK | SLA_TIMEOUT | ASSIGNMENT_EVALUATION | AUTO_CLOSE_CONVERSATION | WEBHOOK_DISPATCH
+  status           String    @default("PENDING") // PENDING | RUNNING | COMPLETED | FAILED | CANCELLED
+
+  payload          Json?
+  scheduledFor     DateTime
+  attempts         Int       @default(0)
+  maxAttempts      Int       @default(3)
+
+  lastError        String?
+  createdAt        DateTime  @default(now())
+  executedAt       DateTime?
+  failedAt         DateTime?
+  cancelledAt      DateTime?
+
+  @@unique([conversationId, triggerEventId, type])
+  @@index([status, scheduledFor])
+  @@index([conversationId])
+  @@map("conversation_execution_job")
+}

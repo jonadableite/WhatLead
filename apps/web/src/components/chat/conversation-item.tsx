@@ -31,13 +31,13 @@ export function ConversationItem({
 			type="button"
 			onClick={() => onSelect(id)}
 			className={cn(
-				"w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-left transition-all hover:border-indigo-400/40 hover:bg-white/10",
+				"w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-left transition-all hover:border-indigo-400/40 hover:bg-white/10 overflow-hidden",
 				isSelected && "border-indigo-500/40 bg-indigo-500/10",
 			)}
 		>
-			<div className="flex items-center justify-between gap-3">
-				<div className="flex min-w-0 items-center gap-3">
-					<Avatar className="h-10 w-10">
+			<div className="flex min-w-0 items-center justify-between gap-3">
+				<div className="flex min-w-0 flex-1 items-center gap-3">
+					<Avatar className="h-10 w-10 shrink-0">
 						{profilePicUrl && (
 							<AvatarImage src={profilePicUrl} alt={name} />
 						)}
@@ -45,13 +45,15 @@ export function ConversationItem({
 							{name.slice(0, 2).toUpperCase()}
 						</AvatarFallback>
 					</Avatar>
-					<div className="min-w-0">
+					<div className="min-w-0 flex-1 overflow-hidden">
 						<p className="truncate text-sm font-semibold text-white">{name}</p>
-						<p className="truncate text-xs text-zinc-400">{preview}</p>
+						<p className="line-clamp-1 truncate text-xs text-zinc-400">
+							{preview}
+						</p>
 					</div>
 				</div>
-				<div className="flex flex-col items-end gap-2">
-					<span className="text-[10px] text-zinc-500">
+				<div className="flex shrink-0 flex-col items-end gap-2">
+					<span className="text-[10px] text-zinc-500 whitespace-nowrap">
 						{formatDistanceToNow(new Date(lastMessageAt), {
 							addSuffix: true,
 							locale: ptBR,

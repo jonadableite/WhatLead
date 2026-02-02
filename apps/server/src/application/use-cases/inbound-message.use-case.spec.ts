@@ -3,6 +3,7 @@ import { InMemoryConversationRepository } from "../../infra/repositories/in-memo
 import { InMemoryLeadRepository } from "../../infra/repositories/in-memory-lead-repository";
 import { InMemoryMessageRepository } from "../../infra/repositories/in-memory-message-repository";
 import type { NormalizedWhatsAppEvent } from "../event-handlers/webhook-event-handler";
+import { ConversationEngineUseCase } from "../conversations/conversation-engine.use-case";
 import { InboundMessageUseCase } from "./inbound-message.use-case";
 
 describe("InboundMessageUseCase", () => {
@@ -21,13 +22,18 @@ describe("InboundMessageUseCase", () => {
 			})(),
 		};
 
-		const useCase = new InboundMessageUseCase({
+		const engine = new ConversationEngineUseCase({
 			instanceRepository: instanceRepository as any,
 			conversationRepository: conversations,
 			messageRepository: messages,
-			leadRepository: leads,
 			idFactory,
 			eventBus: eventBus as any,
+		});
+		const useCase = new InboundMessageUseCase({
+			instanceRepository: instanceRepository as any,
+			conversationEngine: engine,
+			leadRepository: leads,
+			idFactory,
 		});
 
 		const event: NormalizedWhatsAppEvent = {

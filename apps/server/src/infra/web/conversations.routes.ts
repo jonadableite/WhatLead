@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 
 import { auth } from "@WhatLead/auth";
 import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
+import type { ConversationExecutionJobRepository } from "../../domain/repositories/conversation-execution-job-repository";
 import {
 	CONVERSATION_STATUSES,
 	type ConversationStatus,
@@ -39,6 +40,7 @@ export const registerConversationRoutes = async (
 		listConversations: ListConversationsUseCase;
 		sendChatMessage: SendChatMessageUseCase;
 		conversationRepository: ConversationRepository;
+		conversationExecutionJobRepository?: ConversationExecutionJobRepository;
 	},
 ): Promise<void> => {
 	fastify.get("/api/conversations", async (request, reply) => {
@@ -127,8 +129,70 @@ export const registerConversationRoutes = async (
 				sentBy: item.sentBy,
 				status: item.status,
 				body: item.body,
+				media: item.media ?? null,
 				occurredAt: item.occurredAt.toISOString(),
 			})),
+			nextCursor: result.nextCursor,
+		});
+	});
+
+	fastify.get("/api/conversations/:id/timeline", async (request, reply) => {
+		const tenantId = await resolveTenantId(request.headers as any);
+		if (!tenantId) return reply.status(401).send({ error: "UNAUTHORIZED" });
+
+		const params = request.params as { id: string };
+		const query = request.query as { limit?: string; cursor?: string };
+
+		const limit = query.limit ? Number.parseInt(query.limit, 10) : 60;
+		if (query.limit && Number.isNaN(limit)) {
+			return reply.status(400).send({ message: "limit inválido" });
+		}
+
+		const conversation = await options.conversationRepository.findById({
+			id: params.id,
+		});
+		if (!conversation || conversation.tenantId !== tenantId) {
+			return reply.status(404).send({ error: "CONVERSATION_NOT_FOUND" });
+		}
+
+		const result = await options.conversationRepository.findTimeline({
+			conversationId: params.id,
+			limit: Math.min(Math.max(limit, 1), 200),
+			cursor: query.cursor,
+		});
+
+		return reply.send({
+			items: result.items.map((item) => {
+				if (item.type === "MESSAGE") {
+					return {
+						type: item.type,
+						messageId: item.messageId,
+						direction: item.direction,
+						origin: item.origin,
+						payload: item.payload,
+						createdAt: item.createdAt.toISOString(),
+					};
+				}
+				if (item.type === "SYSTEM") {
+					return {
+						type: item.type,
+						action: item.action,
+						createdAt: item.createdAt.toISOString(),
+					};
+				}
+				if (item.type === "ASSIGNMENT") {
+					return {
+						type: item.type,
+						assignedTo: item.assignedTo,
+						createdAt: item.createdAt.toISOString(),
+					};
+				}
+				return {
+					type: item.type,
+					tag: item.tag,
+					createdAt: item.createdAt.toISOString(),
+				};
+			}),
 			nextCursor: result.nextCursor,
 		});
 	});
@@ -161,9 +225,57 @@ export const registerConversationRoutes = async (
 			if (error instanceof Error && error.message === "RECIPIENT_NOT_FOUND") {
 				return reply.status(400).send({ message: "destinatario inválido" });
 			}
+			if (error instanceof Error && error.message === "CONVERSATION_CLOSED") {
+				return reply.status(409).send({ message: "conversa encerrada" });
+			}
 			return reply.status(500).send({ error: "SEND_MESSAGE_FAILED" });
 		}
 	});
+
+	// Execution Jobs endpoint (Phase 8)
+	if (options.conversationExecutionJobRepository) {
+		fastify.get("/api/conversations/:id/jobs", async (request, reply) => {
+			const tenantId = await resolveTenantId(request.headers as any);
+			if (!tenantId) return reply.status(401).send({ error: "UNAUTHORIZED" });
+
+			const params = request.params as { id: string };
+			const query = request.query as { status?: string; limit?: string };
+
+			const conversation = await options.conversationRepository.findById({
+				id: params.id,
+			});
+			if (!conversation || conversation.tenantId !== tenantId) {
+				return reply.status(404).send({ error: "CONVERSATION_NOT_FOUND" });
+			}
+
+			const limit = query.limit ? Number.parseInt(query.limit, 10) : 50;
+			if (query.limit && Number.isNaN(limit)) {
+				return reply.status(400).send({ message: "limit inválido" });
+			}
+
+			const jobs = await options.conversationExecutionJobRepository.findByConversation({
+				conversationId: params.id,
+				status: query.status as any,
+				limit: Math.min(Math.max(limit, 1), 100),
+			});
+
+			return reply.send({
+				items: jobs.map((job) => ({
+					id: job.id,
+					type: job.type,
+					status: job.status,
+					scheduledFor: job.scheduledFor.toISOString(),
+					attempts: job.attempts,
+					maxAttempts: job.maxAttempts,
+					lastError: job.lastError,
+					createdAt: job.createdAt.toISOString(),
+					executedAt: job.executedAt?.toISOString() ?? null,
+					failedAt: job.failedAt?.toISOString() ?? null,
+					cancelledAt: job.cancelledAt?.toISOString() ?? null,
+				})),
+			});
+		});
+	}
 };
 
 const parseConversationStatus = (value?: string): ConversationStatus | undefined => {

@@ -7,6 +7,8 @@ import type { ReplyIntentDispatcher } from "./reply-intent-dispatcher";
 import type { InboundMessageUseCase } from "../use-cases/inbound-message.use-case";
 import type { OutboundMessageRecordedUseCase } from "../use-cases/outbound-message-recorded.use-case";
 import type { UpdateLeadOnInboundUseCase } from "../sdr/update-lead-on-inbound.use-case";
+import type { ExecutionEngineUseCase } from "../execution-engine/execution-engine.use-case";
+import type { MessageEvent } from "../../domain/entities/conversation-timeline-event";
 
 export class ConversationEventPipelineUseCase {
 	constructor(
@@ -18,6 +20,8 @@ export class ConversationEventPipelineUseCase {
 		private readonly assignConversation: AssignConversationUseCase,
 		private readonly replyDispatcher: ReplyIntentDispatcher,
 		private readonly updateLeadOnInbound: UpdateLeadOnInboundUseCase,
+		private readonly executionEngine: ExecutionEngineUseCase | null = null,
+		private readonly idFactory: { createId(): string } = { createId: () => crypto.randomUUID() },
 	) {}
 
 	async execute(event: NormalizedWhatsAppEvent): Promise<void> {
@@ -46,9 +50,30 @@ export class ConversationEventPipelineUseCase {
 				});
 
 				await this.replyDispatcher.execute(decision.replyIntent);
+
+				// Plan and enqueue execution jobs for the inbound message
+				if (this.executionEngine) {
+					const timelineEvent = this.buildMessageEvent(event);
+					await this.executionEngine.planAndEnqueue(timelineEvent, conversation);
+				}
 			}
 		}
 
 		await this.outbound.execute(event);
+	}
+
+	private buildMessageEvent(event: NormalizedWhatsAppEvent): MessageEvent & { id: string } {
+		return {
+			id: this.idFactory.createId(),
+			type: "MESSAGE",
+			messageId: event.messageId ?? this.idFactory.createId(),
+			direction: event.type === "MESSAGE_RECEIVED" ? "INBOUND" : "OUTBOUND",
+			origin: "MANUAL",
+			payload: {
+				kind: "TEXT",
+				text: (event.metadata?.text as string) ?? undefined,
+			},
+			createdAt: event.occurredAt,
+		};
 	}
 }

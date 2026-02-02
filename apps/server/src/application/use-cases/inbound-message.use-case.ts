@@ -1,87 +1,27 @@
 import type { NormalizedWhatsAppEvent } from "../event-handlers/webhook-event-handler";
-import type { ConversationRepository } from "../../domain/repositories/conversation-repository";
 import type { InstanceRepository } from "../../domain/repositories/instance-repository";
 import type { LeadRepository } from "../../domain/repositories/lead-repository";
 import { Lead } from "../../domain/entities/lead";
-import { FindOrCreateConversationUseCase } from "./find-or-create-conversation.use-case";
-import type { MessageRepository } from "../../domain/repositories/message-repository";
-import type { DomainEventBus } from "../../domain/events/domain-event-bus";
-import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-events";
 import { type ContactIdentity, normalizePhone, parseContactIdentity } from "../conversations/contact-utils";
+import type { ConversationEngineUseCase } from "../conversations/conversation-engine.use-case";
 
 export class InboundMessageUseCase {
-	private readonly findOrCreateConversation: FindOrCreateConversationUseCase;
-
 	constructor(params: {
 		instanceRepository: InstanceRepository;
-		conversationRepository: ConversationRepository;
-		messageRepository: MessageRepository;
+		conversationEngine: ConversationEngineUseCase;
 		leadRepository: LeadRepository;
 		idFactory: { createId(): string };
-		eventBus: DomainEventBus<ChatMessageDomainEvent>;
 	}) {
-		this.eventBus = params.eventBus;
 		this.instanceRepository = params.instanceRepository;
 		this.leads = params.leadRepository;
-		this.findOrCreateConversation = new FindOrCreateConversationUseCase(
-			params.instanceRepository,
-			params.conversationRepository,
-			params.idFactory,
-		);
+		this.engine = params.conversationEngine;
 		this.idFactory = params.idFactory;
-
-		this.appendInbound = async (args) => {
-			if (args.providerMessageId) {
-				const exists = await params.messageRepository.existsByProviderMessageId({
-					conversationId: args.conversation.id,
-					providerMessageId: args.providerMessageId,
-				});
-				if (exists) {
-					return;
-				}
-			}
-
-			const message = args.conversation.receiveInboundMessage({
-				messageId: params.idFactory.createId(),
-				type: args.type,
-				providerMessageId: args.providerMessageId,
-				contentRef: args.contentRef,
-				metadata: args.metadata,
-				occurredAt: args.occurredAt,
-			});
-
-			await params.messageRepository.append(message);
-			await params.conversationRepository.save(args.conversation);
-			await this.eventBus.publish({
-				type: "MESSAGE_RECEIVED",
-				occurredAt: message.occurredAt,
-				organizationId: args.conversation.tenantId,
-				instanceId: args.conversation.instanceId,
-				conversationId: args.conversation.id,
-				message: {
-					id: message.id,
-					direction: message.direction,
-					type: message.type,
-					sentBy: message.sentBy,
-					status: message.status,
-					body: message.contentRef,
-				},
-			});
-		};
 	}
 
-	private readonly appendInbound: (args: {
-		conversation: import("../../domain/entities/conversation").Conversation;
-		type: import("../../domain/value-objects/message-type").MessageType;
-		providerMessageId?: string;
-		contentRef?: string;
-		metadata?: Record<string, unknown>;
-		occurredAt: Date;
-	}) => Promise<void>;
-	private readonly eventBus: DomainEventBus<ChatMessageDomainEvent>;
 	private readonly instanceRepository: InstanceRepository;
 	private readonly leads: LeadRepository;
 	private readonly idFactory: { createId(): string };
+	private readonly engine: ConversationEngineUseCase;
 
 	async execute(event: NormalizedWhatsAppEvent): Promise<{ conversationId: string } | null> {
 		if (event.type !== "MESSAGE_RECEIVED") {
@@ -104,24 +44,14 @@ export class InboundMessageUseCase {
 
 		const leadPhone = normalizePhone(lead?.phone ?? "");
 		const contactId = leadPhone || identity.contactId;
-
-		const conversation = await this.findOrCreateConversation.execute({
-			instanceId: event.instanceId,
+		const result = await this.engine.processInbound({
+			event,
 			contactId,
 			leadId: lead?.id ?? null,
-			now: event.occurredAt,
+			kind: event.isGroup ? "GROUP" : "PRIVATE",
 		});
 
-		await this.appendInbound({
-			conversation,
-			type: inferMessageType(event),
-			providerMessageId: event.messageId,
-			contentRef: inferContentRef(event),
-			metadata: event.metadata,
-			occurredAt: event.occurredAt,
-		});
-
-		return { conversationId: conversation.id };
+		return result;
 	}
 
 	private async resolveLead(params: {
@@ -197,18 +127,3 @@ export class InboundMessageUseCase {
 	}
 }
 
-const inferMessageType = (event: NormalizedWhatsAppEvent) => {
-	const messageType = event.metadata?.["messageType"];
-	if (messageType === "audio") return "AUDIO";
-	if (messageType === "image") return "IMAGE";
-	if (messageType === "sticker") return "STICKER";
-	return "TEXT";
-};
-
-const inferContentRef = (event: NormalizedWhatsAppEvent): string | undefined => {
-	const text = event.metadata?.["text"];
-	if (typeof text === "string" && text.trim()) {
-		return text;
-	}
-	return undefined;
-};

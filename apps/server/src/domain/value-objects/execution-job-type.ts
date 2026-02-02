@@ -1,0 +1,9 @@
+export const EXECUTION_JOB_TYPES = [
+	"WARMUP_CHECK",
+	"SLA_TIMEOUT",
+	"ASSIGNMENT_EVALUATION",
+	"AUTO_CLOSE_CONVERSATION",
+	"WEBHOOK_DISPATCH",
+] as const;
+
+export type ExecutionJobType = (typeof EXECUTION_JOB_TYPES)[number];

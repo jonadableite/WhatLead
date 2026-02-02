@@ -13,6 +13,7 @@ export class FindOrCreateConversationUseCase {
 		instanceId: string;
 		contactId: string;
 		leadId?: string | null;
+		kind?: import("../../domain/value-objects/conversation-kind").ConversationKind;
 		now: Date;
 	}): Promise<Conversation> {
 		if (params.leadId) {
@@ -44,6 +45,7 @@ export class FindOrCreateConversationUseCase {
 			channel: "WHATSAPP",
 			instanceId: instance.id,
 			contactId: params.contactId,
+			kind: params.kind,
 			openedAt: params.now,
 		});
 		if (params.leadId) {

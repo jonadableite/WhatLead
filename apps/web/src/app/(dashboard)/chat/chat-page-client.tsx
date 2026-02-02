@@ -37,16 +37,67 @@ interface ConversationsResponse {
   total: number;
 }
 
-interface MessagesResponse {
+interface TimelineResponse {
+  items: Array<
+    | {
+        type: "MESSAGE";
+        messageId: string;
+        direction: "INBOUND" | "OUTBOUND";
+        origin: "MANUAL" | "AI" | "AUTOMATION";
+        payload: {
+          kind: "TEXT" | "MEDIA" | "AUDIO" | "REACTION";
+          text?: string;
+          media?: {
+            url?: string;
+            base64?: string;
+            mimeType?: string;
+            caption?: string;
+          };
+          audio?: {
+            url?: string;
+            base64?: string;
+            mimeType?: string;
+          };
+          reaction?: {
+            emoji: string;
+            targetMessageId?: string;
+          };
+        };
+        createdAt: string;
+      }
+    | {
+        type: "SYSTEM";
+        action: "CONVERSATION_OPENED" | "CONVERSATION_CLOSED";
+        createdAt: string;
+      }
+    | {
+        type: "ASSIGNMENT";
+        assignedTo: { type: "OPERATOR" | "AI"; id: string };
+        createdAt: string;
+      }
+    | {
+        type: "TAG";
+        tag: string;
+        createdAt: string;
+      }
+  >;
+  nextCursor?: string;
+}
+
+interface ExecutionJobsResponse {
   items: Array<{
     id: string;
-    direction: "INBOUND" | "OUTBOUND";
     type: string;
-    sentBy: string;
-    body: string;
-    occurredAt: string;
+    status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+    scheduledFor: string;
+    attempts: number;
+    maxAttempts: number;
+    lastError: string | null;
+    createdAt: string;
+    executedAt: string | null;
+    failedAt: string | null;
+    cancelledAt: string | null;
   }>;
-  nextCursor?: string;
 }
 
 const useIsMobile = () => {
@@ -114,16 +165,28 @@ export default function ChatPageClient() {
     }
   }, [conversationsData, activeConversationId]);
 
-  const messagesQuery = activeConversationId
-    ? `/api/conversations/${activeConversationId}/messages?limit=60`
+  const timelineQuery = activeConversationId
+    ? `/api/conversations/${activeConversationId}/timeline?limit=60`
     : null;
 
   const {
-    data: messagesData,
-    isLoading: isLoadingMessages,
-    mutate: mutateMessages,
-  } = useApiSWR<MessagesResponse>(messagesQuery, {
+    data: timelineData,
+    isLoading: isLoadingTimeline,
+    mutate: mutateTimeline,
+  } = useApiSWR<TimelineResponse>(timelineQuery, {
     refreshInterval: 3000,
+  });
+
+  const executionJobsQuery = activeConversationId
+    ? `/api/conversations/${activeConversationId}/jobs?limit=20`
+    : null;
+
+  const {
+    data: executionJobsData,
+    isLoading: isLoadingExecutionJobs,
+    mutate: mutateExecutionJobs,
+  } = useApiSWR<ExecutionJobsResponse>(executionJobsQuery, {
+    refreshInterval: 10000,
   });
 
   const { lastEvent } = useRealtime({
@@ -140,13 +203,15 @@ export default function ChatPageClient() {
     }
     void mutateConversations();
     if (lastEvent.payload.conversationId === activeConversationId) {
-      void mutateMessages();
+      void mutateTimeline();
+      void mutateExecutionJobs();
     }
   }, [
     activeConversationId,
     lastEvent,
     mutateConversations,
-    mutateMessages,
+    mutateTimeline,
+    mutateExecutionJobs,
     selectedInstanceId,
   ]);
 
@@ -228,7 +293,7 @@ export default function ChatPageClient() {
         body: JSON.stringify({ body: trimmed }),
       });
       setNewMessage("");
-      await Promise.all([mutateMessages(), mutateConversations()]);
+      await Promise.all([mutateTimeline(), mutateConversations()]);
     } catch {
       // Errors are handled by UI state; no toast needed in phase 1.
     } finally {
@@ -237,13 +302,13 @@ export default function ChatPageClient() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-background -m-4 md:-m-8 p-4 md:p-8">
+    <div className="relative flex h-[calc(100vh-64px)] flex-col overflow-hidden bg-background -m-4 md:-m-8 p-4 md:p-8">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-primary/10 blur-[100px]" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]" />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-none flex-1 flex-col gap-6">
+      <div className="relative mx-auto flex w-full max-w-none flex-1 min-h-0 flex-col gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold text-white">Chat CRM</h1>
           <p className="text-sm text-zinc-400">
@@ -278,8 +343,10 @@ export default function ChatPageClient() {
               showBack={isMobile}
               onBack={() => setShowConversationList(true)}
               conversation={activeConversation ?? null}
-              messages={messagesData?.items ?? []}
-              isLoading={isLoadingMessages}
+              timeline={timelineData?.items ?? []}
+              isLoading={isLoadingTimeline}
+              executionJobs={executionJobsData?.items ?? []}
+              isLoadingJobs={isLoadingExecutionJobs}
               instanceName={activeInstance?.name}
               instanceStatus={
                 activeInstance

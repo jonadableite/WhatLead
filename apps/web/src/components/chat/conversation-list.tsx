@@ -44,8 +44,8 @@ export function ConversationList({
 	onSelectConversation,
 }: ConversationListProps) {
 	return (
-		<Card className="flex h-full flex-col gap-4 border-white/10 bg-white/5 p-4 backdrop-blur-xl">
-			<div className="space-y-3">
+		<Card className="flex h-full min-h-0 flex-col gap-4 border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+			<div className="space-y-3 flex-shrink-0">
 				<div>
 					<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
 						Conversas
@@ -83,7 +83,7 @@ export function ConversationList({
 				</div>
 			</div>
 
-			<ScrollArea className="flex-1 pr-2">
+			<ScrollArea className="flex-1 min-h-0 pr-2">
 				<div className="space-y-3">
 					{isLoading && (
 						<p className="text-xs text-zinc-500">Carregando conversas...</p>

@@ -36,6 +36,13 @@ export class AssignConversationToOperatorUseCase {
 			throw new Error("CONVERSATION_ALREADY_ASSIGNED");
 		}
 
+		await this.conversations.saveEvent({
+			conversationId: conversation.id,
+			type: "ASSIGNMENT",
+			assignedTo: { type: "OPERATOR", id: operator.id },
+			createdAt: new Date(),
+		});
+
 		operator.claimConversation();
 
 		const count = await this.operators.recalculateConversationCount({ operatorId: operator.id });

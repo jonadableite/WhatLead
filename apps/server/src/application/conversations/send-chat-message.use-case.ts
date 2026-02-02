@@ -6,6 +6,7 @@ import type { ChatMessageDomainEvent } from "../../domain/events/chat-message-ev
 import type { CreateMessageIntentUseCase } from "../message-intents/create-message-intent.use-case";
 import type { DecideMessageIntentUseCase } from "../message-intents/decide-message-intent.use-case";
 import { resolveOutboundRecipient } from "./contact-utils";
+import type { ConversationEngineUseCase } from "./conversation-engine.use-case";
 
 export interface SendChatMessageUseCaseRequest {
 	tenantId: string;
@@ -30,8 +31,8 @@ export class SendChatMessageUseCase {
 		private readonly leads: LeadRepository,
 		private readonly createIntent: CreateMessageIntentUseCase,
 		private readonly decideIntent: DecideMessageIntentUseCase,
-		private readonly idFactory: { createId(): string },
 		private readonly eventBus: DomainEventBus<ChatMessageDomainEvent>,
+		private readonly conversationEngine: ConversationEngineUseCase,
 	) {}
 
 	async execute(
@@ -71,18 +72,14 @@ export class SendChatMessageUseCase {
 		});
 
 		const occurredAt = request.now ?? new Date();
-		const messageId = this.idFactory.createId();
-		const message = conversation.recordPendingOutboundMessage({
-			messageId,
-			type: "TEXT",
-			sentBy: "BOT",
-			contentRef: body,
-			metadata: { origin: "CHAT_MANUAL", intentId: intent.intentId },
+		const message = await this.conversationEngine.processManualSend({
+			conversation,
+			body,
 			occurredAt,
+			metadata: { origin: "CHAT_MANUAL", intentId: intent.intentId },
+			sentBy: "BOT",
+			type: "TEXT",
 		});
-
-		await this.messages.append(message);
-		await this.conversations.save(conversation);
 		await this.eventBus.publish({
 			type: "MESSAGE_STATUS_UPDATED",
 			occurredAt: occurredAt,
@@ -107,7 +104,7 @@ export class SendChatMessageUseCase {
 
 		if (decision.decision.kind === "BLOCKED") {
 			await this.messages.updateDelivery({
-				messageId,
+				messageId: message.id,
 				status: "FAILED",
 				metadata: {
 					origin: "CHAT_MANUAL",
